@@ -1,15 +1,28 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function Splash() {
   const navigate = useNavigate();
 
+  const { role, loading } = useAuth();
+
   useEffect(() => {
+    if (loading) return; // Attend que l'auth soit chargée
+    
     const timer = setTimeout(() => {
-      navigate('/', { replace: true });
+      if (role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else if (role === 'proprietaire') {
+        navigate('/pro/dashboard', { replace: true });
+      } else if (role === 'locataire') {
+        navigate('/dashboard', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     }, 2500);
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [navigate, role, loading]);
 
   return (
     <div

@@ -87,9 +87,11 @@ const AdminAnnonces: React.FC = () => {
           moderated_at: new Date().toISOString(),
           moderated_by: profile?.id,
         })
-        .eq('id', listingId);
+        .eq('id', listingId)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Action bloquée (Politique de sécurité RLS) ou annonce introuvable.");
 
       setListings(prev => prev.filter(l => l.id !== listingId));
       showToast('Annonce approuvée et publiée', 'success');
@@ -128,9 +130,11 @@ const AdminAnnonces: React.FC = () => {
           moderated_at: new Date().toISOString(),
           moderated_by: profile?.id,
         })
-        .eq('id', rejectModal.listingId);
+        .eq('id', rejectModal.listingId)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Action bloquée (Politique de sécurité RLS) ou annonce introuvable.");
 
       setListings(prev => prev.filter(l => l.id !== rejectModal.listingId));
       setRejectModal(null);
@@ -165,9 +169,11 @@ const AdminAnnonces: React.FC = () => {
           moderated_at: new Date().toISOString(),
           moderated_by: profile?.id,
         })
-        .eq('id', listingId);
+        .eq('id', listingId)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Action bloquée (Politique de sécurité RLS) ou annonce introuvable.");
 
       setListings(prev => prev.filter(l => l.id !== listingId));
       showToast('Annonce dépubliée et remise en attente', 'success');
@@ -195,8 +201,9 @@ const AdminAnnonces: React.FC = () => {
         }
       }
 
-      const { error } = await supabase.from('listings').delete().eq('id', listingId);
+      const { data, error } = await supabase.from('listings').delete().eq('id', listingId).select();
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Action bloquée (Politique de sécurité RLS) ou annonce introuvable.");
 
       setListings(prev => prev.filter(l => l.id !== listingId));
       showToast('Annonce supprimée', 'success');

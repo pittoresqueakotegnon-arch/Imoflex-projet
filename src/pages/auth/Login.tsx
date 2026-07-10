@@ -20,13 +20,16 @@ export default function Login() {
   useEffect(() => {
     if (user && profile) {
       const from = location.state?.from?.pathname;
-      if (from) {
+      const role = profile.role;
+      
+      if (role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else if (from) {
         navigate(from, { replace: true });
+      } else if (role === 'proprietaire') {
+        navigate('/pro/dashboard', { replace: true });
       } else {
-        const role = profile.role;
-        if (role === 'admin') navigate('/admin', { replace: true });
-        else if (role === 'proprietaire') navigate('/pro/dashboard', { replace: true });
-        else navigate('/dashboard', { replace: true });
+        navigate('/dashboard', { replace: true });
       }
     }
   }, [user, profile, navigate, location]);
