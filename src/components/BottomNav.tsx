@@ -95,6 +95,7 @@ export const BottomNav: React.FC = () => {
         return [
           { icon: (a) => <IconMarche active={a} />, label: 'Marché', path: '/' },
           { icon: (a) => <IconFavoris active={a} />, label: 'Favoris', path: '/favoris' },
+          { icon: (a) => <IconDemandes active={a} />, label: 'Demandes', path: '/mes-demandes' },
           { icon: (a) => <IconLoyer active={a} />, label: 'Mon loyer', path: '/dashboard' },
           { icon: (a) => <IconProfil active={a} />, label: 'Profil', path: '/profil' },
         ];
