@@ -17,6 +17,7 @@ const Publier: React.FC = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Step 1: Photos & basic info
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
@@ -39,6 +40,7 @@ const Publier: React.FC = () => {
   const handlePhotoUpload = async (file: File, index: number) => {
     if (!profile?.id) return;
 
+    setUploadingImage(true);
     try {
       const timestamp = Date.now();
       const filename = `${timestamp}_${file.name}`;
@@ -60,6 +62,8 @@ const Publier: React.FC = () => {
     } catch (err) {
       console.error('Photo upload error:', err);
       showToast('Erreur lors du téléchargement de la photo', 'error');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -209,16 +213,25 @@ const Publier: React.FC = () => {
                 <div className="aspect-square">
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg, image/png, image/webp, .jpg, .jpeg, .png, .webp"
                     onChange={e => handlePhotoInputChange(e, uploadedPhotos.length)}
                     className="hidden"
                     id="photo-upload-new"
+                    disabled={uploadingImage}
                   />
                   <label
                     htmlFor="photo-upload-new"
-                    className="w-full h-full rounded-2xl border-2 border-dashed border-[#A855F7]/30 hover:border-[#A855F7]/60 cursor-pointer transition flex items-center justify-center bg-[#261C55]"
+                    className={`w-full h-full rounded-2xl border-2 border-dashed transition flex items-center justify-center bg-[#261C55] ${
+                      uploadingImage 
+                        ? 'border-[#A855F7]/10 opacity-70 cursor-not-allowed' 
+                        : 'border-[#A855F7]/30 hover:border-[#A855F7]/60 cursor-pointer'
+                    }`}
                   >
-                    <Plus size={20} className="text-[#8B7BB5]" />
+                    {uploadingImage ? (
+                      <div className="w-5 h-5 border-2 border-[#A855F7] border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <Plus size={20} className="text-[#8B7BB5]" />
+                    )}
                   </label>
                 </div>
               )}
