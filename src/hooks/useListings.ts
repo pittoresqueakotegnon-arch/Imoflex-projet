@@ -74,6 +74,30 @@ export function useListings(filters: ListingFilters = {}) {
 
   useEffect(() => {
     fetchListings();
+
+    const channel = supabase
+      .channel('marketplace-listings')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'listings' }, (payload) => {
+        if (payload.eventType === 'DELETE') {
+          setListings(prev => prev.filter(l => l.id !== payload.old.id));
+        } else if (payload.eventType === 'UPDATE') {
+          if (payload.new.status !== 'publiee') {
+            // L'annonce a été dépubliée, on la retire immédiatement de la vue
+            setListings(prev => prev.filter(l => l.id !== payload.new.id));
+          } else {
+            fetchListings(); // Si elle devient publiée ou est modifiée, on rafraîchit
+          }
+        } else if (payload.eventType === 'INSERT') {
+          if (payload.new.status === 'publiee') {
+            fetchListings();
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchListings]);
 
   return { listings, loading, error, refetch: fetchListings };

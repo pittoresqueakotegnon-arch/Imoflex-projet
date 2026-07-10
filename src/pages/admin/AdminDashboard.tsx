@@ -299,7 +299,29 @@ const AdminDashboard: React.FC = () => {
     }
   }, [showToast]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { 
+    fetchAll(); 
+
+    // Écouter les changements en temps réel sur les tables clés
+    const usersChannel = supabase
+      .channel('dashboard-users')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+        fetchAll();
+      })
+      .subscribe();
+
+    const listingsChannel = supabase
+      .channel('dashboard-listings')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'listings' }, () => {
+        fetchAll();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(usersChannel);
+      supabase.removeChannel(listingsChannel);
+    };
+  }, [fetchAll]);
 
   // ─── Skeleton ───────────────────────────────────────────────────────────
 
