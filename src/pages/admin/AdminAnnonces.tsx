@@ -26,6 +26,7 @@ const AdminAnnonces: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [rejectModal, setRejectModal] = useState<{ listingId: string; title: string } | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [deleteModal, setDeleteModal] = useState<{ listingId: string; title: string } | null>(null);
 
   useEffect(() => {
     fetchListings();
@@ -186,8 +187,7 @@ const AdminAnnonces: React.FC = () => {
   };
 
   const handleDelete = async (listingId: string) => {
-    if (!confirm('Supprimer définitivement cette annonce et ses photos ?')) return;
-
+    setDeleteModal(null);
     setActionLoading(listingId);
     try {
       const listing = listings.find(l => l.id === listingId);
@@ -364,7 +364,7 @@ const AdminAnnonces: React.FC = () => {
                       </button>
                     )}
                     <button
-                      onClick={() => handleDelete(listing.id)}
+                      onClick={() => setDeleteModal({ listingId: listing.id, title: listing.title })}
                       disabled={actionLoading === listing.id}
                       className="py-2 px-4 rounded-lg text-sm font-semibold transition disabled:opacity-50"
                       style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444' }}
@@ -412,6 +412,54 @@ const AdminAnnonces: React.FC = () => {
                 style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#EF4444' }}
               >
                 Confirmer le rejet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.75)' }}>
+          <div className="rounded-2xl border p-6 w-full max-w-sm" style={{ background: 'var(--adm-surface)', borderColor: 'var(--adm-border)' }}>
+            {/* Icon */}
+            <div className="flex items-center justify-center w-14 h-14 rounded-2xl mx-auto mb-4" style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)' }}>
+              <Trash2 size={24} color="#EF4444" />
+            </div>
+
+            <h3 className="font-nunito font-900 text-lg text-center mb-1" style={{ color: 'var(--adm-text)' }}>
+              Supprimer l&apos;annonce
+            </h3>
+            <p className="text-center text-xs font-space-grotesk mb-2" style={{ color: 'var(--adm-text-muted)' }}>
+              Cette action est <span className="font-bold" style={{ color: '#EF4444' }}>irréversible</span>.
+            </p>
+            <p
+              className="text-center text-xs font-semibold py-2 px-3 rounded-xl mb-5 font-space-grotesk truncate"
+              style={{ background: 'rgba(239, 68, 68, 0.08)', color: '#EF4444' }}
+            >
+              « {deleteModal.title} »
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteModal(null)}
+                disabled={actionLoading === deleteModal.listingId}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold border transition disabled:opacity-50"
+                style={{ background: 'var(--adm-surface-alt)', color: 'var(--adm-text-muted)', borderColor: 'var(--adm-border)' }}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => handleDelete(deleteModal.listingId)}
+                disabled={actionLoading === deleteModal.listingId}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold transition disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.3)' }}
+              >
+                {actionLoading === deleteModal.listingId ? (
+                  <><div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" /> Suppression...</>
+                ) : (
+                  <><Trash2 size={14} /> Supprimer</>  
+                )}
               </button>
             </div>
           </div>
