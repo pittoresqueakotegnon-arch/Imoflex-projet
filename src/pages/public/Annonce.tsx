@@ -181,7 +181,7 @@ const Annonce: React.FC = () => {
         <div className="flex items-end justify-between mb-2">
           <div>
             <span className="font-nunito font-900 text-3xl text-white" style={{ letterSpacing: '-0.02em' }}>
-              {formatMontant(listing.monthly_rent)}
+              {listing.monthly_rent.toLocaleString('fr-FR')}
             </span>
             <span className="text-[#8B7BB5] text-sm ml-1" style={{ fontFamily: 'Space Grotesk' }}>FCFA/mois</span>
           </div>

@@ -131,7 +131,7 @@ export default function Historique() {
                   Total {getMonthName(new Date().getMonth() + 1, new Date().getFullYear())}
                 </p>
                 <p className="font-nunito font-900 text-2xl amount text-white">
-                  {formatMontant(currentMonthTotal)} <span className="text-xs font-normal text-[#8B7BB5]">FCFA</span>
+                  {currentMonthTotal.toLocaleString('fr-FR')} <span className="text-xs font-normal text-[#8B7BB5]">FCFA</span>
                 </p>
               </div>
               <div className="text-right">

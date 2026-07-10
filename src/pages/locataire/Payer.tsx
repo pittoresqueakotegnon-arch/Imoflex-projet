@@ -182,10 +182,10 @@ export default function Payer() {
         <div className="mb-6 text-center">
           <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-2">MONTANT À VERSER</p>
           <p className="font-nunito font-950 text-4xl amount text-white mb-1.5">
-            <span className="text-[#A855F7] text-xl font-bold mr-1">FCFA</span> {formatMontant(amount)}
+            <span className="text-[#A855F7] text-xl font-bold mr-1">FCFA</span> {amount.toLocaleString('fr-FR')}
           </p>
           <p className="text-[#8B7BB5] text-xs" style={{ fontFamily: 'Space Grotesk' }}>
-            Solde restant : {formatMontant(remaining)} FCFA
+            Solde restant : {formatMontant(remaining)}
           </p>
         </div>
 
@@ -296,7 +296,7 @@ export default function Payer() {
         <div className="card p-4 mb-6 space-y-2 bg-[#1A1240]">
           <div className="flex justify-between text-sm font-space-grotesk">
             <span className="text-white font-semibold">Total débité</span>
-            <span className="text-[#A855F7] font-nunito font-900 amount">{formatMontant(amount)} FCFA</span>
+            <span className="text-[#A855F7] font-nunito font-900 amount">{amount.toLocaleString('fr-FR')} FCFA</span>
           </div>
         </div>
 

@@ -173,10 +173,10 @@ export default function Dashboard() {
 
               <div className="mb-5 relative z-10">
                 <p className="font-nunito font-black text-[2.5rem] amount leading-none">
-                  {formatMontant(progress.paid)} <span className="text-[1.5rem] font-normal text-[#8B7BB5]">FCFA</span>
+                  {progress.paid.toLocaleString('fr-FR')} <span className="text-[1.5rem] font-normal text-[#8B7BB5]">FCFA</span>
                 </p>
                 <p className="text-[#8B7BB5] text-xs mt-1" style={{ fontFamily: 'Space Grotesk' }}>
-                  Payé sur {formatMontant(progress.due)} FCFA
+                  Payé sur {formatMontant(progress.due)}
                 </p>
               </div>
 

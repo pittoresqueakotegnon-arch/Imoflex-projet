@@ -226,7 +226,7 @@ export default function Rejoindre() {
 
               <div>
                 <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-0.5">Loyer mensuel</p>
-                <p className="font-nunito font-900 text-2xl amount text-[#A855F7]">{formatMontant(property.monthly_rent)} <span className="text-sm font-normal text-[#8B7BB5]">FCFA</span></p>
+                <p className="font-nunito font-900 text-2xl amount text-[#A855F7]">{property.monthly_rent.toLocaleString('fr-FR')} <span className="text-sm font-normal text-[#8B7BB5]">FCFA</span></p>
               </div>
 
               <div>
