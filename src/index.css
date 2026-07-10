@@ -1,0 +1,705 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Cadre mobile centré, max 480px, fond sombre autour sur desktop */
+  .mobile-frame {
+    max-width: 390px;
+    margin: 0 auto;
+    min-height: 100vh;
+    position: relative;
+    background-color: #120D2A;
+    transform: translateZ(0);
+    overflow-x: hidden;
+  }
+
+  @media (min-width: 480px) {
+    .mobile-frame {
+      box-shadow: 0 0 80px rgba(123, 63, 228, 0.2),
+                  0 0 0 1px rgba(123, 63, 228, 0.12);
+    }
+  }
+
+  body {
+    background-color: #05030d;
+    color: #E8E0FF;
+    font-family: 'Space Grotesk', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+  }
+
+  /* Scrollbar invisible */
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer components {
+
+  /* =========================================
+     BOUTONS
+  ========================================= */
+  .btn-primary {
+    background: linear-gradient(135deg, #7B3FE4 0%, #A855F7 100%);
+    border-radius: 16px;
+    color: white;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    padding: 0 24px;
+    height: 54px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 24px rgba(123, 63, 228, 0.45);
+    transition: all 0.18s ease;
+    font-family: 'Nunito', sans-serif;
+    letter-spacing: 0.01em;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 28px rgba(123, 63, 228, 0.55);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .btn-gold {
+    background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+    border-radius: 16px;
+    color: #0D0720;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    padding: 0 24px;
+    height: 54px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 16px rgba(251, 191, 36, 0.35);
+    transition: all 0.18s ease;
+    font-family: 'Nunito', sans-serif;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-gold:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    color: #E8E0FF;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    padding: 0 24px;
+    height: 54px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.18s ease;
+    font-family: 'Nunito', sans-serif;
+    cursor: pointer;
+  }
+
+  .btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(168, 85, 247, 0.4);
+  }
+
+  .btn-ghost-violet {
+    background: transparent;
+    border: 1.5px solid rgba(168, 85, 247, 0.4);
+    border-radius: 16px;
+    color: #A855F7;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    padding: 0 24px;
+    height: 54px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.18s ease;
+    font-family: 'Nunito', sans-serif;
+    cursor: pointer;
+  }
+
+  .btn-ghost-violet:hover {
+    background: rgba(168, 85, 247, 0.08);
+  }
+
+  .btn-sm {
+    padding: 0 14px !important;
+    font-size: 0.8125rem !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    gap: 5px !important;
+  }
+
+  .btn-icon {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 12px;
+    background: rgba(38, 28, 85, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    color: #E8E0FF;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-icon:hover {
+    background: rgba(123, 63, 228, 0.2);
+    border-color: rgba(168, 85, 247, 0.3);
+  }
+
+  /* =========================================
+     CARDS
+  ========================================= */
+  .card {
+    background: #1A1240;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+  }
+
+  .card-dark {
+    background: #120D2A;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+  }
+
+  /* =========================================
+     INPUTS
+  ========================================= */
+  .input-field {
+    background: #1E1545;
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 13px 16px;
+    color: #E8E0FF;
+    width: 100%;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    transition: all 0.18s ease;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .input-field::placeholder {
+    color: #4A3D7A;
+  }
+
+  .input-field:focus {
+    border-color: #A855F7;
+    background: #221860;
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+  }
+
+  select.input-field {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238B7BB5' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 40px;
+    cursor: pointer;
+  }
+
+  /* =========================================
+     PROGRESS BAR
+  ========================================= */
+  .progress-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #7B3FE4 0%, #C084FC 100%);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  /* =========================================
+     BADGES
+  ========================================= */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .badge-green {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22C55E;
+  }
+
+  .badge-amber {
+    background: rgba(245, 158, 11, 0.15);
+    color: #F59E0B;
+  }
+
+  .badge-red {
+    background: rgba(239, 68, 68, 0.15);
+    color: #EF4444;
+  }
+
+  .badge-violet {
+    background: rgba(168, 85, 247, 0.18);
+    color: #C084FC;
+  }
+
+  .badge-dim {
+    background: rgba(139, 123, 181, 0.12);
+    color: #8B7BB5;
+  }
+
+  /* Badges status solides (EN ATTENTE / TRAITÉE) */
+  .badge-solid-amber {
+    background: #F59E0B;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-family: 'Nunito', sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .badge-solid-green {
+    background: #22C55E;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-family: 'Nunito', sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .badge-solid-violet {
+    background: #7B3FE4;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-family: 'Nunito', sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .badge-new {
+    background: rgba(168, 85, 247, 0.18);
+    color: #C084FC;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-family: 'Nunito', sans-serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* =========================================
+     BOTTOM NAV — ancré dans mobile-frame
+  ========================================= */
+  .bottom-nav {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(12, 8, 32, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(123, 63, 228, 0.18);
+    z-index: 50;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    margin-top: auto;
+  }
+
+  /* =========================================
+     PAGE CONTAINER
+  ========================================= */
+  .page-container {
+    min-height: 100vh;
+    background: #120D2A;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 80px;
+  }
+
+  /* =========================================
+     TYPOGRAPHIE
+  ========================================= */
+  .amount {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+
+  .section-title {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    color: #E8E0FF;
+  }
+
+  .label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8B7BB5;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  .text-dim {
+    color: #8B7BB5;
+  }
+
+  /* =========================================
+     LISTING CARD — horizontal (favoris)
+  ========================================= */
+  .listing-card-h {
+    background: #1A1240;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .listing-card-h-img {
+    width: 110px;
+    flex-shrink: 0;
+    background: #261C55;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* =========================================
+     STAT BOX (dashboard)
+  ========================================= */
+  .stat-box {
+    background: rgba(38, 28, 85, 0.6);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  /* =========================================
+     OTP BOXES
+  ========================================= */
+  .otp-box {
+    width: 46px;
+    height: 56px;
+    background: #1E1545;
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #E8E0FF;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 1.5rem;
+    text-align: center;
+    outline: none;
+    transition: all 0.15s ease;
+    caret-color: #A855F7;
+  }
+
+  .otp-box:focus {
+    border-color: #A855F7;
+    background: #221860;
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+  }
+
+  .otp-box.filled {
+    border-color: rgba(168, 85, 247, 0.5);
+    background: #1E1545;
+  }
+
+  /* =========================================
+     CODE DISPLAY (code d'accès généré)
+  ========================================= */
+  .code-display {
+    background: linear-gradient(135deg, #1A1240 0%, #261C55 100%);
+    border: 1px solid rgba(168, 85, 247, 0.2);
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+  }
+
+  .code-display .code-text {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 2.25rem;
+    letter-spacing: 0.12em;
+    color: #A855F7;
+    text-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+  }
+
+  /* =========================================
+     FILTER PILL
+  ========================================= */
+  .filter-pill {
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1.5px solid transparent;
+    transition: all 0.15s ease;
+    cursor: pointer;
+  }
+
+  .filter-pill.active {
+    background: #7B3FE4;
+    color: white;
+    border-color: #7B3FE4;
+  }
+
+  .filter-pill.inactive {
+    background: #1E1545;
+    color: #8B7BB5;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .filter-pill.inactive:hover {
+    border-color: rgba(168, 85, 247, 0.4);
+    color: #E8E0FF;
+  }
+
+  /* =========================================
+     OPERATOR BUTTON
+  ========================================= */
+  .op-btn {
+    flex: 1;
+    padding: 14px 8px;
+    border-radius: 14px;
+    background: #1E1545;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .op-btn.selected {
+    border-color: currentColor;
+    box-shadow: 0 0 0 2px currentColor;
+  }
+
+  /* =========================================
+     GRADIENT HERO CARD (locataire loyer)
+  ========================================= */
+  .loyer-hero {
+    background: linear-gradient(135deg, #2D1B6B 0%, #3D2090 50%, #2D1B6B 100%);
+    border: 1px solid rgba(123, 63, 228, 0.25);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .loyer-hero::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 160px;
+    height: 160px;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.25) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* =========================================
+     GRADIENT HERO CARD (propriétaire encaissé)
+  ========================================= */
+  .encaisse-hero {
+    background: linear-gradient(135deg, #5B21B6 0%, #7B3FE4 50%, #9333EA 100%);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .encaisse-hero::before {
+    content: '';
+    position: absolute;
+    bottom: -30px;
+    right: -30px;
+    width: 140px;
+    height: 140px;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* =========================================
+     STICKY HEADER
+  ========================================= */
+  .sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: rgba(13, 7, 32, 0.97);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(123, 63, 228, 0.1);
+  }
+
+  /* =========================================
+     ROLE CARD (inscription)
+  ========================================= */
+  .role-card {
+    background: #1A1240;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+
+  .role-card.selected {
+    border-color: #7B3FE4;
+    background: rgba(123, 63, 228, 0.1);
+  }
+
+  .role-card:hover:not(.selected) {
+    border-color: rgba(168, 85, 247, 0.35);
+  }
+
+  .role-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .glow-violet {
+    text-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+  }
+
+  .shadow-violet {
+    box-shadow: 0 4px 24px rgba(123, 63, 228, 0.4);
+  }
+}
+
+/* ── Admin Shell Theme Variables ───────────────────────────────────────────── */
+
+.admin-shell {
+  /* Dark (default) */
+  --adm-bg:           #0F172A;
+  --adm-surface:      #1E293B;
+  --adm-surface-alt:  #263148;
+  --adm-border:       rgba(255, 255, 255, 0.07);
+  --adm-border-focus: rgba(139, 92, 246, 0.4);
+  --adm-text:         #F1F5F9;
+  --adm-text-muted:   #94A3B8;
+  --adm-text-dim:     #64748B;
+  --adm-accent:       #A78BFA;
+  --adm-tooltip-bg:   #1E293B;
+  --adm-divider:      rgba(255, 255, 255, 0.05);
+  --adm-hover:        rgba(255, 255, 255, 0.03);
+  --adm-banner-bg:    linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+  --adm-card-gradient: #1E293B;
+}
+
+.admin-shell.light {
+  --adm-bg:           #F1F5F9;
+  --adm-surface:      #FFFFFF;
+  --adm-surface-alt:  #F8FAFC;
+  --adm-border:       #E2E8F0;
+  --adm-border-focus: rgba(124, 58, 237, 0.35);
+  --adm-text:         #0F172A;
+  --adm-text-muted:   #475569;
+  --adm-text-dim:     #94A3B8;
+  --adm-accent:       #7C3AED;
+  --adm-tooltip-bg:   #FFFFFF;
+  --adm-divider:      #E2E8F0;
+  --adm-hover:        rgba(0, 0, 0, 0.025);
+  --adm-banner-bg:    linear-gradient(135deg, #EDE9FE 0%, #F1F5F9 100%);
+  --adm-card-gradient: #FFFFFF;
+}
+
