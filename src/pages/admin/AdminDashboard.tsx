@@ -185,7 +185,7 @@ const AdminDashboard: React.FC = () => {
         withdrawalDetailRes,
         auditRes,
       ] = await Promise.all([
-        supabase.from('users').select('*', { count: 'exact', head: true }),
+        supabase.from('users').select('id', { count: 'exact', head: true }),
         supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'publiee'),
         supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'en_attente'),
         supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'en_traitement'),
