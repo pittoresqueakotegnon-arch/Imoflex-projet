@@ -87,8 +87,11 @@ export default function Historique() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#120D2A] text-[#E8E0FF] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#7B3FE4] border-t-transparent rounded-full animate-spin"></div>
+      <div className="page-container">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-[#7B3FE4] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+        <BottomNav />
       </div>
     );
   }

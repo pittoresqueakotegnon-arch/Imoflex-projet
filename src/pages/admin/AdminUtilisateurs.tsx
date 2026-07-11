@@ -12,6 +12,12 @@ const AdminUtilisateurs: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [toggling, setToggling] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    userId: string;
+    newStatus: 'actif' | 'suspendu' | 'banni';
+    label: string;
+    color: string;
+  } | null>(null);
 
   const PAGE_SIZE = 20;
 
@@ -42,14 +48,19 @@ const AdminUtilisateurs: React.FC = () => {
   };
 
   const handleChangeStatus = async (userId: string, newStatus: 'actif' | 'suspendu' | 'banni') => {
-    const confirmMsg = newStatus === 'banni'
-      ? 'Êtes-vous sûr de vouloir BANNIR cet utilisateur ?'
-      : newStatus === 'suspendu'
-        ? 'Êtes-vous sûr de vouloir suspendre cet utilisateur ?'
-        : null;
+    if (newStatus === 'banni' || newStatus === 'suspendu') {
+      const labels: Record<string, { label: string; color: string }> = {
+        banni: { label: 'Bannir cet utilisateur ?', color: '#EF4444' },
+        suspendu: { label: 'Suspendre cet utilisateur ?', color: '#FBBF24' },
+      };
+      setConfirmModal({ userId, newStatus, label: labels[newStatus].label, color: labels[newStatus].color });
+      return;
+    }
+    await doChangeStatus(userId, newStatus);
+  };
 
-    if (confirmMsg && !confirm(confirmMsg)) return;
-
+  const doChangeStatus = async (userId: string, newStatus: 'actif' | 'suspendu' | 'banni') => {
+    setConfirmModal(null);
     setToggling(userId);
     try {
       const { error } = await supabase
@@ -85,8 +96,7 @@ const AdminUtilisateurs: React.FC = () => {
 
   const handleChangeRole = async (userId: string, currentRole: string, newRole: string) => {
     if (currentRole === newRole) return;
-    if (!confirm(`Voulez-vous vraiment changer le rôle de cet utilisateur en ${getRoleLabel(newRole)} ?`)) return;
-
+    // Just update directly without confirm for role changes (less destructive)
     setToggling(userId);
     try {
       const { error } = await supabase
@@ -263,6 +273,39 @@ const AdminUtilisateurs: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Confirm Modal (Suspendre / Bannir) */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.75)' }}>
+          <div className="rounded-2xl border p-6 w-full max-w-sm" style={{ background: 'var(--adm-surface)', borderColor: 'var(--adm-border)' }}>
+            <div
+              className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center text-2xl"
+              style={{ background: `${confirmModal.color}18`, border: `1px solid ${confirmModal.color}40` }}
+            >
+              {confirmModal.newStatus === 'banni' ? '🚫' : '⚠️'}
+            </div>
+            <h3 className="font-nunito font-900 text-lg text-center mb-4" style={{ color: 'var(--adm-text)' }}>
+              {confirmModal.label}
+            </h3>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmModal(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold border transition"
+                style={{ background: 'var(--adm-surface-alt)', color: 'var(--adm-text-muted)', borderColor: 'var(--adm-border)' }}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => doChangeStatus(confirmModal.userId, confirmModal.newStatus)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold transition"
+                style={{ background: `${confirmModal.color}20`, color: confirmModal.color, border: `1px solid ${confirmModal.color}40` }}
+              >
+                Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
