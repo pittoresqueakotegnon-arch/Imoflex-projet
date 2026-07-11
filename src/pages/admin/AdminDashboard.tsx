@@ -61,7 +61,7 @@ interface PendingListing {
   id: string;
   title: string;
   property_type: string;
-  price: number;
+  monthly_rent: number;
   created_at: string;
   ownerName: string;
 }
@@ -194,12 +194,12 @@ const AdminDashboard: React.FC = () => {
         supabase.from('payments').select('commission_amount').eq('status', 'valide').gte('validated_at', monthStart()),
         supabase.from('payments').select('amount, commission_amount').eq('status', 'valide'),
         supabase.from('listings')
-          .select('id, title, property_type, price, created_at, owner_id')
+          .select('id, title, property_type, monthly_rent, created_at, owner_id')
           .eq('status', 'en_attente')
           .order('created_at', { ascending: false })
           .limit(5),
         supabase.from('withdrawals')
-          .select('id, amount, created_at, owner_id, operator')
+          .select('id, amount, created_at, operator, wallets!inner(owner_id)')
           .eq('status', 'en_traitement')
           .order('created_at', { ascending: false })
           .limit(5),
@@ -260,32 +260,32 @@ const AdminDashboard: React.FC = () => {
         ownerData?.forEach((u: { id: string; full_name: string }) => { ownerMap[u.id] = u.full_name; });
       }
 
-      setPendingListings(plData.map((l: { id: string; title: string; property_type: string; price: number; created_at: string; owner_id: string }) => ({
+      setPendingListings(plData.map((l: { id: string; title: string; property_type: string; monthly_rent: number; created_at: string; owner_id: string }) => ({
         id: l.id,
         title: l.title,
         property_type: l.property_type,
-        price: l.price,
+        monthly_rent: l.monthly_rent,
         created_at: l.created_at,
         ownerName: ownerMap[l.owner_id] || 'Propriétaire',
       })));
 
       // ── Pending withdrawals (fetch owner names) ──
       const wData = withdrawalDetailRes.data || [];
-      const wOwnerIds = [...new Set(wData.map((w: { owner_id: string }) => w.owner_id).filter(Boolean))];
+      const wOwnerIds = [...new Set(wData.map((w: { wallets?: { owner_id: string } }) => w.wallets?.owner_id).filter(Boolean))];
       let wOwnerMap: Record<string, string> = {};
       if (wOwnerIds.length > 0) {
         const { data: wOwnerData } = await supabase
           .from('users')
           .select('id, full_name')
-          .in('id', wOwnerIds);
+          .in('id', wOwnerIds as string[]);
         wOwnerData?.forEach((u: { id: string; full_name: string }) => { wOwnerMap[u.id] = u.full_name; });
       }
 
-      setPendingWithdrawals(wData.map((w: { id: string; amount: number; created_at: string; owner_id: string; operator: string }) => ({
+      setPendingWithdrawals(wData.map((w: { id: string; amount: number; created_at: string; wallets?: { owner_id: string }; operator: string }) => ({
         id: w.id,
         amount: w.amount,
         created_at: w.created_at,
-        ownerName: wOwnerMap[w.owner_id] || 'Propriétaire',
+        ownerName: (w.wallets?.owner_id && wOwnerMap[w.wallets.owner_id]) ? wOwnerMap[w.wallets.owner_id] : 'Propriétaire',
         operator: w.operator || 'N/A',
       })));
 
@@ -532,7 +532,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate" style={{ color: 'var(--adm-text)' }}>{l.title}</p>
-                      <p className="text-xs truncate" style={{ color: 'var(--adm-text-dim)' }}>{l.ownerName} · {formatMontant(l.price)}/mois</p>
+                      <p className="text-xs truncate" style={{ color: 'var(--adm-text-dim)' }}>{l.ownerName} · {formatMontant(l.monthly_rent)}/mois</p>
                     </div>
                   </div>
                   <Link
