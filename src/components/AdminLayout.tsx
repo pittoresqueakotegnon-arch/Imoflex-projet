@@ -15,11 +15,13 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { useAdminTheme } from '../hooks/useAdminTheme';
 
+
 export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, profile } = useAuth();
   const { theme, toggle } = useAdminTheme();
+
 
   const isDark = theme === 'dark';
 
@@ -127,6 +129,33 @@ export default function AdminLayout() {
             );
           })}
         </nav>
+
+        {/* ── Profil Administrateur ── */}
+        {profile && (
+          <div
+            className="mx-3 mb-3 p-3 rounded-xl border flex items-center gap-3"
+            style={{ background: 'var(--adm-surface-alt)', borderColor: 'var(--adm-border)' }}
+          >
+            {/* Avatar initiales */}
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)', color: '#fff' }}
+            >
+              {profile.full_name
+                ? profile.full_name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
+                : 'AD'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold truncate" style={{ color: 'var(--adm-text)' }}>
+                {profile.full_name ?? 'Administrateur'}
+              </p>
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                <p className="text-[10px]" style={{ color: 'var(--adm-text-dim)' }}>Administrateur · En ligne</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div
