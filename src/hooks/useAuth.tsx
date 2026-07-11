@@ -45,7 +45,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .select('*')
       .eq('id', userId)
       .maybeSingle();
-    if (!error && data) {
+    if (error) {
+      console.error('Erreur fetchProfile:', error);
+      throw new Error('Impossible de charger le profil utilisateur. ' + error.message);
+    }
+    if (data) {
       setProfile(data as UserProfile);
     }
   }, []);
@@ -59,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
-        fetchProfile(s.user.id).finally(() => setLoading(false));
+        fetchProfile(s.user.id).catch(console.error).finally(() => setLoading(false));
       } else {
         setLoading(false);
       }
@@ -71,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(s);
           setUser(s?.user ?? null);
           if (s?.user) {
-            await fetchProfile(s.user.id);
+            await fetchProfile(s.user.id).catch(console.error);
           } else {
             setProfile(null);
           }
@@ -87,12 +91,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
     if (data?.user) {
+      await fetchProfile(data.user.id);
+      
       logAction({
         userId: data.user.id,
         action: 'connexion',
         entityType: 'users',
         entityId: data.user.id,
-      });
+      }).catch(console.error);
     }
   };
 
