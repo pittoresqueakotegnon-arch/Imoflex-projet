@@ -6,7 +6,6 @@ import { supabase, RentPeriod, Operator } from '../../lib/supabase';
 import { initiatePayment } from '../../lib/fedapay';
 import { useToast } from '../../components/Toast';
 import { formatMontant, operatorColor } from '../../lib/utils';
-import { logAction } from '../../lib/audit';
 
 export default function Payer() {
   const navigate = useNavigate();
@@ -14,12 +13,18 @@ export default function Payer() {
   const { showToast } = useToast();
 
   const [currentRentPeriod, setCurrentRentPeriod] = useState<RentPeriod | null>(null);
-  const [paymentPlan, setPaymentPlan] = useState<string>('unique');
   const [amount, setAmount] = useState(0);
   const [selectedOperator, setSelectedOperator] = useState<Operator | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (profile) {
+      setPhoneNumber(profile.mobile_money_number || profile.phone || '');
+    }
+  }, [profile]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,7 +60,6 @@ export default function Payer() {
 
         if (periodData) {
           setCurrentRentPeriod(periodData);
-          setPaymentPlan(leaseData.payment_plan_type || 'unique');
           setAmount(Math.max(periodData.amount_due - periodData.amount_paid, 0));
         }
       } catch (err) {
@@ -92,6 +96,12 @@ export default function Payer() {
       return;
     }
 
+    const cleanedPhone = phoneNumber.replace(/\s/g, '');
+    if (!cleanedPhone || cleanedPhone.length < 8) {
+      setError('Veuillez saisir un numéro Mobile Money valide');
+      return;
+    }
+
     if (!currentRentPeriod) {
       setError('Impossible de trouver la période de loyer');
       return;
@@ -100,32 +110,23 @@ export default function Payer() {
     setProcessing(true);
 
     try {
+      // Le locataire paie EXACTEMENT le montant qu'il choisit.
+      // La commission de 5% est prélevée plus tard sur la part reversée
+      // au propriétaire — elle n'est jamais ajoutée à ce que paie le locataire.
       const result = await initiatePayment({
         amount,
         operator: selectedOperator,
         rent_period_id: currentRentPeriod.id,
-        phone_number: profile?.mobile_money_number || profile?.phone || '',
+        phone_number: cleanedPhone,
       });
 
       if (selectedOperator === 'celtiis' && result.payment_url) {
+        // Celtiis Cash n'a pas de push USSD direct chez Fedapay :
+        // on ouvre la page de paiement sécurisée Fedapay dans un nouvel onglet.
         window.open(result.payment_url, '_blank');
         showToast('Finalisez le paiement dans l\'onglet Fedapay ouvert', 'success');
       } else {
         showToast('Versement initié, confirmez sur votre téléphone', 'success');
-      }
-
-      if (profile) {
-        logAction({
-          userId: profile.id,
-          action: 'paiement',
-          entityType: 'rent_periods',
-          entityId: currentRentPeriod.id,
-          details: {
-            amount,
-            operator: selectedOperator,
-            status: 'initie'
-          }
-        });
       }
 
       navigate('/historique');
@@ -141,7 +142,7 @@ export default function Payer() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#120D2A] text-[#E8E0FF] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#7B3FE4] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-3 border-[#7B3FE4] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -163,59 +164,56 @@ export default function Payer() {
   }
 
   const remaining = currentRentPeriod.amount_due - currentRentPeriod.amount_paid;
+
   return (
-    <div className="min-h-screen bg-[#120D2A] text-[#E8E0FF] flex flex-col px-5 pt-12 pb-8">
+    <div className="min-h-screen bg-[#120D2A] text-[#E8E0FF] flex flex-col p-6">
       {/* Header */}
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-1.5 text-[#A855F7] text-sm mb-8 w-fit"
-        style={{ fontFamily: 'Space Grotesk', fontWeight: 600 }}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-        Effectuer un versement
-      </button>
+      <div className="flex items-center mb-8">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 hover:bg-[#1E1545] rounded-lg transition-colors"
+        >
+          <ChevronLeft size={24} />
+        </button>
+      </div>
+
+      <h1 className="font-nunito font-900 text-3xl mb-2">Effectuer un versement</h1>
+      <p className="text-[#8B7BB5] mb-8">Payez votre loyer via Fedapay</p>
 
       <div className="flex-1">
         {/* Amount Display */}
-        <div className="mb-6 text-center">
-          <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-2">MONTANT À VERSER</p>
-          <p className="font-nunito font-950 text-4xl amount text-white mb-1.5">
-            <span className="text-[#A855F7] text-xl font-bold mr-1">FCFA</span> {amount.toLocaleString('fr-FR')}
+        <div className="mb-8">
+          <p className="text-[#8B7BB5] text-xs font-space-grotesk font-600 mb-3">MONTANT À VERSER</p>
+          <p className="font-nunito font-900 text-5xl amount text-[#A855F7] glow mb-2">
+            {formatMontant(amount)}
           </p>
-          <p className="text-[#8B7BB5] text-xs" style={{ fontFamily: 'Space Grotesk' }}>
+          <p className="text-[#8B7BB5] text-sm">
             Solde restant : {formatMontant(remaining)}
           </p>
         </div>
 
         {/* Quick Amount Pills */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[#8B7BB5] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider">
-              VERSEMENT RAPIDE
-            </span>
-          </div>
+        <div className="mb-8">
           <div className="grid grid-cols-4 gap-2">
             {[500, 5000, 10000].map((val) => (
               <button
                 key={val}
                 onClick={() => handleQuickAmount(val)}
-                className={`py-3 px-1 rounded-xl font-nunito font-semibold text-sm transition-all border ${
+                className={`py-2 px-3 rounded-lg font-space-grotesk font-600 text-xs transition-all ${
                   amount === val
-                    ? 'bg-[#1E1545] border-[#A855F7] text-[#A855F7]'
-                    : 'bg-[#1A1240] border-transparent text-[#E8E0FF] hover:border-[rgba(168,85,247,0.5)]'
+                    ? 'bg-[#7B3FE4] text-white'
+                    : 'bg-[#261C55] text-[#E8E0FF] hover:bg-[#2A1E5C]'
                 }`}
               >
-                {new Intl.NumberFormat('fr-FR').format(val)}
+                {val}
               </button>
             ))}
             <button
               onClick={() => handleQuickAmount('all')}
-              className={`py-3 px-1 rounded-xl font-nunito font-semibold text-sm transition-all border ${
+              className={`py-2 px-3 rounded-lg font-space-grotesk font-600 text-xs transition-all ${
                 amount === remaining
-                  ? 'bg-[#1E1545] border-[#A855F7] text-[#A855F7]'
-                  : 'bg-[#1A1240] border-transparent text-[#E8E0FF] hover:border-[rgba(168,85,247,0.5)]'
+                  ? 'bg-[#7B3FE4] text-white'
+                  : 'bg-[#261C55] text-[#E8E0FF] hover:bg-[#2A1E5C]'
               }`}
             >
               Tout
@@ -224,8 +222,8 @@ export default function Payer() {
         </div>
 
         {/* Custom Amount Input */}
-        <div className="mb-6">
-          <label className="block text-[#8B7BB5] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-2">
+        <div className="mb-8">
+          <label className="block text-[#8B7BB5] text-xs font-space-grotesk font-600 mb-2">
             MONTANT PERSONNALISÉ
           </label>
           <input
@@ -233,76 +231,80 @@ export default function Payer() {
             value={amount || ''}
             onChange={(e) => setAmount(Math.max(0, parseInt(e.target.value) || 0))}
             disabled={processing}
-            className="input-field w-full text-center font-nunito font-bold text-lg py-3"
+            className="input-field w-full"
             placeholder="Entrer le montant en FCFA"
-            min="500"
+            min="100"
             max={remaining}
           />
         </div>
 
-        {/* Operator Selection matching mockup exactly */}
-        <div className="mb-6">
-          <label className="block text-[#8B7BB5] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-3">
+        {/* Operator Selection */}
+        <div className="mb-8">
+          <label className="block text-[#E8E0FF] font-space-grotesk font-500 mb-4">
             OPÉRATEUR
           </label>
           <div className="grid grid-cols-3 gap-3">
-            {([
-              {
-                id: 'mtn',
-                title: 'MTN',
-                color: '#F59E0B',
-              },
-              {
-                id: 'moov',
-                title: 'Moov',
-                color: '#3B82F6',
-              },
-              {
-                id: 'celtiis',
-                title: 'Celtiis',
-                color: '#F97316',
-              }
-            ] as const).map((op) => {
-              const isSelected = selectedOperator === op.id;
-              return (
-                <button
-                  key={op.id}
-                  type="button"
-                  onClick={() => setSelectedOperator(op.id)}
-                  disabled={processing}
-                  className="rounded-[20px] border p-4 flex flex-col items-center text-center transition-all cursor-pointer justify-center"
-                  style={{
-                    background: isSelected ? 'rgba(30, 21, 69, 0.8)' : 'transparent',
-                    borderColor: isSelected ? '#A855F7' : 'rgba(255, 255, 255, 0.08)',
-                  }}
-                >
-                  <div 
-                    className="w-5 h-5 rounded-full mb-3 shadow-[0_0_10px_rgba(0,0,0,0.5)]" 
-                    style={{ 
-                      background: `linear-gradient(135deg, ${op.color} 0%, ${op.color}dd 100%)`,
-                      boxShadow: `0 2px 8px ${op.color}66`
-                    }}
-                  />
-                  <span className="text-xs font-bold text-white font-nunito">
-                    {op.title}
-                  </span>
-                </button>
-              );
-            })}
+            {(['mtn', 'moov', 'celtiis'] as const).map((op) => (
+              <button
+                key={op}
+                onClick={() => setSelectedOperator(op)}
+                disabled={processing}
+                className={`card py-3 flex flex-col items-center gap-2 font-space-grotesk font-600 transition-all ${
+                  selectedOperator === op
+                    ? 'ring-2'
+                    : ''
+                }`}
+                style={{
+                  backgroundColor: selectedOperator === op ? operatorColor(op) + '30' : '#261C55',
+                  borderColor: operatorColor(op),
+                  color: selectedOperator === op ? 'white' : '#E8E0FF',
+                  ...(selectedOperator === op && { boxShadow: `0 0 0 2px ${operatorColor(op)}` }),
+                }}
+              >
+                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center p-1.5">
+                  <img src={`/assets/logo_${op}.png`} alt={op} className="w-full h-full object-contain" />
+                </div>
+                <span className="text-xs">{op === 'mtn' ? 'MTN' : op === 'moov' ? 'Moov' : 'Celtiis'}</span>
+              </button>
+            ))}
           </div>
         </div>
 
+        {/* Numéro Mobile Money */}
+        <div className="mb-8">
+          <label className="block text-[#E8E0FF] font-space-grotesk font-500 mb-2">
+            NUMÉRO MOBILE MONEY
+          </label>
+          <input
+            type="tel"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            disabled={processing}
+            placeholder="Ex : 90 00 00 00"
+            className="input-field w-full"
+          />
+          <p className="text-[#8B7BB5] text-xs mt-2">
+            C'est ce numéro qui va recevoir la demande de confirmation. Modifiez-le si vous
+            payez avec un autre numéro que celui de votre compte.
+          </p>
+        </div>
+
         {/* Summary Card */}
-        <div className="card p-4 mb-6 space-y-2 bg-[#1A1240]">
-          <div className="flex justify-between text-sm font-space-grotesk">
-            <span className="text-white font-semibold">Total débité</span>
-            <span className="text-[#A855F7] font-nunito font-900 amount">{amount.toLocaleString('fr-FR')} FCFA</span>
+        <div className="card p-6 mb-8 bg-[#1E1545]">
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-[#8B7BB5]">Montant débité</span>
+              <span className="font-nunito font-900 text-lg amount">{formatMontant(amount)}</span>
+            </div>
+            <p className="text-[#8B7BB5] text-xs pt-1">
+              Vous payez exactement ce montant. La commission ImoFlex (5%) est prélevée sur la part reversée au propriétaire, elle ne s'ajoute jamais à votre versement.
+            </p>
           </div>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-xl text-sm mb-6 font-space-grotesk">
+          <div className="bg-[#EF4444] bg-opacity-10 border border-[#EF4444] text-[#EF4444] p-3 rounded-lg mb-6 text-sm">
             {error}
           </div>
         )}
@@ -316,7 +318,7 @@ export default function Payer() {
           {processing ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Traitement USSD...
+              Traitement USSD en cours...
             </>
           ) : (
             <>
