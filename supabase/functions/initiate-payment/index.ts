@@ -87,11 +87,13 @@ Deno.serve(async (req: Request) => {
     let paymentUrl: string | undefined;
 
     try {
+      const callbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/fedapay-webhook`;
       const { id: transactionId } = await createTransaction({
         amount,
         description: `Loyer ImoFlex - période ${rent_period_id}`,
         email: authData.user.email || `${tenant_id}@imoflex.app`,
         phoneNumber: phone_number,
+        callbackUrl,
       });
 
       const { token, paymentUrl: url } = await generateToken(transactionId);
