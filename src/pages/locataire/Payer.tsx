@@ -34,7 +34,7 @@ export default function Payer() {
       try {
         const { data: leaseData, error: leaseErr } = await supabase
           .from('leases')
-          .select('*')
+          .select('id, payment_plan_type')
           .eq('tenant_id', profile.id)
           .eq('status', 'actif')
           .maybeSingle();
@@ -50,7 +50,7 @@ export default function Payer() {
         const now = new Date();
         const { data: periodData, error: periodErr } = await supabase
           .from('rent_periods')
-          .select('*')
+          .select('id, amount_due, amount_paid, status, lease_id, period_month, period_year')
           .eq('lease_id', leaseData.id)
           .eq('period_month', now.getMonth() + 1)
           .eq('period_year', now.getFullYear())
@@ -355,11 +355,6 @@ export default function Payer() {
             'Payer via Fedapay →'
           )}
         </button>
-
-        {/* Note commission */}
-        <p className="text-center text-[10px] mt-3" style={{ color: '#8B7BB5', fontFamily: 'Space Grotesk' }}>
-          Vous payez exactement ce montant. La commission ImoFlex est prélevée sur la part du propriétaire.
-        </p>
 
       </div>
       <BottomNav />
