@@ -25,7 +25,7 @@ export default function Historique() {
       try {
         let query = supabase
           .from('payments')
-          .select('*')
+          .select('id, created_at, operator, status, fedapay_transaction_id, amount')
           .eq('tenant_id', profile.id)
           .order('created_at', { ascending: false });
 

@@ -27,7 +27,7 @@ const Activer: React.FC = () => {
       try {
         const { data, error } = await supabase
           .from('listings')
-          .select('*')
+          .select('id, title, address, monthly_rent')
           .eq('id', listing_id)
           .eq('owner_id', ownerId)
           .maybeSingle();

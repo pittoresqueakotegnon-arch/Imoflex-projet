@@ -70,7 +70,7 @@ const MesDemandes: React.FC = () => {
         const { data, error: err } = await supabase
           .from('contact_requests')
           .select(
-            `*,
+            `id, message, status, created_at,
             listings(id, title, city, neighborhood, monthly_rent, listing_photos(id, photo_url, is_cover))`
           )
           .eq('requester_id', user.id)

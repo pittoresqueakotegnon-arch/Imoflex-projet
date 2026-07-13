@@ -32,7 +32,7 @@ const AdminUtilisateurs: React.FC = () => {
 
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, full_name, email, role, account_status, is_active, created_at')
         .order('created_at', { ascending: false })
         .range(from, to);
 

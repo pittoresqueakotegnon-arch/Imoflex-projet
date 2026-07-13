@@ -43,7 +43,7 @@ const Demandes: React.FC = () => {
         // Get contact requests for these listings
         const { data: contactData, error: contactError } = await supabase
           .from('contact_requests')
-          .select('*')
+          .select('id, requester_id, listing_id, message, status, created_at, contact_phone')
           .in('listing_id', listingIds)
           .order('created_at', { ascending: false });
 

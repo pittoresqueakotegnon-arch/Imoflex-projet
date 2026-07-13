@@ -27,7 +27,7 @@ const AdminTransactions: React.FC = () => {
       let query = supabase
         .from('payments')
         .select(`
-          *,
+          id, amount, status, operator, payment_method, created_at,
           rent_periods (
             leases (
               tenant:users!tenant_id (full_name),

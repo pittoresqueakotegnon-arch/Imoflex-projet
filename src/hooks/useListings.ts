@@ -23,7 +23,7 @@ export function useListings(filters: ListingFilters = {}) {
 
     let query = supabase
       .from('listings')
-      .select('*, listing_photos(*)')
+      .select('id, title, city, neighborhood, monthly_rent, bedrooms, property_type, availability_status, status, created_at, accepts_progressive_payment, listing_photos(id, photo_url, is_cover)')
       .eq('status', 'publiee')
       .order('created_at', { ascending: false });
 

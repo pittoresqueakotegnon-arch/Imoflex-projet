@@ -25,7 +25,7 @@ const Annonces: React.FC = () => {
       try {
         const { data, error } = await supabase
           .from('listings')
-          .select('*, listing_photos(*)')
+          .select('id, title, city, neighborhood, availability_status, status, rejection_reason, created_at, owner_id, listing_photos(photo_url, is_cover)')
           .eq('owner_id', profile.id)
           .order('created_at', { ascending: false });
 

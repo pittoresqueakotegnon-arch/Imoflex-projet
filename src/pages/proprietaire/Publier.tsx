@@ -124,7 +124,7 @@ const Publier: React.FC = () => {
           status: 'publiee',
           availability_status: 'disponible',
         })
-        .select()
+        .select('id')
         .single();
 
       if (listingError) throw listingError;

@@ -25,7 +25,7 @@ const Favoris: React.FC = () => {
         try {
           const { data, error: err } = await supabase
             .from('favorites')
-            .select('listing_id, listings(*, listing_photos(*))')
+            .select('listing_id, listings(id, title, city, neighborhood, monthly_rent, listing_photos(id, photo_url, is_cover))')
             .eq('user_id', user.id);
 
           if (err) {
@@ -50,7 +50,7 @@ const Favoris: React.FC = () => {
           try {
             const { data, error: err } = await supabase
               .from('listings')
-              .select('*, listing_photos(*)')
+              .select('id, title, city, neighborhood, monthly_rent, listing_photos(id, photo_url, is_cover)')
               .in('id', listingIds)
               .eq('status', 'publiee');
 

@@ -35,7 +35,7 @@ export default function Rejoindre() {
       // Check if property exists with this code
       const { data: propData, error: propError } = await supabase
         .from('properties')
-        .select('*')
+        .select('id, name, address, monthly_rent, payment_deadline_day')
         .eq('access_code', code)
         .eq('is_active', true)
         .maybeSingle();
@@ -101,7 +101,7 @@ export default function Rejoindre() {
           start_date: today,
           status: 'actif',
         })
-        .select()
+        .select('id')
         .single();
 
       if (leaseInsertError) throw leaseInsertError;

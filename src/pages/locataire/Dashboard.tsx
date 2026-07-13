@@ -25,8 +25,8 @@ export default function Dashboard() {
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
           .select(`
-            *,
-            properties:property_id(*)
+            id,
+            properties:property_id(title, address, monthly_rent, neighborhood)
           `)
           .eq('tenant_id', profile.id)
           .eq('status', 'actif')
@@ -41,7 +41,7 @@ export default function Dashboard() {
           const now = new Date();
           const { data: periodData, error: periodError } = await supabase
             .from('rent_periods')
-            .select('*')
+            .select('id, amount_due, amount_paid, deadline_date, status')
             .eq('lease_id', leaseData.id)
             .eq('period_month', now.getMonth() + 1)
             .eq('period_year', now.getFullYear())
@@ -53,7 +53,7 @@ export default function Dashboard() {
           // Fetch recent payments
           const { data: paymentsData, error: paymentsError } = await supabase
             .from('payments')
-            .select('*')
+            .select('id, amount, status, created_at, operator, fedapay_transaction_id')
             .eq('tenant_id', profile.id)
             .order('created_at', { ascending: false })
             .limit(5);
