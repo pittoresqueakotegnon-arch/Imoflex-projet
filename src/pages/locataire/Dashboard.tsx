@@ -15,16 +15,10 @@ export default function Dashboard() {
   const [currentRentPeriod, setCurrentRentPeriod] = useState<RentPeriod | null>(null);
   const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [profileLoadFailed, setProfileLoadFailed] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       if (authLoading) return;
-      if (user && !profile) {
-        setProfileLoadFailed(true);
-        setLoading(false);
-        return;
-      }
       if (!profile?.id) return;
 
       try {
@@ -134,23 +128,7 @@ export default function Dashboard() {
       </div>
 
       <div className="px-4 flex-1">
-        {profileLoadFailed ? (
-          // Profile failed to load - retry state
-          <div className="flex flex-col items-center justify-center py-8">
-            <span className="text-6xl mb-6">⚠️</span>
-            <h2 className="font-nunito font-black text-[18px] text-white mb-3">Impossible de charger votre profil</h2>
-            <p className="text-[#8B7BB5] text-xs text-center max-w-[280px] leading-[1.6] mb-8" style={{ fontFamily: 'Space Grotesk' }}>
-              Une erreur est survenue lors du chargement de vos informations. Veuillez réessayer.
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full text-white font-bold rounded-2xl py-[18px]"
-              style={{ background: '#A855F7', fontFamily: 'Nunito', fontSize: '15px' }}
-            >
-              Réessayer
-            </button>
-          </div>
-        ) : !activeLease ? (
+        {!activeLease ? (
           // No active lease state (État vide)
           <div className="flex flex-col items-center justify-center py-8">
             <span className="text-6xl mb-6">🔑</span>
