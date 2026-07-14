@@ -58,18 +58,7 @@ export default function Rejoindre() {
         throw new Error('Ce logement est déjà occupé');
       }
 
-      // Check if user already has active lease
-      const { data: userLease, error: userLeaseError } = await supabase
-        .from('leases')
-        .select('id')
-        .eq('tenant_id', profile?.id)
-        .eq('status', 'actif')
-        .maybeSingle();
 
-      if (userLeaseError && userLeaseError.code !== 'PGRST116') throw userLeaseError;
-      if (userLease) {
-        throw new Error('Vous avez déjà un logement actif');
-      }
 
       setProperty(propData);
       setStep('confirmation');

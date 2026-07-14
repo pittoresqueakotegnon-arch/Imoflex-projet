@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, RentPeriod, Operator } from '../../lib/supabase';
@@ -9,6 +9,7 @@ import { formatMontant, operatorColor } from '../../lib/utils';
 
 export default function Payer() {
   const navigate = useNavigate();
+  const { leaseId } = useParams();
   const { profile } = useAuth();
   const { showToast } = useToast();
 
@@ -35,6 +36,7 @@ export default function Payer() {
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
           .select('*')
+          .eq('id', leaseId)
           .eq('tenant_id', profile.id)
           .eq('status', 'actif')
           .maybeSingle();
@@ -71,7 +73,7 @@ export default function Payer() {
     };
 
     fetchData();
-  }, [profile?.id]);
+  }, [profile?.id, leaseId]);
 
   const handleQuickAmount = (value: number | 'all') => {
     if (!currentRentPeriod) return;

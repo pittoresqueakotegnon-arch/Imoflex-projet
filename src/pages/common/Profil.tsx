@@ -111,6 +111,20 @@ export default function Profil() {
             <span className="font-nunito font-900 text-2xl text-[#C084FC] tracking-wider">{initials}</span>
           </div>
           <h2 className="font-nunito font-800 text-lg text-white">{profile.full_name}</h2>
+          
+          <div className="mt-1 flex items-center justify-center mb-1">
+            <span 
+              className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md"
+              style={{
+                background: profile.role === 'proprietaire' ? 'rgba(168, 85, 247, 0.15)' : profile.role === 'admin' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                color: profile.role === 'proprietaire' ? '#C084FC' : profile.role === 'admin' ? '#FBBF24' : '#60A5FA',
+                border: profile.role === 'proprietaire' ? '1px solid rgba(168, 85, 247, 0.3)' : profile.role === 'admin' ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(59, 130, 246, 0.3)'
+              }}
+            >
+              {profile.role === 'proprietaire' ? 'Propriétaire' : profile.role === 'locataire' ? 'Locataire' : 'Administrateur'}
+            </span>
+          </div>
+
           <p className="text-xs text-[#8B7BB5] mt-1" style={{ fontFamily: 'Space Grotesk' }}>
             {profile.phone || profile.email}
           </p>

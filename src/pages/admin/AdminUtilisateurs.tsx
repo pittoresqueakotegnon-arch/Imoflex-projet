@@ -32,7 +32,7 @@ const AdminUtilisateurs: React.FC = () => {
 
       const { data, error } = await supabase
         .from('users')
-        .select('id, full_name, email, role, account_status, is_active, created_at')
+        .select('id, full_name, email, role, account_status, is_active, created_at, properties(count), leases(count)')
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -185,7 +185,19 @@ const AdminUtilisateurs: React.FC = () => {
 
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold truncate" style={{ color: 'var(--adm-text)' }}>{user.full_name}</h3>
-                  <p className="text-xs truncate" style={{ color: 'var(--adm-text-dim)' }}>{user.email || 'N/A'}</p>
+                  <div className="flex items-center gap-2 text-xs mt-0.5 truncate" style={{ color: 'var(--adm-text-dim)' }}>
+                    <span>{user.email || 'N/A'}</span>
+                    {user.role === 'proprietaire' && (user as any).properties?.[0]?.count !== undefined && (
+                      <span className="px-1.5 py-0.5 rounded-md bg-violet-500/10 text-violet-400 font-semibold" style={{ fontSize: '10px' }}>
+                        {(user as any).properties[0].count} propriété{(user as any).properties[0].count !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                    {user.role === 'locataire' && (user as any).leases?.[0]?.count !== undefined && (
+                      <span className="px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 font-semibold" style={{ fontSize: '10px' }}>
+                        {(user as any).leases[0].count} logement{(user as any).leases[0].count !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 

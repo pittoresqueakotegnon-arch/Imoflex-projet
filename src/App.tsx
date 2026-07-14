@@ -117,7 +117,7 @@ export default function App() {
                       }
                     />
                     <Route
-                      path="/payer"
+                      path="/payer/:leaseId"
                       element={
                         <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
                           <Payer />

@@ -11,69 +11,80 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { profile, loading: authLoading, user } = useAuth();
 
+  const [leases, setLeases] = useState<Lease[]>([]);
   const [activeLease, setActiveLease] = useState<Lease | null>(null);
   const [currentRentPeriod, setCurrentRentPeriod] = useState<RentPeriod | null>(null);
   const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Fetch all leases on mount
   useEffect(() => {
-    if (authLoading) return; // attendre la fin du chargement auth
+    if (authLoading) return;
     if (!profile?.id) {
-      // auth terminée mais pas de profil : on arrête le spinner
       setLoading(false);
       return;
     }
 
-    const fetchData = async () => {
+    const fetchLeases = async () => {
       try {
-        // Fetch active lease — on récupère aussi tenant_id pour vérifier le RLS
-        const { data: leaseData, error: leaseError } = await supabase
+        const { data, error } = await supabase
           .from('leases')
           .select('id, tenant_id, status, properties:property_id(name, address, monthly_rent)')
           .eq('tenant_id', profile.id)
-          .eq('status', 'actif')
-          .maybeSingle();
+          .eq('status', 'actif');
 
-
-
-        if (leaseError) throw leaseError;
-
-        if (leaseData) {
-          setActiveLease(leaseData);
-
-          // Fetch current month rent period
-          const now = new Date();
-          const { data: periodData, error: periodError } = await supabase
-            .from('rent_periods')
-            .select('id, amount_due, amount_paid, deadline_date, status')
-            .eq('lease_id', leaseData.id)
-            .eq('period_month', now.getMonth() + 1)
-            .eq('period_year', now.getFullYear())
-            .maybeSingle();
-
-          if (periodError && periodError.code !== 'PGRST116') throw periodError;
-          if (periodData) setCurrentRentPeriod(periodData);
-
-          // Fetch recent payments
-          const { data: paymentsData, error: paymentsError } = await supabase
-            .from('payments')
-            .select('id, amount, status, created_at, operator, fedapay_transaction_id')
-            .eq('tenant_id', profile.id)
-            .order('created_at', { ascending: false })
-            .limit(5);
-
-          if (paymentsError) throw paymentsError;
-          setRecentPayments(paymentsData || []);
+        if (error) throw error;
+        
+        setLeases(data || []);
+        if (data && data.length > 0) {
+          setActiveLease(data[0]);
         }
       } catch (err) {
-        console.error('[Dashboard] Error fetching data:', err);
+        console.error('[Dashboard] Error fetching leases:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchLeases();
   }, [profile?.id, authLoading]);
+
+  // Fetch rent period and payments when activeLease changes
+  useEffect(() => {
+    if (!activeLease || !profile?.id) return;
+
+    const fetchLeaseData = async () => {
+      try {
+        const now = new Date();
+        const { data: periodData, error: periodError } = await supabase
+          .from('rent_periods')
+          .select('id, amount_due, amount_paid, deadline_date, status')
+          .eq('lease_id', activeLease.id)
+          .eq('period_month', now.getMonth() + 1)
+          .eq('period_year', now.getFullYear())
+          .maybeSingle();
+
+        if (periodError && periodError.code !== 'PGRST116') throw periodError;
+        setCurrentRentPeriod(periodData || null);
+
+        // Fetch recent payments for this specific lease
+        const { data: paymentsData, error: paymentsError } = await supabase
+          .from('payments')
+          .select('id, amount, status, created_at, operator, fedapay_transaction_id, rent_periods!inner(lease_id)')
+          .eq('tenant_id', profile.id)
+          .eq('rent_periods.lease_id', activeLease.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (paymentsError) throw paymentsError;
+        setRecentPayments(paymentsData || []);
+      } catch (err) {
+        console.error('[Dashboard] Error fetching lease details:', err);
+      }
+    };
+    
+    fetchLeaseData();
+  }, [activeLease?.id, profile?.id]);
 
   const firstName = profile?.full_name?.split(' ')[0] || 'Kofi';
   const lastName = profile?.full_name?.split(' ').slice(1).join(' ') || 'Mensah';
@@ -163,6 +174,27 @@ export default function Dashboard() {
         ) : (
           // Active lease state
           <>
+            {/* Lease Selector (if multiple) */}
+            {leases.length > 1 && (
+              <div className="mb-5 overflow-x-auto scrollbar-hide pb-2">
+                <div className="flex gap-3">
+                  {leases.map((lease) => (
+                    <button
+                      key={lease.id}
+                      onClick={() => setActiveLease(lease)}
+                      className={`flex-shrink-0 px-4 py-2.5 rounded-2xl font-nunito font-700 text-sm transition-all whitespace-nowrap ${
+                        activeLease.id === lease.id
+                          ? 'bg-[#A855F7] text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]'
+                          : 'bg-[#1A1240] text-[#8B7BB5] border border-[rgba(255,255,255,0.05)]'
+                      }`}
+                    >
+                      {lease.properties?.name || 'Logement'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Loyer Card with gradient and pattern */}
             <div
               className="rounded-3xl p-6 mb-5 text-white relative overflow-hidden"
@@ -224,7 +256,7 @@ export default function Dashboard() {
 
             {/* Pay Button */}
             <button
-              onClick={() => navigate('/payer')}
+              onClick={() => navigate(`/payer/${activeLease.id}`)}
               className="w-full text-white font-bold rounded-2xl py-4 flex items-center justify-center gap-2 mb-8"
               style={{ background: '#A855F7', fontFamily: 'Nunito', fontSize: '15px' }}
             >
