@@ -35,7 +35,7 @@ export default function Rejoindre() {
       // Check if property exists with this code
       const { data: propData, error: propError } = await supabase
         .from('properties')
-        .select('id, name, address, monthly_rent, payment_deadline_day')
+        .select('id, name, address, monthly_rent, payment_deadline_day, listing_id')
         .eq('access_code', code)
         .eq('is_active', true)
         .maybeSingle();
@@ -121,6 +121,18 @@ export default function Rejoindre() {
         });
 
       if (periodInsertError) throw periodInsertError;
+
+      // Update listing availability
+      if (property.listing_id) {
+        const { error: updateError } = await supabase
+          .from('listings')
+          .update({ availability_status: 'occupe' })
+          .eq('id', property.listing_id);
+          
+        if (updateError) {
+          console.error('Error updating listing status:', updateError);
+        }
+      }
 
       setStep('complete');
       showToast('Bienvenue dans votre logement !', 'success');

@@ -75,13 +75,6 @@ const Activer: React.FC = () => {
 
       if (propertyError) throw propertyError;
 
-      // Update listing availability
-      const { error: updateError } = await supabase
-        .from('listings')
-        .update({ availability_status: 'occupe' })
-        .eq('id', listing_id);
-
-      if (updateError) throw updateError;
 
       setGeneratedCode(code);
       showToast('Code généré avec succès !', 'success');
