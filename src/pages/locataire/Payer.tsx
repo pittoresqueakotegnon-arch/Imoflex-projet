@@ -98,7 +98,7 @@ export default function Payer() {
 
     const cleanedPhone = phoneNumber.replace(/\s/g, '');
     if (!cleanedPhone || cleanedPhone.length < 8) {
-      setError('Veuillez saisir un numéro Mobile Money valide');
+      setError('Veuillez configurer votre numéro Mobile Money dans votre profil');
       return;
     }
 
@@ -177,32 +177,35 @@ export default function Payer() {
         </button>
       </div>
 
-      <h1 className="font-nunito font-900 text-3xl mb-2">Effectuer un versement</h1>
-      <p className="text-[#8B7BB5] mb-8">Payez votre loyer via Fedapay</p>
-
       <div className="flex-1">
         {/* Amount Display */}
-        <div className="mb-8">
-          <p className="text-[#8B7BB5] text-xs font-space-grotesk font-600 mb-3">MONTANT À VERSER</p>
-          <p className="font-nunito font-900 text-5xl amount text-[#A855F7] glow mb-2">
-            {formatMontant(amount)}
+        <div className="mb-10 flex flex-col items-center">
+          <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-bold uppercase tracking-widest mb-3">
+            MONTANT À VERSER
           </p>
-          <p className="text-[#8B7BB5] text-sm">
-            Solde restant : {formatMontant(remaining)}
+          <div className="flex items-baseline justify-center gap-2 mb-2">
+            <span className="text-[#A855F7] font-nunito font-900 text-2xl">FCFA</span>
+            <span className="font-nunito font-900 text-[3.5rem] leading-none text-white">{amount}</span>
+          </div>
+          <p className="text-[#8B7BB5] text-[13px] font-space-grotesk">
+            Solde restant : {new Intl.NumberFormat('fr-FR').format(remaining)} FCFA
           </p>
         </div>
 
         {/* Quick Amount Pills */}
         <div className="mb-8">
+          <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-bold uppercase tracking-widest mb-3">
+            VERSEMENT RAPIDE
+          </p>
           <div className="grid grid-cols-4 gap-2">
             {[500, 5000, 10000].map((val) => (
               <button
                 key={val}
                 onClick={() => handleQuickAmount(val)}
-                className={`py-2 px-3 rounded-lg font-space-grotesk font-600 text-xs transition-all ${
+                className={`py-3.5 px-1 rounded-[14px] font-space-grotesk font-600 text-[13px] transition-all ${
                   amount === val
-                    ? 'bg-[#7B3FE4] text-white'
-                    : 'bg-[#261C55] text-[#E8E0FF] hover:bg-[#2A1E5C]'
+                    ? 'bg-transparent text-[#A855F7] border border-[#A855F7]'
+                    : 'bg-[#181135] text-[#E8E0FF] border border-transparent'
                 }`}
               >
                 {val}
@@ -210,10 +213,10 @@ export default function Payer() {
             ))}
             <button
               onClick={() => handleQuickAmount('all')}
-              className={`py-2 px-3 rounded-lg font-space-grotesk font-600 text-xs transition-all ${
+              className={`py-3.5 px-1 rounded-[14px] font-space-grotesk font-600 text-[13px] transition-all ${
                 amount === remaining
-                  ? 'bg-[#7B3FE4] text-white'
-                  : 'bg-[#261C55] text-[#E8E0FF] hover:bg-[#2A1E5C]'
+                  ? 'bg-transparent text-[#A855F7] border border-[#A855F7]'
+                  : 'bg-[#181135] text-[#E8E0FF] border border-transparent'
               }`}
             >
               Tout
@@ -223,7 +226,7 @@ export default function Payer() {
 
         {/* Custom Amount Input */}
         <div className="mb-8">
-          <label className="block text-[#8B7BB5] text-xs font-space-grotesk font-600 mb-2">
+          <label className="block text-[#8B7BB5] text-[10px] font-space-grotesk font-bold uppercase tracking-widest mb-3">
             MONTANT PERSONNALISÉ
           </label>
           <input
@@ -231,8 +234,8 @@ export default function Payer() {
             value={amount || ''}
             onChange={(e) => setAmount(Math.max(0, parseInt(e.target.value) || 0))}
             disabled={processing}
-            className="input-field w-full"
-            placeholder="Entrer le montant en FCFA"
+            className="w-full bg-[#181135] text-white text-center font-nunito font-900 text-xl py-4 rounded-2xl outline-none"
+            placeholder="0"
             min="100"
             max={remaining}
           />
@@ -240,7 +243,7 @@ export default function Payer() {
 
         {/* Operator Selection */}
         <div className="mb-8">
-          <label className="block text-[#E8E0FF] font-space-grotesk font-500 mb-4">
+          <label className="block text-[#8B7BB5] text-[10px] font-space-grotesk font-bold uppercase tracking-widest mb-3">
             OPÉRATEUR
           </label>
           <div className="grid grid-cols-3 gap-3">
@@ -249,53 +252,34 @@ export default function Payer() {
                 key={op}
                 onClick={() => setSelectedOperator(op)}
                 disabled={processing}
-                className={`card py-3 flex flex-col items-center gap-2 font-space-grotesk font-600 transition-all ${
+                className={`py-5 rounded-3xl flex flex-col items-center gap-3 font-nunito font-800 text-[13px] transition-all ${
                   selectedOperator === op
-                    ? 'ring-2'
-                    : ''
+                    ? 'bg-transparent border border-[#A855F7] text-white'
+                    : 'bg-[#181135] border border-transparent text-[#E8E0FF]'
                 }`}
-                style={{
-                  backgroundColor: selectedOperator === op ? operatorColor(op) + '30' : '#261C55',
-                  borderColor: operatorColor(op),
-                  color: selectedOperator === op ? 'white' : '#E8E0FF',
-                  ...(selectedOperator === op && { boxShadow: `0 0 0 2px ${operatorColor(op)}` }),
-                }}
               >
-                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center p-1.5">
-                  <img src={`/assets/logo_${op}.png`} alt={op} className="w-full h-full object-contain" />
-                </div>
-                <span className="text-xs">{op === 'mtn' ? 'MTN' : op === 'moov' ? 'Moov' : 'Celtiis'}</span>
+                <div
+                  className="w-4 h-4 rounded-full"
+                  style={{
+                    backgroundColor: op === 'mtn' ? '#FBBF24' : op === 'moov' ? '#3B82F6' : '#F97316',
+                    boxShadow: selectedOperator === op ? `0 0 12px ${op === 'mtn' ? 'rgba(251,191,36,0.5)' : op === 'moov' ? 'rgba(59,130,246,0.5)' : 'rgba(249,115,22,0.5)'}` : 'none'
+                  }}
+                ></div>
+                <span>{op === 'mtn' ? 'MTN' : op === 'moov' ? 'Moov' : 'Celtiis'}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Numéro Mobile Money */}
-        <div className="mb-8">
-          <label className="block text-[#E8E0FF] font-space-grotesk font-500 mb-2">
-            NUMÉRO MOBILE MONEY
-          </label>
-          <input
-            type="tel"
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-            disabled={processing}
-            placeholder="Ex : 90 00 00 00"
-            className="input-field w-full"
-          />
-        </div>
-
         {/* Summary Card */}
-        <div className="card p-6 mb-8 bg-[#1E1545]">
-          <div className="flex justify-between">
-            <span className="text-[#8B7BB5]">Montant débité</span>
-            <span className="font-nunito font-900 text-lg amount">{formatMontant(amount)}</span>
-          </div>
+        <div className="bg-[#181135] border border-[rgba(255,255,255,0.03)] rounded-2xl p-5 mb-4 flex justify-between items-center">
+          <span className="text-white font-nunito font-800 text-[15px]">Total débité</span>
+          <span className="text-[#A855F7] font-nunito font-900 text-[15px]">{new Intl.NumberFormat('fr-FR').format(amount)} FCFA</span>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-[#EF4444] bg-opacity-10 border border-[#EF4444] text-[#EF4444] p-3 rounded-lg mb-6 text-sm">
+          <div className="bg-[#EF4444] bg-opacity-10 border border-[#EF4444] text-[#EF4444] p-3 rounded-xl mb-4 text-sm text-center">
             {error}
           </div>
         )}
@@ -304,12 +288,13 @@ export default function Payer() {
         <button
           onClick={handlePay}
           disabled={processing || amount < 100 || !selectedOperator}
-          className="btn-primary w-full flex items-center justify-center gap-2"
+          className="w-full text-[#E8E0FF] font-nunito font-800 text-[15px] rounded-2xl py-[18px] flex items-center justify-center gap-2 opacity-90 hover:opacity-100 transition-opacity"
+          style={{ background: '#4A3D7A' }}
         >
           {processing ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Traitement USSD en cours...
+              Traitement en cours...
             </>
           ) : (
             <>
