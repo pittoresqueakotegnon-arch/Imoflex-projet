@@ -1,6 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { createTransaction, generateToken, sendDirectPush, FEDAPAY_MODES } from "../_shared/fedapay.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,13 +7,116 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+// ---- Helpers Fedapay (inclus directement ici, pas d'import externe) ----
+
+const FEDAPAY_BASE_URL = Deno.env.get("FEDAPAY_BASE_URL") || "https://sandbox-api.fedapay.com/v1";
+const IS_SANDBOX = FEDAPAY_BASE_URL.includes("sandbox");
+
+// En sandbox, Fedapay impose un mode de test unique ("momo_test") pour tous les
+// opérateurs, avec des numéros de test dédiés (confirmé par leur support le 13/07/2026) —
+// pas les vrais codes mtn_open/moov, qui ne s'utilisent qu'en production.
+const FEDAPAY_MODES: Record<string, string> = IS_SANDBOX
+  ? { mtn: "momo_test", moov: "momo_test" }
+  : {
+      mtn: Deno.env.get("FEDAPAY_MODE_MTN") || "mtn_open",
+      moov: Deno.env.get("FEDAPAY_MODE_MOOV") || "moov",
+    };
+
+function extractResource(json: any, singularKey: string): any {
+  return json?.[`v1/${singularKey}`] ?? json?.[singularKey] ?? json;
+}
+
+async function createTransaction(params: {
+  amount: number;
+  description: string;
+  email: string;
+  phoneNumber: string;
+  callbackUrl?: string;
+}): Promise<{ id: string | number; raw: any }> {
+  const fedapayKey = Deno.env.get("FEDAPAY_SECRET_KEY");
+  if (!fedapayKey) throw new Error("FEDAPAY_SECRET_KEY non configurée");
+
+  const res = await fetch(`${FEDAPAY_BASE_URL}/transactions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${fedapayKey}`,
+    },
+    body: JSON.stringify({
+      description: params.description,
+      amount: params.amount,
+      currency: { iso: "XOF" },
+      callback_url: params.callbackUrl,
+      customer: {
+        email: params.email,
+        phone_number: { number: params.phoneNumber, country: "bj" },
+      },
+    }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json?.message || `Erreur Fedapay (création transaction): HTTP ${res.status}`);
+  }
+
+  const tx = extractResource(json, "transaction");
+  if (!tx?.id) throw new Error("Réponse Fedapay inattendue (pas d'id de transaction)");
+
+  return { id: tx.id, raw: json };
+}
+
+async function generateToken(
+  transactionId: string | number
+): Promise<{ token: string; paymentUrl?: string }> {
+  const fedapayKey = Deno.env.get("FEDAPAY_SECRET_KEY")!;
+
+  const res = await fetch(`${FEDAPAY_BASE_URL}/transactions/${transactionId}/token`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${fedapayKey}`,
+    },
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json?.message || `Erreur Fedapay (génération token): HTTP ${res.status}`);
+  }
+
+  const tokenData = extractResource(json, "token");
+  return { token: tokenData.token, paymentUrl: tokenData.url };
+}
+
+async function sendDirectPush(mode: string, token: string, phoneNumber: string): Promise<any> {
+  const fedapayKey = Deno.env.get("FEDAPAY_SECRET_KEY")!;
+
+  const res = await fetch(`${FEDAPAY_BASE_URL}/${mode}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${fedapayKey}`,
+    },
+    body: JSON.stringify({
+      token,
+      phone_number: { number: phoneNumber, country: "bj" },
+    }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json?.message || `Erreur Fedapay (push ${mode}): HTTP ${res.status}`);
+  }
+  return json;
+}
+
+// ---- Fonction principale ----
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
-    // ---- Auth: identify the REAL caller from the JWT, never trust the body ----
     const authHeader = req.headers.get("Authorization") || "";
     const jwt = authHeader.replace("Bearer ", "");
 
@@ -30,20 +132,15 @@ Deno.serve(async (req: Request) => {
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const tenant_id = authData.user.id; // <-- source de vérité, jamais body.tenant_id
+    const tenant_id = authData.user.id;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Les appels Fedapay sont centralisés dans _shared/fedapay.ts
-
     const body = await req.json();
     const { amount, operator, rent_period_id, phone_number } = body;
-    // NB: "amount" est le montant EXACT que le locataire veut verser.
-    // Aucune majoration de commission ici : la commission de 5% est prélevée
-    // plus tard sur la part reversée au propriétaire, pas sur ce que paie le locataire.
 
     if (!amount || !operator || !rent_period_id || !phone_number) {
       return new Response(
@@ -59,7 +156,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Verify rent_period belongs to the AUTHENTICATED tenant
     const { data: rentPeriod, error: rpError } = await supabase
       .from("rent_periods")
       .select("*, leases!inner(tenant_id)")
@@ -80,9 +176,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // ---- Créer la transaction chez Fedapay et obtenir son identifiant réel ----
-    // C'est CET identifiant (pas un ID généré localement) que le webhook utilisera
-    // pour retrouver le paiement quand Fedapay confirmera la transaction.
     let fedapayTxId: string;
     let paymentUrl: string | undefined;
 
@@ -100,11 +193,8 @@ Deno.serve(async (req: Request) => {
       fedapayTxId = String(transactionId);
 
       if (operator === "mtn" || operator === "moov") {
-        // Push USSD direct — l'utilisateur reçoit la demande de confirmation sur son téléphone
         await sendDirectPush(FEDAPAY_MODES[operator], token, phone_number);
       } else {
-        // Celtiis Cash : pas de push direct supporté par Fedapay (à date), on redirige
-        // le client vers la page de paiement sécurisée.
         paymentUrl = url;
       }
     } catch (fedapayErr: unknown) {
@@ -115,7 +205,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Create payment record in DB with status 'en_attente'
     const { data: payment, error: paymentError } = await supabase
       .from("payments")
       .insert({
@@ -142,7 +231,7 @@ Deno.serve(async (req: Request) => {
         payment_id: payment.id,
         fedapay_transaction_id: fedapayTxId,
         status: "en_attente",
-        payment_url: paymentUrl, // présent uniquement pour Celtiis (flux redirection)
+        payment_url: paymentUrl,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
