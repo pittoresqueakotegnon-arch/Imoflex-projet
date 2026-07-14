@@ -195,6 +195,20 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* Bouton Rejoindre un nouveau logement */}
+            <button
+              onClick={() => navigate('/rejoindre')}
+              className="w-full flex items-center justify-center gap-2 rounded-2xl py-3 mb-5 text-sm font-nunito font-700 transition-all hover:opacity-80"
+              style={{
+                background: 'transparent',
+                border: '1px dashed rgba(168, 85, 247, 0.4)',
+                color: '#A855F7',
+              }}
+            >
+              <span className="text-base">+</span>
+              Rejoindre un autre logement
+            </button>
+
             {/* Loyer Card with gradient and pattern */}
             <div
               className="rounded-3xl p-6 mb-5 text-white relative overflow-hidden"

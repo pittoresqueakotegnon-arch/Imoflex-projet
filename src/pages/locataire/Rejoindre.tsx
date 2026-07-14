@@ -275,17 +275,34 @@ export default function Rejoindre() {
 
       {step === 'complete' && (
         <div className="flex flex-col items-center justify-center flex-1 py-8">
-          <span className="text-6xl mb-6">🎉</span>
-          <h1 className="font-nunito font-900 text-2xl text-center mb-3">Vous êtes maintenant locataire !</h1>
-          <p className="text-[#8B7BB5] text-sm text-center mb-10 max-w-[260px] leading-relaxed font-space-grotesk">
-            {property?.name} est maintenant votre logement. Vous pouvez commencer à effectuer vos paiements de loyer.
+          <div
+            className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6"
+            style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(168,85,247,0.05))', border: '1px solid rgba(168,85,247,0.3)' }}
+          >
+            <span className="text-4xl">🏠</span>
+          </div>
+          <h1 className="font-nunito font-900 text-2xl text-center mb-3">
+            Logement ajouté !<br />
+            <span style={{ color: '#A855F7' }}>Avec succès.</span>
+          </h1>
+          <p className="text-[#8B7BB5] text-sm text-center mb-3 max-w-[260px] leading-relaxed font-space-grotesk">
+            <strong className="text-[#E8E0FF]">{property?.name}</strong> fait maintenant partie de vos logements.
+            Retrouvez-le dans votre espace et gérez vos paiements en toute simplicité.
           </p>
+
+          <div
+            className="w-full rounded-2xl p-4 mb-10"
+            style={{ background: 'rgba(168, 85, 247, 0.07)', border: '1px solid rgba(168, 85, 247, 0.15)' }}
+          >
+            <p className="text-[10px] font-space-grotesk font-bold uppercase tracking-wider text-[#8B7BB5] mb-1">Adresse</p>
+            <p className="font-nunito font-700 text-[#E8E0FF] text-sm">{property?.address}</p>
+          </div>
 
           <button
             onClick={() => navigate('/dashboard')}
             className="btn-primary w-full"
           >
-            Aller au dashboard
+            Voir mes logements
           </button>
         </div>
       )}
