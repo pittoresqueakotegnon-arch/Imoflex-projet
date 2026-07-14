@@ -98,7 +98,7 @@ export default function Payer() {
 
     const cleanedPhone = phoneNumber.replace(/\s/g, '');
     if (!cleanedPhone || cleanedPhone.length < 8) {
-      setError('Veuillez configurer votre numéro Mobile Money dans votre profil');
+      setError('Veuillez saisir un numéro Mobile Money valide');
       return;
     }
 
@@ -168,55 +168,53 @@ export default function Payer() {
   return (
     <div className="min-h-screen bg-[#120D2A] text-[#E8E0FF] flex flex-col p-6">
       {/* Header */}
-      <div className="flex items-center mb-8">
+      <div className="flex items-center gap-4 mb-10">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 hover:bg-[#1E1545] rounded-lg transition-colors"
+          className="p-3 bg-[#1E1545] hover:bg-[#2A1E5C] rounded-2xl transition-colors"
         >
-          <ChevronLeft size={24} />
+          <ChevronLeft size={20} className="text-white" />
         </button>
+        <h1 className="font-nunito font-900 text-[22px] text-white">Effectuer un versement</h1>
       </div>
 
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col">
         {/* Amount Display */}
         <div className="mb-10 flex flex-col items-center">
           <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-bold uppercase tracking-widest mb-3">
             MONTANT À VERSER
           </p>
           <div className="flex items-baseline justify-center gap-2 mb-2">
-            <span className="text-[#A855F7] font-nunito font-900 text-2xl">FCFA</span>
-            <span className="font-nunito font-900 text-[3.5rem] leading-none text-white">{amount}</span>
+            <span className="text-[#A855F7] font-nunito font-900 text-xl">FCFA</span>
+            <span className="font-nunito font-900 text-[3.5rem] leading-none text-white">{new Intl.NumberFormat('fr-FR').format(amount)}</span>
           </div>
-          <p className="text-[#8B7BB5] text-[13px] font-space-grotesk">
+          <p className="text-[#645A8A] text-[13px] font-space-grotesk">
             Solde restant : {new Intl.NumberFormat('fr-FR').format(remaining)} FCFA
           </p>
         </div>
 
         {/* Quick Amount Pills */}
         <div className="mb-8">
-          <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-bold uppercase tracking-widest mb-3">
-            VERSEMENT RAPIDE
-          </p>
           <div className="grid grid-cols-4 gap-2">
             {[500, 5000, 10000].map((val) => (
               <button
                 key={val}
                 onClick={() => handleQuickAmount(val)}
-                className={`py-3.5 px-1 rounded-[14px] font-space-grotesk font-600 text-[13px] transition-all ${
+                className={`py-4 px-1 rounded-2xl font-space-grotesk font-600 text-[13px] transition-all ${
                   amount === val
                     ? 'bg-transparent text-[#A855F7] border border-[#A855F7]'
-                    : 'bg-[#181135] text-[#E8E0FF] border border-transparent'
+                    : 'bg-[#181135] text-[#8B7BB5] border border-transparent hover:bg-[#1E1545]'
                 }`}
               >
-                {val}
+                {new Intl.NumberFormat('fr-FR').format(val)}
               </button>
             ))}
             <button
               onClick={() => handleQuickAmount('all')}
-              className={`py-3.5 px-1 rounded-[14px] font-space-grotesk font-600 text-[13px] transition-all ${
+              className={`py-4 px-1 rounded-2xl font-space-grotesk font-600 text-[13px] transition-all ${
                 amount === remaining
                   ? 'bg-transparent text-[#A855F7] border border-[#A855F7]'
-                  : 'bg-[#181135] text-[#E8E0FF] border border-transparent'
+                  : 'bg-[#181135] text-[#8B7BB5] border border-transparent hover:bg-[#1E1545]'
               }`}
             >
               Tout
@@ -224,26 +222,9 @@ export default function Payer() {
           </div>
         </div>
 
-        {/* Custom Amount Input */}
-        <div className="mb-8">
-          <label className="block text-[#8B7BB5] text-[10px] font-space-grotesk font-bold uppercase tracking-widest mb-3">
-            MONTANT PERSONNALISÉ
-          </label>
-          <input
-            type="number"
-            value={amount || ''}
-            onChange={(e) => setAmount(Math.max(0, parseInt(e.target.value) || 0))}
-            disabled={processing}
-            className="w-full bg-[#181135] text-white text-center font-nunito font-900 text-xl py-4 rounded-2xl outline-none"
-            placeholder="0"
-            min="100"
-            max={remaining}
-          />
-        </div>
-
         {/* Operator Selection */}
-        <div className="mb-8">
-          <label className="block text-[#8B7BB5] text-[10px] font-space-grotesk font-bold uppercase tracking-widest mb-3">
+        <div className="mb-6">
+          <label className="block text-[#645A8A] text-[11px] font-space-grotesk font-bold uppercase tracking-widest mb-4">
             OPÉRATEUR
           </label>
           <div className="grid grid-cols-3 gap-3">
@@ -252,17 +233,17 @@ export default function Payer() {
                 key={op}
                 onClick={() => setSelectedOperator(op)}
                 disabled={processing}
-                className={`py-5 rounded-3xl flex flex-col items-center gap-3 font-nunito font-800 text-[13px] transition-all ${
+                className={`py-6 rounded-[24px] flex flex-col items-center gap-4 font-nunito font-800 text-[13px] transition-all ${
                   selectedOperator === op
-                    ? 'bg-transparent border border-[#A855F7] text-white'
-                    : 'bg-[#181135] border border-transparent text-[#E8E0FF]'
+                    ? 'bg-transparent border border-[#A855F7] text-[#FBBF24]'
+                    : 'bg-[#181135] border border-transparent text-[#645A8A] hover:bg-[#1E1545]'
                 }`}
               >
                 <div
-                  className="w-4 h-4 rounded-full"
+                  className="w-5 h-5 rounded-full"
                   style={{
                     backgroundColor: op === 'mtn' ? '#FBBF24' : op === 'moov' ? '#3B82F6' : '#F97316',
-                    boxShadow: selectedOperator === op ? `0 0 12px ${op === 'mtn' ? 'rgba(251,191,36,0.5)' : op === 'moov' ? 'rgba(59,130,246,0.5)' : 'rgba(249,115,22,0.5)'}` : 'none'
+                    boxShadow: selectedOperator === op ? `0 0 15px ${op === 'mtn' ? 'rgba(251,191,36,0.6)' : op === 'moov' ? 'rgba(59,130,246,0.6)' : 'rgba(249,115,22,0.6)'}` : 'none'
                   }}
                 ></div>
                 <span>{op === 'mtn' ? 'MTN' : op === 'moov' ? 'Moov' : 'Celtiis'}</span>
@@ -271,37 +252,61 @@ export default function Payer() {
           </div>
         </div>
 
-        {/* Summary Card */}
-        <div className="bg-[#181135] border border-[rgba(255,255,255,0.03)] rounded-2xl p-5 mb-4 flex justify-between items-center">
-          <span className="text-white font-nunito font-800 text-[15px]">Total débité</span>
-          <span className="text-[#A855F7] font-nunito font-900 text-[15px]">{new Intl.NumberFormat('fr-FR').format(amount)} FCFA</span>
+        {/* Numéro Mobile Money */}
+        <div className="mb-8">
+          <label className="block text-[#645A8A] text-[11px] font-space-grotesk font-bold uppercase tracking-widest mb-4">
+            NUMÉRO MOBILE MONEY
+          </label>
+          <input
+            type="tel"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            disabled={processing}
+            className="w-full bg-[#181135] text-white font-nunito font-800 text-[15px] py-4 px-5 rounded-2xl outline-none border border-transparent focus:border-[#A855F7] transition-all"
+            placeholder="Ex: 90 00 00 00"
+          />
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-[#EF4444] bg-opacity-10 border border-[#EF4444] text-[#EF4444] p-3 rounded-xl mb-4 text-sm text-center">
-            {error}
+        <div className="mt-auto">
+          {/* Summary Card */}
+          <div className="bg-[#181135] rounded-3xl p-6 mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-[#645A8A] font-space-grotesk font-600 text-[13px]">Versement</span>
+              <span className="text-white font-nunito font-900 text-[15px]">{new Intl.NumberFormat('fr-FR').format(amount)} FCFA</span>
+            </div>
+            <div className="h-[1px] bg-[rgba(255,255,255,0.05)] w-full my-4"></div>
+            <div className="flex justify-between items-center">
+              <span className="text-[#645A8A] font-space-grotesk font-600 text-[13px]">Total débité</span>
+              <span className="text-[#A855F7] font-nunito font-900 text-[15px]">{new Intl.NumberFormat('fr-FR').format(amount)} FCFA</span>
+            </div>
           </div>
-        )}
 
-        {/* Pay Button */}
-        <button
-          onClick={handlePay}
-          disabled={processing || amount < 100 || !selectedOperator}
-          className="w-full text-[#E8E0FF] font-nunito font-800 text-[15px] rounded-2xl py-[18px] flex items-center justify-center gap-2 opacity-90 hover:opacity-100 transition-opacity"
-          style={{ background: '#4A3D7A' }}
-        >
-          {processing ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Traitement en cours...
-            </>
-          ) : (
-            <>
-              Payer via Fedapay →
-            </>
+          {/* Error Message */}
+          {error && (
+            <div className="bg-[#EF4444] bg-opacity-10 border border-[#EF4444] text-[#EF4444] p-4 rounded-2xl mb-4 text-sm text-center">
+              {error}
+            </div>
           )}
-        </button>
+
+          {/* Pay Button */}
+          <button
+            onClick={handlePay}
+            disabled={processing || amount < 100 || !selectedOperator}
+            className="w-full text-white font-nunito font-900 text-[17px] rounded-3xl py-5 flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
+            style={{ background: '#A855F7' }}
+          >
+            {processing ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Traitement en cours...
+              </>
+            ) : (
+              <>
+                Payer via Fedapay →
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
