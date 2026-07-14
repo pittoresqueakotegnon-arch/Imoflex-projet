@@ -67,6 +67,38 @@ export function getDeadlineDate(day: number): string {
   return deadline.toISOString().split('T')[0];
 }
 
+export function calculateProrataAmount(monthlyRent: number, joinDateStr: string, deadlineDay: number): number {
+  const joinDate = new Date(joinDateStr);
+  const currentMonth = joinDate.getMonth();
+  const currentYear = joinDate.getFullYear();
+  
+  // Find the next deadline
+  let deadlineDate = new Date(currentYear, currentMonth, deadlineDay);
+  if (deadlineDate <= joinDate) {
+    // If we missed this month's deadline, the period is until next month's deadline
+    deadlineDate = new Date(currentYear, currentMonth + 1, deadlineDay);
+  }
+
+  // Find the previous deadline to determine the full period length
+  let previousDeadlineDate = new Date(deadlineDate);
+  previousDeadlineDate.setMonth(previousDeadlineDate.getMonth() - 1);
+
+  // Total days in this rent period
+  const totalDaysInPeriod = Math.round((deadlineDate.getTime() - previousDeadlineDate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Days the tenant will actually be in the property during this period
+  const daysInProperty = Math.round((deadlineDate.getTime() - joinDate.getTime()) / (1000 * 60 * 60 * 24));
+
+  // Prorata calculation
+  if (daysInProperty <= 0) return 0;
+  if (daysInProperty >= totalDaysInPeriod) return monthlyRent;
+
+  const prorated = (monthlyRent / totalDaysInPeriod) * daysInProperty;
+  
+  // Round to nearest 500 FCFA for cleaner numbers, but ensure it doesn't exceed monthly rent
+  return Math.min(Math.round(prorated / 500) * 500, monthlyRent);
+}
+
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 function generateCode(): string {

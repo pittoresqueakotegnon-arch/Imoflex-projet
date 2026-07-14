@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, Property } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
-import { formatMontant, getCurrentMonth, getDeadlineDate } from '../../lib/utils';
+import { formatMontant, getCurrentMonth, getDeadlineDate, calculateProrataAmount } from '../../lib/utils';
 
 type Step = 'input' | 'confirmation' | 'complete';
 
@@ -97,13 +97,15 @@ export default function Rejoindre() {
 
       // Create rent period
       const deadlineDate = getDeadlineDate(property.payment_deadline_day);
+      const prorataAmount = calculateProrataAmount(property.monthly_rent, today, property.payment_deadline_day);
+
       const { error: periodInsertError } = await supabase
         .from('rent_periods')
         .insert({
           lease_id: leaseData.id,
           period_month: month,
           period_year: year,
-          amount_due: property.monthly_rent,
+          amount_due: prorataAmount,
           amount_paid: 0,
           deadline_date: deadlineDate,
           status: 'en_cours',
@@ -234,6 +236,22 @@ export default function Rejoindre() {
                 <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-0.5">Échéance de paiement</p>
                 <p className="font-nunito font-700 text-[#E8E0FF] text-base">Le {property.payment_deadline_day} de chaque mois</p>
               </div>
+              
+              {(() => {
+                const todayStr = new Date().toISOString().split('T')[0];
+                const prorata = calculateProrataAmount(property.monthly_rent, todayStr, property.payment_deadline_day);
+                if (prorata < property.monthly_rent) {
+                  return (
+                    <div className="bg-[#A855F7]/10 border border-[#A855F7]/30 rounded-xl p-3 mt-4">
+                      <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-1">Premier mois (Prorata)</p>
+                      <p className="font-nunito font-700 text-[#E8E0FF] text-sm">
+                        Vous ne payez que <span className="text-[#A855F7] font-black">{prorata.toLocaleString('fr-FR')} FCFA</span> pour ce premier mois, calculé au prorata de votre date d'arrivée.
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             {error && (

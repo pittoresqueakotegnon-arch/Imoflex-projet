@@ -182,13 +182,17 @@ export default function Dashboard() {
                     <button
                       key={lease.id}
                       onClick={() => setActiveLease(lease)}
-                      className={`flex-shrink-0 px-4 py-2.5 rounded-2xl font-nunito font-700 text-sm transition-all whitespace-nowrap ${
+                      className={`flex-shrink-0 p-3 rounded-2xl transition-all text-left w-44 ${
                         activeLease.id === lease.id
                           ? 'bg-[#A855F7] text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]'
                           : 'bg-[#1A1240] text-[#8B7BB5] border border-[rgba(255,255,255,0.05)]'
                       }`}
                     >
-                      {lease.properties?.name || 'Logement'}
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-lg">🏠</span>
+                        <span className="font-nunito font-700 text-sm truncate">{lease.properties?.name || 'Logement'}</span>
+                      </div>
+                      <span className="text-[10px] font-space-grotesk opacity-80 truncate block">{lease.properties?.address || 'Adresse inconnue'}</span>
                     </button>
                   ))}
                 </div>
@@ -219,6 +223,20 @@ export default function Dashboard() {
                 className="absolute -top-10 -right-10 w-48 h-48 rounded-full pointer-events-none"
                 style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.15) 0%, transparent 70%)' }}
               />
+
+              {/* Header de la carte logement */}
+              <div className="flex justify-between items-start mb-6 relative z-10 border-b border-[rgba(255,255,255,0.1)] pb-4">
+                <div>
+                  <h2 className="font-nunito font-800 text-xl text-white mb-1">{activeLease.properties?.name || 'Mon Logement'}</h2>
+                  <p className="text-[#8B7BB5] text-xs font-space-grotesk flex items-center gap-1">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    {activeLease.properties?.address || 'Adresse non spécifiée'}
+                  </p>
+                </div>
+                <div className="bg-[#A855F7]/20 text-[#D8B4FE] text-[10px] font-bold px-2 py-1 rounded font-space-grotesk uppercase">
+                  {activeLease.status}
+                </div>
+              </div>
 
               <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-bold uppercase tracking-wider mb-2 relative z-10">
                 LOYER — {getMonthName(new Date().getMonth() + 1, new Date().getFullYear()).toUpperCase()} {new Date().getFullYear()}

@@ -14,23 +14,38 @@ export default function Historique() {
   const { profile } = useAuth();
   const { showToast } = useToast();
 
-  const [payments, setPayments] = useState<Payment[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [leases, setLeases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterStatus>('all');
+  const [selectedLeaseId, setSelectedLeaseId] = useState<string>('all');
 
   useEffect(() => {
     const fetchPayments = async () => {
       if (!profile?.id) return;
 
       try {
+        // Fetch active leases for filter
+        const { data: leasesData } = await supabase
+          .from('leases')
+          .select('id, properties:property_id(name)')
+          .eq('tenant_id', profile.id)
+          .eq('status', 'actif');
+          
+        setLeases(leasesData || []);
+
         let query = supabase
           .from('payments')
-          .select('id, created_at, operator, status, fedapay_transaction_id, amount')
+          .select('id, created_at, operator, status, fedapay_transaction_id, amount, rent_periods!inner(lease_id, leases(properties(name)))')
           .eq('tenant_id', profile.id)
           .order('created_at', { ascending: false });
 
         if (filter !== 'all') {
           query = query.eq('status', filter);
+        }
+        
+        if (selectedLeaseId !== 'all') {
+          query = query.eq('rent_periods.lease_id', selectedLeaseId);
         }
 
         const { data, error } = await query;
@@ -46,7 +61,7 @@ export default function Historique() {
     };
 
     fetchPayments();
-  }, [profile?.id, filter]);
+  }, [profile?.id, filter, selectedLeaseId]);
 
   const groupedPayments = payments.reduce(
     (acc, payment) => {
@@ -112,17 +127,47 @@ export default function Historique() {
       </header>
 
       <div className="px-4 py-4 flex-1">
-        {/* Filter Pills */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-5 pb-0.5">
-          {(['all', 'valide', 'echoue'] as const).map((status) => (
-            <button
-              key={status}
-              onClick={() => setFilter(status)}
-              className={`filter-pill ${filter === status ? 'active' : 'inactive'}`}
-            >
-              {status === 'all' ? 'Tout' : status === 'valide' ? 'Validés' : 'Échoués'}
-            </button>
-          ))}
+        {/* Filters */}
+        <div className="mb-5 space-y-3">
+          {leases.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+              <button
+                onClick={() => setSelectedLeaseId('all')}
+                className={`flex-shrink-0 px-4 py-2 rounded-2xl font-nunito font-700 text-sm transition-all whitespace-nowrap ${
+                  selectedLeaseId === 'all'
+                    ? 'bg-[#A855F7] text-white'
+                    : 'bg-[#1A1240] text-[#8B7BB5] border border-[rgba(255,255,255,0.05)]'
+                }`}
+              >
+                Tous les logements
+              </button>
+              {leases.map((lease) => (
+                <button
+                  key={lease.id}
+                  onClick={() => setSelectedLeaseId(lease.id)}
+                  className={`flex-shrink-0 px-4 py-2 rounded-2xl font-nunito font-700 text-sm transition-all whitespace-nowrap ${
+                    selectedLeaseId === lease.id
+                      ? 'bg-[#A855F7] text-white'
+                      : 'bg-[#1A1240] text-[#8B7BB5] border border-[rgba(255,255,255,0.05)]'
+                  }`}
+                >
+                  {lease.properties?.name || 'Logement'}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
+            {(['all', 'valide', 'echoue'] as const).map((status) => (
+              <button
+                key={status}
+                onClick={() => setFilter(status)}
+                className={`filter-pill ${filter === status ? 'active' : 'inactive'}`}
+              >
+                {status === 'all' ? 'Tous les statuts' : status === 'valide' ? 'Validés' : 'Échoués'}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Monthly Summary Card */}
@@ -179,7 +224,7 @@ export default function Historique() {
                               )}
                             </div>
                             <p className="text-[#8B7BB5] text-[10px]" style={{ fontFamily: 'Space Grotesk' }}>
-                              Ref: {payment.fedapay_transaction_id?.substring(0, 8) || 'N/A'}
+                              {payment.rent_periods?.leases?.properties?.name || 'Logement'} • Ref: {payment.fedapay_transaction_id?.substring(0, 8) || 'N/A'}
                             </p>
                           </div>
                         </div>
