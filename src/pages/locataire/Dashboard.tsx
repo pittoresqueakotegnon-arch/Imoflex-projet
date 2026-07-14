@@ -29,7 +29,7 @@ export default function Dashboard() {
         // Fetch active lease — on récupère aussi tenant_id pour vérifier le RLS
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
-          .select('id, tenant_id, status, properties:property_id(name, address, monthly_rent, neighborhood)')
+          .select('id, tenant_id, status, properties:property_id(name, address, monthly_rent)')
           .eq('tenant_id', profile.id)
           .eq('status', 'actif')
           .maybeSingle();
