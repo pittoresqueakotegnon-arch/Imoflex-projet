@@ -34,7 +34,7 @@ export default function Dashboard() {
           .eq('status', 'actif')
           .maybeSingle();
 
-        console.log('[Dashboard] leaseData:', leaseData, 'leaseError:', leaseError, 'profile.id:', profile.id);
+
 
         if (leaseError) throw leaseError;
 
