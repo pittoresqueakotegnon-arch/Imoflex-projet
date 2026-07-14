@@ -47,13 +47,23 @@ import Notifications from './pages/common/Notifications';
 
 import AdminLayout from './components/AdminLayout';
 
+/**
+ * Toutes les routes "mobile" (marketplace, locataire, propriétaire, auth)
+ * sont enveloppées dans le même wrapper .mobile-frame pour conserver
+ * le design responsive. On utilise un Layout dédié pour ne pas dupliquer.
+ */
+function MobileFrame({ children }: { children: React.ReactNode }) {
+  return <div className="mobile-frame">{children}</div>;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
           <Routes>
-            {/* --- ESPACE ADMIN (Desktop) --- */}
+
+            {/* ── ESPACE ADMIN (Desktop layout) ──────────────────── */}
             <Route
               path="/admin"
               element={
@@ -70,152 +80,171 @@ export default function App() {
               <Route path="logs" element={<AdminLogs />} />
             </Route>
 
-            {/* --- ESPACE PUBLIC / LOCATAIRE / PROPRIÉTAIRE (Mobile Frame) --- */}
+            {/* ── SPLASH ─────────────────────────────────────────── */}
+            <Route path="/splash" element={<MobileFrame><Splash /></MobileFrame>} />
+
+            {/* ── PUBLIC ─────────────────────────────────────────── */}
+            <Route path="/" element={<MobileFrame><Marketplace /></MobileFrame>} />
+            <Route path="/filtres" element={<MobileFrame><Filtres /></MobileFrame>} />
+            <Route path="/annonce/:id" element={<MobileFrame><Annonce /></MobileFrame>} />
+            <Route path="/favoris" element={<MobileFrame><Favoris /></MobileFrame>} />
+            <Route path="/mes-demandes" element={<MobileFrame><MesDemandes /></MobileFrame>} />
             <Route
-              path="*"
+              path="/contact/:listing_id"
               element={
-                <div className="mobile-frame">
-                  <Routes>
-                    {/* Splash */}
-                    <Route path="/splash" element={<Splash />} />
-
-                    {/* Public marketplace */}
-                    <Route path="/" element={<Marketplace />} />
-                    <Route path="/filtres" element={<Filtres />} />
-                    <Route path="/annonce/:id" element={<Annonce />} />
-                    <Route path="/favoris" element={<Favoris />} />
-                    <Route path="/mes-demandes" element={<MesDemandes />} />
-                    <Route
-                      path="/contact/:listing_id"
-                      element={
-                        <RoleGuard allowedRoles={['locataire', 'proprietaire', 'admin']} redirectTo="/login">
-                          <Contact />
-                        </RoleGuard>
-                      }
-                    />
-
-                    {/* Auth */}
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-
-                    {/* Locataire */}
-                    <Route
-                      path="/dashboard"
-                      element={
-                        <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
-                          <LocataireDashboard />
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/rejoindre"
-                      element={
-                        <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
-                          <Rejoindre />
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/payer/:leaseId"
-                      element={
-                        <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
-                          <Payer />
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/historique"
-                      element={
-                        <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
-                          <Historique />
-                        </RoleGuard>
-                      }
-                    />
-
-                    {/* Propriétaire */}
-                    <Route
-                      path="/pro/dashboard"
-                      element={
-                        <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                          <ProprietaireDashboard />
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/pro/annonces"
-                      element={
-                        <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                          <ProAnnonces />
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/pro/publier"
-                      element={
-                        <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                          <Publier />
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/pro/demandes"
-                      element={
-                        <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                          <Demandes />
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/pro/activer/:listing_id"
-                      element={
-                        <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                          <Activer />
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/pro/locataires"
-                      element={
-                        <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                          <MesLocataires />
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/pro/wallet"
-                      element={
-                        <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                          <Wallet />
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/pro/retrait"
-                      element={
-                        <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                          <Retrait />
-                        </RoleGuard>
-                      }
-                    />
-
-                    {/* Common */}
-                    <Route path="/profil" element={<Profil />} />
-                    <Route
-                      path="/notifications"
-                      element={
-                        <RoleGuard allowedRoles={['locataire', 'proprietaire', 'admin']} redirectTo="/login">
-                          <Notifications />
-                        </RoleGuard>
-                      }
-                    />
-
-                    {/* Fallback */}
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
-                </div>
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['locataire', 'proprietaire', 'admin']} redirectTo="/login">
+                    <Contact />
+                  </RoleGuard>
+                </MobileFrame>
               }
             />
+
+            {/* ── AUTH ───────────────────────────────────────────── */}
+            <Route path="/login" element={<MobileFrame><Login /></MobileFrame>} />
+            <Route path="/register" element={<MobileFrame><Register /></MobileFrame>} />
+            <Route path="/forgot-password" element={<MobileFrame><ForgotPassword /></MobileFrame>} />
+
+            {/* ── LOCATAIRE ──────────────────────────────────────── */}
+            <Route
+              path="/dashboard"
+              element={
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
+                    <LocataireDashboard />
+                  </RoleGuard>
+                </MobileFrame>
+              }
+            />
+            <Route
+              path="/rejoindre"
+              element={
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
+                    <Rejoindre />
+                  </RoleGuard>
+                </MobileFrame>
+              }
+            />
+            <Route
+              path="/payer/:leaseId"
+              element={
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
+                    <Payer />
+                  </RoleGuard>
+                </MobileFrame>
+              }
+            />
+            <Route
+              path="/historique"
+              element={
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
+                    <Historique />
+                  </RoleGuard>
+                </MobileFrame>
+              }
+            />
+
+            {/* ── PROPRIÉTAIRE ───────────────────────────────────── */}
+            <Route
+              path="/pro/dashboard"
+              element={
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+                    <ProprietaireDashboard />
+                  </RoleGuard>
+                </MobileFrame>
+              }
+            />
+            <Route
+              path="/pro/annonces"
+              element={
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+                    <ProAnnonces />
+                  </RoleGuard>
+                </MobileFrame>
+              }
+            />
+            <Route
+              path="/pro/publier"
+              element={
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+                    <Publier />
+                  </RoleGuard>
+                </MobileFrame>
+              }
+            />
+            <Route
+              path="/pro/demandes"
+              element={
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+                    <Demandes />
+                  </RoleGuard>
+                </MobileFrame>
+              }
+            />
+            <Route
+              path="/pro/activer/:listing_id"
+              element={
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+                    <Activer />
+                  </RoleGuard>
+                </MobileFrame>
+              }
+            />
+            <Route
+              path="/pro/locataires"
+              element={
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+                    <MesLocataires />
+                  </RoleGuard>
+                </MobileFrame>
+              }
+            />
+            <Route
+              path="/pro/wallet"
+              element={
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+                    <Wallet />
+                  </RoleGuard>
+                </MobileFrame>
+              }
+            />
+            <Route
+              path="/pro/retrait"
+              element={
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+                    <Retrait />
+                  </RoleGuard>
+                </MobileFrame>
+              }
+            />
+
+            {/* ── COMMUN ─────────────────────────────────────────── */}
+            <Route path="/profil" element={<MobileFrame><Profil /></MobileFrame>} />
+            <Route
+              path="/notifications"
+              element={
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['locataire', 'proprietaire', 'admin']} redirectTo="/login">
+                    <Notifications />
+                  </RoleGuard>
+                </MobileFrame>
+              }
+            />
+
+            {/* ── 404 FALLBACK ───────────────────────────────────── */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+
           </Routes>
         </ToastProvider>
       </AuthProvider>
