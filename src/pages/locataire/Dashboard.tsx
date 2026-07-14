@@ -17,21 +17,24 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (authLoading) return;
-      if (!profile?.id) return;
+    if (authLoading) return; // attendre la fin du chargement auth
+    if (!profile?.id) {
+      // auth terminée mais pas de profil : on arrête le spinner
+      setLoading(false);
+      return;
+    }
 
+    const fetchData = async () => {
       try {
-        // Fetch active lease
+        // Fetch active lease — on récupère aussi tenant_id pour vérifier le RLS
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
-          .select(`
-            id,
-            properties:property_id(title, address, monthly_rent, neighborhood)
-          `)
+          .select('id, tenant_id, status, properties:property_id(title, address, monthly_rent, neighborhood)')
           .eq('tenant_id', profile.id)
           .eq('status', 'actif')
           .maybeSingle();
+
+        console.log('[Dashboard] leaseData:', leaseData, 'leaseError:', leaseError, 'profile.id:', profile.id);
 
         if (leaseError) throw leaseError;
 
@@ -63,14 +66,14 @@ export default function Dashboard() {
           setRecentPayments(paymentsData || []);
         }
       } catch (err) {
-        console.error('Error fetching data:', err);
+        console.error('[Dashboard] Error fetching data:', err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [profile?.id, authLoading, user]);
+  }, [profile?.id, authLoading]);
 
   const firstName = profile?.full_name?.split(' ')[0] || 'Kofi';
   const lastName = profile?.full_name?.split(' ').slice(1).join(' ') || 'Mensah';
