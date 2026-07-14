@@ -6,7 +6,7 @@ import { useToast } from '../../components/Toast';
 import ListingCard from '../../components/ListingCard';
 import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
-import { PropertyType } from '../../lib/supabase';
+import { supabase, PropertyType } from '../../lib/supabase';
 import { propertyTypeLabel } from '../../lib/utils';
 
 const PROPERTY_TYPES: { type: PropertyType; label: string }[] = [
