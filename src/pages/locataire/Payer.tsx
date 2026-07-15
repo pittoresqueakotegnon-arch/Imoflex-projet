@@ -5,15 +5,15 @@ import { useAuth } from '../../hooks/useAuth';
 import { supabase, RentPeriod, Operator } from '../../lib/supabase';
 import { initiatePayment } from '../../lib/fedapay';
 import { useToast } from '../../components/Toast';
-import { formatMontant, operatorColor } from '../../lib/utils';
 
 export default function Payer() {
   const navigate = useNavigate();
-  const { leaseId } = useParams();
+  const { leaseId } = useParams<{ leaseId: string }>();
   const { profile } = useAuth();
   const { showToast } = useToast();
 
   const [currentRentPeriod, setCurrentRentPeriod] = useState<RentPeriod | null>(null);
+  const [propertyName, setPropertyName] = useState('');
   const [amount, setAmount] = useState(0);
   const [selectedOperator, setSelectedOperator] = useState<Operator | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -31,11 +31,15 @@ export default function Payer() {
     const fetchData = async () => {
       if (!profile?.id) return;
 
+      if (!leaseId) {
+        navigate('/dashboard');
+        return;
+      }
+
       try {
-        // Fetch active lease
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
-          .select('*')
+          .select('id, tenant_id, status, properties:property_id(name)')
           .eq('id', leaseId)
           .eq('tenant_id', profile.id)
           .eq('status', 'actif')
@@ -44,11 +48,13 @@ export default function Payer() {
         if (leaseError) throw leaseError;
 
         if (!leaseData) {
+          showToast('Logement introuvable ou inactif', 'error');
           navigate('/dashboard');
           return;
         }
 
-        // Fetch current month rent period
+        setPropertyName((leaseData as any).properties?.name || '');
+
         const now = new Date();
         const { data: periodData, error: periodError } = await supabase
           .from('rent_periods')
@@ -112,9 +118,6 @@ export default function Payer() {
     setProcessing(true);
 
     try {
-      // Le locataire paie EXACTEMENT le montant qu'il choisit.
-      // La commission de 5% est prélevée plus tard sur la part reversée
-      // au propriétaire — elle n'est jamais ajoutée à ce que paie le locataire.
       const result = await initiatePayment({
         amount,
         operator: selectedOperator,
@@ -123,8 +126,6 @@ export default function Payer() {
       });
 
       if (selectedOperator === 'celtiis' && result.payment_url) {
-        // Celtiis Cash n'a pas de push USSD direct chez Fedapay :
-        // on ouvre la page de paiement sécurisée Fedapay dans un nouvel onglet.
         window.open(result.payment_url, '_blank');
         showToast('Finalisez le paiement dans l\'onglet Fedapay ouvert', 'success');
       } else {
@@ -159,7 +160,7 @@ export default function Payer() {
           <ChevronLeft size={24} />
         </button>
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-[#8B7BB5]">Aucune période de loyer active</p>
+          <p className="text-[#8B7BB5]">Aucune période de loyer active pour ce logement</p>
         </div>
       </div>
     );
@@ -169,8 +170,7 @@ export default function Payer() {
 
   return (
     <div className="min-h-screen bg-[#120D2A] text-[#E8E0FF] flex flex-col p-6">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-10">
+      <div className="flex items-center gap-4 mb-2">
         <button
           onClick={() => navigate(-1)}
           className="p-3 bg-[#1E1545] hover:bg-[#2A1E5C] rounded-2xl transition-colors"
@@ -179,9 +179,13 @@ export default function Payer() {
         </button>
         <h1 className="font-nunito font-900 text-[22px] text-white">Effectuer un versement</h1>
       </div>
+      {propertyName && (
+        <p className="text-[#8B7BB5] text-[12px] ml-[60px] mb-8" style={{ fontFamily: 'Space Grotesk' }}>
+          Pour : {propertyName}
+        </p>
+      )}
 
       <div className="flex-1 flex flex-col">
-        {/* Amount Display */}
         <div className="mb-10 flex flex-col items-center">
           <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-bold uppercase tracking-widest mb-3">
             MONTANT À VERSER
@@ -195,7 +199,6 @@ export default function Payer() {
           </p>
         </div>
 
-        {/* Quick Amount Pills */}
         <div className="mb-8">
           <div className="grid grid-cols-4 gap-2">
             {[500, 5000, 10000].map((val) => (
@@ -224,7 +227,6 @@ export default function Payer() {
           </div>
         </div>
 
-        {/* Operator Selection */}
         <div className="mb-6">
           <label className="block text-[#645A8A] text-[11px] font-space-grotesk font-bold uppercase tracking-widest mb-4">
             OPÉRATEUR
@@ -254,7 +256,6 @@ export default function Payer() {
           </div>
         </div>
 
-        {/* Numéro Mobile Money */}
         <div className="mb-8">
           <label className="block text-[#645A8A] text-[11px] font-space-grotesk font-bold uppercase tracking-widest mb-4">
             NUMÉRO MOBILE MONEY
@@ -270,7 +271,6 @@ export default function Payer() {
         </div>
 
         <div className="mt-auto">
-          {/* Summary Card */}
           <div className="bg-[#181135] rounded-3xl p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
               <span className="text-[#645A8A] font-space-grotesk font-600 text-[13px]">Versement</span>
@@ -283,14 +283,12 @@ export default function Payer() {
             </div>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="bg-[#EF4444] bg-opacity-10 border border-[#EF4444] text-[#EF4444] p-4 rounded-2xl mb-4 text-sm text-center">
               {error}
             </div>
           )}
 
-          {/* Pay Button */}
           <button
             onClick={handlePay}
             disabled={processing || amount < 100 || !selectedOperator}

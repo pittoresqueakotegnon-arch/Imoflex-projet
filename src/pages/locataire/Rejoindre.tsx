@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, Property } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
-import { formatMontant, getCurrentMonth, getDeadlineDate, calculateProrataAmount } from '../../lib/utils';
+import { getCurrentMonth, getDeadlineDate, calculateProrataAmount } from '../../lib/utils';
 
 type Step = 'input' | 'confirmation' | 'complete';
 
@@ -58,7 +58,21 @@ export default function Rejoindre() {
         throw new Error('Ce logement est déjà occupé');
       }
 
+      // Un locataire peut désormais avoir plusieurs baux actifs simultanément
+      // (chambre + boutique + appartement, etc.) : on ne bloque plus ici.
+      // On empêche seulement de rejoindre deux fois le même logement précis.
+      const { data: sameLeaseTwice, error: sameLeaseError } = await supabase
+        .from('leases')
+        .select('id')
+        .eq('tenant_id', profile?.id)
+        .eq('property_id', propData.id)
+        .eq('status', 'actif')
+        .maybeSingle();
 
+      if (sameLeaseError && sameLeaseError.code !== 'PGRST116') throw sameLeaseError;
+      if (sameLeaseTwice) {
+        throw new Error('Vous êtes déjà locataire de ce logement');
+      }
 
       setProperty(propData);
       setStep('confirmation');

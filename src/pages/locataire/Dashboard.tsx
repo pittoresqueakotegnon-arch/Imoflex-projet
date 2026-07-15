@@ -2,22 +2,30 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { supabase, Lease, RentPeriod, Payment } from '../../lib/supabase';
-import { formatMontant, formatDate, daysUntilDeadline, getMonthName, operatorColor, operatorLabel } from '../../lib/utils';
+import { supabase, Payment } from '../../lib/supabase';
+import { formatMontant, daysUntilDeadline, getMonthName, operatorLabel } from '../../lib/utils';
 import BottomNav from '../../components/BottomNav';
-import ProgressBar from '../../components/ProgressBar';
+
+interface LeaseWithPeriod {
+  leaseId: string;
+  propertyName: string;
+  propertyAddress: string;
+  currentPeriod: {
+    id: string;
+    amount_due: number;
+    amount_paid: number;
+    deadline_date: string;
+  } | null;
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { profile, loading: authLoading, user } = useAuth();
+  const { profile, loading: authLoading } = useAuth();
 
-  const [leases, setLeases] = useState<Lease[]>([]);
-  const [activeLease, setActiveLease] = useState<Lease | null>(null);
-  const [currentRentPeriod, setCurrentRentPeriod] = useState<RentPeriod | null>(null);
-  const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
+  const [leases, setLeases] = useState<LeaseWithPeriod[]>([]);
+  const [recentPayments, setRecentPayments] = useState<(Payment & { propertyName?: string })[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch all leases on mount
   useEffect(() => {
     if (authLoading) return;
     if (!profile?.id) {
@@ -25,95 +33,89 @@ export default function Dashboard() {
       return;
     }
 
-    const fetchLeases = async () => {
+    const fetchData = async () => {
       try {
-        const { data, error } = await supabase
+        const { data: leasesData, error: leasesError } = await supabase
           .from('leases')
-          .select('id, tenant_id, status, properties:property_id(name, address, monthly_rent)')
+          .select('id, tenant_id, status, properties:property_id(id, name, address)')
           .eq('tenant_id', profile.id)
-          .eq('status', 'actif');
+          .eq('status', 'actif')
+          .order('created_at', { ascending: true });
 
-        if (error) throw error;
-        
-        setLeases(data || []);
-        if (data && data.length > 0) {
-          setActiveLease(data[0]);
+        if (leasesError) throw leasesError;
+
+        if (leasesData && leasesData.length > 0) {
+          const leaseIds = leasesData.map((l) => l.id);
+          const now = new Date();
+
+          const { data: periodsData, error: periodsError } = await supabase
+            .from('rent_periods')
+            .select('id, lease_id, amount_due, amount_paid, deadline_date, status')
+            .in('lease_id', leaseIds)
+            .eq('period_month', now.getMonth() + 1)
+            .eq('period_year', now.getFullYear());
+
+          if (periodsError) throw periodsError;
+
+          const periodsByLease = new Map(
+            (periodsData || []).map((p) => [p.lease_id, p])
+          );
+
+          const merged: LeaseWithPeriod[] = leasesData.map((l: any) => {
+            const period = periodsByLease.get(l.id);
+            return {
+              leaseId: l.id,
+              propertyName: l.properties?.name || 'Logement',
+              propertyAddress: l.properties?.address || '',
+              currentPeriod: period
+                ? {
+                    id: period.id,
+                    amount_due: period.amount_due,
+                    amount_paid: period.amount_paid,
+                    deadline_date: period.deadline_date,
+                  }
+                : null,
+            };
+          });
+
+          setLeases(merged);
+
+          const { data: paymentsData, error: paymentsError } = await supabase
+            .from('payments')
+            .select(
+              'id, amount, status, created_at, operator, fedapay_transaction_id, rent_period_id, rent_periods:rent_period_id(lease_id, leases:lease_id(properties:property_id(name)))'
+            )
+            .eq('tenant_id', profile.id)
+            .order('created_at', { ascending: false })
+            .limit(5);
+
+          if (paymentsError) throw paymentsError;
+
+          const paymentsWithProperty = (paymentsData || []).map((p: any) => ({
+            ...p,
+            propertyName: p.rent_periods?.leases?.properties?.name,
+          }));
+
+          setRecentPayments(paymentsWithProperty);
         }
       } catch (err) {
-        console.error('[Dashboard] Error fetching leases:', err);
+        console.error('[Dashboard] Error fetching data:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLeases();
+    fetchData();
   }, [profile?.id, authLoading]);
 
-  // Fetch rent period and payments when activeLease changes
-  useEffect(() => {
-    if (!activeLease || !profile?.id) return;
-
-    const fetchLeaseData = async () => {
-      try {
-        const now = new Date();
-        const { data: periodData, error: periodError } = await supabase
-          .from('rent_periods')
-          .select('id, amount_due, amount_paid, deadline_date, status')
-          .eq('lease_id', activeLease.id)
-          .eq('period_month', now.getMonth() + 1)
-          .eq('period_year', now.getFullYear())
-          .maybeSingle();
-
-        if (periodError && periodError.code !== 'PGRST116') throw periodError;
-        setCurrentRentPeriod(periodData || null);
-
-        // Fetch recent payments for this specific lease
-        const { data: paymentsData, error: paymentsError } = await supabase
-          .from('payments')
-          .select('id, amount, status, created_at, operator, fedapay_transaction_id, rent_periods!inner(lease_id)')
-          .eq('tenant_id', profile.id)
-          .eq('rent_periods.lease_id', activeLease.id)
-          .order('created_at', { ascending: false })
-          .limit(5);
-
-        if (paymentsError) throw paymentsError;
-        setRecentPayments(paymentsData || []);
-      } catch (err) {
-        console.error('[Dashboard] Error fetching lease details:', err);
-      }
-    };
-    
-    fetchLeaseData();
-  }, [activeLease?.id, profile?.id]);
-
-  const firstName = profile?.full_name?.split(' ')[0] || 'Kofi';
-  const lastName = profile?.full_name?.split(' ').slice(1).join(' ') || 'Mensah';
-  const daysUntil = currentRentPeriod ? daysUntilDeadline(currentRentPeriod.deadline_date) : 0;
-
-  const getDeadlineBadgeClass = () => {
-    if (daysUntil < 5) return 'badge-solid-red';
-    if (daysUntil < 10) return 'badge-solid-amber';
-    return 'badge-solid-violet';
-  };
-
-  const getRentPaymentProgress = () => {
-    if (!currentRentPeriod) return { percentage: 0, paid: 0, due: 0, remaining: 0 };
-    const percentage = Math.min((currentRentPeriod.amount_paid / currentRentPeriod.amount_due) * 100, 100);
-    return {
-      percentage,
-      paid: currentRentPeriod.amount_paid,
-      due: currentRentPeriod.amount_due,
-      remaining: Math.max(currentRentPeriod.amount_due - currentRentPeriod.amount_paid, 0),
-    };
-  };
+  const firstName = profile?.full_name?.split(' ')[0] || '';
+  const lastName = profile?.full_name?.split(' ').slice(1).join(' ') || '';
 
   const now = new Date();
   const paymentsThisMonth = recentPayments.filter((p) => {
     const d = new Date(p.created_at);
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   }).length;
-
-  const progress = getRentPaymentProgress();
 
   if (loading) {
     return (
@@ -128,7 +130,6 @@ export default function Dashboard() {
 
   return (
     <div className="page-container">
-      {/* Header */}
       <div className="flex justify-between items-center px-4 pt-6 pb-4">
         <div>
           <span className="text-[#8B7BB5] text-xs font-space-grotesk">Bonjour ☀️</span>
@@ -136,14 +137,12 @@ export default function Dashboard() {
         </div>
         <Link to="/notifications" className="relative btn-icon">
           <Bell size={20} />
-          {/* Notifications dot */}
           <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FBBF24] rounded-full"></div>
         </Link>
       </div>
 
       <div className="px-4 flex-1">
-        {!activeLease ? (
-          // No active lease state (État vide)
+        {leases.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8">
             <span className="text-6xl mb-6">🔑</span>
             <h2 className="font-nunito font-black text-[18px] text-white mb-3">Pas encore de logement actif</h2>
@@ -158,7 +157,6 @@ export default function Dashboard() {
               J'ai un code d'accès
             </button>
 
-            {/* divider */}
             <div className="w-full h-px bg-[rgba(255,255,255,0.05)] my-8"></div>
 
             <h3 className="text-white font-nunito font-black text-[15px] mb-5 self-start text-left w-full">En attendant, continuez votre recherche</h3>
@@ -172,113 +170,114 @@ export default function Dashboard() {
             </button>
           </div>
         ) : (
-          // Active lease state
           <>
-            {/* Lease Selector (if multiple) */}
             {leases.length > 1 && (
-              <div className="mb-5 overflow-x-auto scrollbar-hide pb-2">
-                <div className="flex gap-3">
-                  {leases.map((lease) => (
-                    <button
-                      key={lease.id}
-                      onClick={() => setActiveLease(lease)}
-                      className={`flex-shrink-0 p-3 rounded-2xl transition-all text-left w-44 ${
-                        activeLease.id === lease.id
-                          ? 'bg-[#A855F7] text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]'
-                          : 'bg-[#1A1240] text-[#8B7BB5] border border-[rgba(255,255,255,0.05)]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">🏠</span>
-                        <span className="font-nunito font-700 text-sm truncate">{lease.properties?.name || 'Logement'}</span>
-                      </div>
-                      <span className="text-[10px] font-space-grotesk opacity-80 truncate block">{lease.properties?.address || 'Adresse inconnue'}</span>
-                    </button>
-                  ))}
-                </div>
+              <div className="flex items-center justify-between mb-4 mt-1">
+                <h2 className="font-nunito font-black text-white text-[15px]">
+                  Mes logements ({leases.length})
+                </h2>
+                <button
+                  onClick={() => navigate('/rejoindre')}
+                  className="text-[#A855F7] text-[11px] font-semibold"
+                  style={{ fontFamily: 'Space Grotesk' }}
+                >
+                  + Rejoindre un logement
+                </button>
               </div>
             )}
 
-            {/* Bouton Rejoindre un nouveau logement */}
-            <button
-              onClick={() => navigate('/rejoindre')}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl py-3 mb-5 text-sm font-nunito font-700 transition-all hover:opacity-80"
-              style={{
-                background: 'transparent',
-                border: '1px dashed rgba(168, 85, 247, 0.4)',
-                color: '#A855F7',
-              }}
-            >
-              <span className="text-base">+</span>
-              Rejoindre un autre logement
-            </button>
+            <div className="space-y-4 mb-6">
+              {leases.map((lease) => {
+                const period = lease.currentPeriod;
+                const paid = period?.amount_paid || 0;
+                const due = period?.amount_due || 0;
+                const remaining = Math.max(due - paid, 0);
+                const percentage = due > 0 ? Math.min((paid / due) * 100, 100) : 0;
+                const daysUntil = period ? daysUntilDeadline(period.deadline_date) : 0;
 
-            {/* Loyer Card with gradient and pattern */}
-            <div
-              className="rounded-3xl p-6 mb-5 text-white relative overflow-hidden"
-              style={{ background: 'linear-gradient(135deg, #2D1B69 0%, #170E3D 100%)', border: '1px solid rgba(255,255,255,0.05)' }}
-            >
-              {/* Subtle top-right glow */}
-              <div
-                className="absolute -top-10 -right-10 w-48 h-48 rounded-full pointer-events-none"
-                style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.15) 0%, transparent 70%)' }}
-              />
-
-              {/* Header de la carte logement */}
-              <div className="flex justify-between items-start mb-6 relative z-10 border-b border-[rgba(255,255,255,0.1)] pb-4">
-                <div>
-                  <h2 className="font-nunito font-800 text-xl text-white mb-1">{activeLease.properties?.name || 'Mon Logement'}</h2>
-                  <p className="text-[#8B7BB5] text-xs font-space-grotesk flex items-center gap-1">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                    {activeLease.properties?.address || 'Adresse non spécifiée'}
-                  </p>
-                </div>
-                <div className="bg-[#A855F7]/20 text-[#D8B4FE] text-[10px] font-bold px-2 py-1 rounded font-space-grotesk uppercase">
-                  {activeLease.status}
-                </div>
-              </div>
-
-              <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-bold uppercase tracking-wider mb-2 relative z-10">
-                LOYER — {getMonthName(new Date().getMonth() + 1, new Date().getFullYear()).toUpperCase()} {new Date().getFullYear()}
-              </p>
-
-              <div className="mb-5 relative z-10">
-                <p className="font-nunito font-black text-[2.5rem] amount leading-none">
-                  {progress.paid.toLocaleString('fr-FR')} <span className="text-[1.5rem] font-normal text-[#8B7BB5]">FCFA</span>
-                </p>
-                <p className="text-[#8B7BB5] text-xs mt-1" style={{ fontFamily: 'Space Grotesk' }}>
-                  Payé sur {formatMontant(progress.due)}
-                </p>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mb-4 relative z-10">
-                <div className="h-1.5 rounded-full w-full" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                return (
                   <div
-                    className="h-full rounded-full"
-                    style={{ width: `${progress.percentage}%`, background: '#A855F7' }}
-                  />
-                </div>
-                <div className="flex justify-between mt-2 text-[10px] font-bold" style={{ fontFamily: 'Space Grotesk' }}>
-                  <span style={{ color: '#A855F7' }}>{Math.round(progress.percentage)}% payé</span>
-                  <span className="text-[#8B7BB5]">{Math.round(100 - progress.percentage)}% restant</span>
-                </div>
-              </div>
+                    key={lease.leaseId}
+                    className="rounded-3xl p-6 text-white relative overflow-hidden"
+                    style={{ background: 'linear-gradient(135deg, #2D1B69 0%, #170E3D 100%)', border: '1px solid rgba(255,255,255,0.05)' }}
+                  >
+                    <div
+                      className="absolute -top-10 -right-10 w-48 h-48 rounded-full pointer-events-none"
+                      style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.15) 0%, transparent 70%)' }}
+                    />
 
-              {/* Deadline Badge */}
-              {daysUntil > 0 && (
-                <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full relative z-10" style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                  <span className="text-[11px]">⏳</span>
-                  <span className="text-[10px] font-bold text-[#EF4444]" style={{ fontFamily: 'Space Grotesk' }}>Échéance dans {daysUntil} jours</span>
-                </div>
-              )}
+                    <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-bold uppercase tracking-wider mb-1 relative z-10">
+                      {lease.propertyName} — {getMonthName(now.getMonth() + 1, now.getFullYear()).toUpperCase()}
+                    </p>
+                    {lease.propertyAddress && (
+                      <p className="text-[#645A8A] text-[10px] font-space-grotesk mb-3 relative z-10">{lease.propertyAddress}</p>
+                    )}
+
+                    {period ? (
+                      <>
+                        <div className="mb-5 relative z-10">
+                          <p className="font-nunito font-black text-[2.2rem] amount leading-none">
+                            {paid.toLocaleString('fr-FR')} <span className="text-[1.3rem] font-normal text-[#8B7BB5]">FCFA</span>
+                          </p>
+                          <p className="text-[#8B7BB5] text-xs mt-1" style={{ fontFamily: 'Space Grotesk' }}>
+                            Payé sur {formatMontant(due)}
+                          </p>
+                        </div>
+
+                        <div className="mb-4 relative z-10">
+                          <div className="h-1.5 rounded-full w-full" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                            <div className="h-full rounded-full" style={{ width: `${percentage}%`, background: '#A855F7' }} />
+                          </div>
+                          <div className="flex justify-between mt-2 text-[10px] font-bold" style={{ fontFamily: 'Space Grotesk' }}>
+                            <span style={{ color: '#A855F7' }}>{Math.round(percentage)}% payé</span>
+                            <span className="text-[#8B7BB5]">{Math.round(100 - percentage)}% restant</span>
+                          </div>
+                        </div>
+
+                        {daysUntil > 0 && remaining > 0 && (
+                          <div className="mb-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full relative z-10" style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                            <span className="text-[11px]">⏳</span>
+                            <span className="text-[10px] font-bold text-[#EF4444]" style={{ fontFamily: 'Space Grotesk' }}>Échéance dans {daysUntil} jours</span>
+                          </div>
+                        )}
+
+                        <button
+                          onClick={() => navigate(`/payer/${lease.leaseId}`)}
+                          disabled={remaining === 0}
+                          className="w-full text-white font-bold rounded-2xl py-4 flex items-center justify-center gap-2 relative z-10 disabled:opacity-50"
+                          style={{ background: '#A855F7', fontFamily: 'Nunito', fontSize: '14px' }}
+                        >
+                          <span>💳</span> {remaining === 0 ? 'Loyer soldé ✓' : 'Effectuer un versement'}
+                        </button>
+                      </>
+                    ) : (
+                      <p className="text-[#8B7BB5] text-xs relative z-10" style={{ fontFamily: 'Space Grotesk' }}>
+                        Aucune période de loyer en cours pour ce logement.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Mini Stats */}
+            {leases.length === 1 && (
+              <button
+                onClick={() => navigate('/rejoindre')}
+                className="w-full text-[#A855F7] font-bold rounded-2xl py-3.5 mb-8 text-[13px]"
+                style={{ background: 'transparent', border: '1px solid rgba(168, 85, 247, 0.3)', fontFamily: 'Nunito' }}
+              >
+                + Rejoindre un autre logement
+              </button>
+            )}
+
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div className="rounded-2xl p-4" style={{ background: 'rgba(38, 28, 85, 0.4)' }}>
-                <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-semibold mb-1">Restant</p>
-                <p className="font-nunito font-black text-[18px]" style={{ color: '#A855F7' }}>{new Intl.NumberFormat('fr-FR').format(progress.remaining)} F</p>
+                <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-semibold mb-1">Restant total</p>
+                <p className="font-nunito font-black text-[18px]" style={{ color: '#A855F7' }}>
+                  {new Intl.NumberFormat('fr-FR').format(
+                    leases.reduce((sum, l) => sum + Math.max((l.currentPeriod?.amount_due || 0) - (l.currentPeriod?.amount_paid || 0), 0), 0)
+                  )} F
+                </p>
               </div>
               <div className="rounded-2xl p-4" style={{ background: 'rgba(38, 28, 85, 0.4)' }}>
                 <p className="text-[#8B7BB5] text-[10px] font-space-grotesk font-semibold mb-1">Ce mois</p>
@@ -286,16 +285,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Pay Button */}
-            <button
-              onClick={() => navigate(`/payer/${activeLease.id}`)}
-              className="w-full text-white font-bold rounded-2xl py-4 flex items-center justify-center gap-2 mb-8"
-              style={{ background: '#A855F7', fontFamily: 'Nunito', fontSize: '15px' }}
-            >
-              <span>💳</span> Effectuer un versement
-            </button>
-
-            {/* Recent Payments */}
             {recentPayments.length > 0 && (
               <div>
                 <div className="flex justify-between items-center mb-4">
@@ -311,16 +300,13 @@ export default function Dashboard() {
                     return (
                       <div key={payment.id} className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div
-                            className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                            style={{ background: '#1A1240' }}
-                          >
+                          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#1A1240' }}>
                             <div className="w-4 h-4 rounded-full" style={{ background: '#FBBF24' }}></div>
                           </div>
                           <div>
                             <p className="text-[14px] font-bold text-white mb-0.5 font-nunito">Versement {operatorLabel(operator)}</p>
                             <p className="text-[#8B7BB5] text-[11px]" style={{ fontFamily: 'Space Grotesk' }}>
-                              Aujourd'hui
+                              {payment.propertyName || 'Logement'}
                             </p>
                           </div>
                         </div>

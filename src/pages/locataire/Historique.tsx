@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, Payment } from '../../lib/supabase';
+
+type PaymentWithProperty = Payment & { propertyName?: string };
 import { useToast } from '../../components/Toast';
 import { formatMontant, formatDate, getMonthName, operatorColor, operatorLabel } from '../../lib/utils';
 import BottomNav from '../../components/BottomNav';
@@ -14,7 +16,7 @@ export default function Historique() {
   const { profile } = useAuth();
   const { showToast } = useToast();
 
-  const [payments, setPayments] = useState<any[]>([]);
+  const [payments, setPayments] = useState<PaymentWithProperty[]>([]);
   const [leases, setLeases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterStatus>('all');
@@ -36,7 +38,9 @@ export default function Historique() {
 
         let query = supabase
           .from('payments')
-          .select('id, created_at, operator, status, fedapay_transaction_id, amount, rent_periods!inner(lease_id, leases(properties(name)))')
+          .select(
+            'id, created_at, operator, status, fedapay_transaction_id, amount, rent_periods:rent_period_id(lease_id, leases:lease_id(properties:property_id(name)))'
+          )
           .eq('tenant_id', profile.id)
           .order('created_at', { ascending: false });
 
@@ -51,7 +55,13 @@ export default function Historique() {
         const { data, error } = await query;
 
         if (error) throw error;
-        setPayments(data || []);
+
+        const withProperty: PaymentWithProperty[] = (data || []).map((p: any) => ({
+          ...p,
+          propertyName: p.rent_periods?.leases?.properties?.name,
+        }));
+
+        setPayments(withProperty);
       } catch (err) {
         console.error('Error fetching payments:', err);
         showToast('Erreur lors du chargement de l\'historique', 'error');
@@ -77,7 +87,7 @@ export default function Historique() {
 
       return acc;
     },
-    {} as Record<string, { month: number; year: number; payments: Payment[] }>
+    {} as Record<string, { month: number; year: number; payments: PaymentWithProperty[] }>
   );
 
   const sortedMonths = Object.entries(groupedPayments).sort((a, b) => {
@@ -224,7 +234,7 @@ export default function Historique() {
                               )}
                             </div>
                             <p className="text-[#8B7BB5] text-[10px]" style={{ fontFamily: 'Space Grotesk' }}>
-                              {payment.rent_periods?.leases?.properties?.name || 'Logement'} • Ref: {payment.fedapay_transaction_id?.substring(0, 8) || 'N/A'}
+                              {payment.propertyName ? `${payment.propertyName} · ` : ''}Ref: {payment.fedapay_transaction_id?.substring(0, 8) || 'N/A'}
                             </p>
                           </div>
                         </div>
