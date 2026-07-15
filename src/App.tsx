@@ -19,6 +19,7 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 
 // Locataire pages
 import LocataireDashboard from './pages/locataire/Dashboard';
+import LogementDetail from './pages/locataire/LogementDetail';
 import Rejoindre from './pages/locataire/Rejoindre';
 import Payer from './pages/locataire/Payer';
 import Historique from './pages/locataire/Historique';
@@ -112,6 +113,16 @@ export default function App() {
                 <MobileFrame>
                   <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
                     <LocataireDashboard />
+                  </RoleGuard>
+                </MobileFrame>
+              }
+            />
+            <Route
+              path="/logement/:leaseId"
+              element={
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
+                    <LogementDetail />
                   </RoleGuard>
                 </MobileFrame>
               }
