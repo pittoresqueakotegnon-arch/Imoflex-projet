@@ -61,7 +61,7 @@ async function createTransaction(params: {
       callback_url: params.callbackUrl,
       customer: {
         email: params.email,
-        phone_number: { number: params.phoneNumber, country: "bj" },
+        phone_number: { number: params.phoneNumber, country: "BJ" },
       },
     }),
   });
@@ -102,7 +102,7 @@ async function generateToken(
 async function sendDirectPush(mode: string, token: string, phoneNumber: string): Promise<any> {
   const fedapayKey = Deno.env.get("FEDAPAY_SECRET_KEY")!;
 
-  const res = await fetch(`${FEDAPAY_BASE_URL}/transactions/${mode}`, {
+  const res = await fetch(`${FEDAPAY_BASE_URL}/${mode}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -110,7 +110,7 @@ async function sendDirectPush(mode: string, token: string, phoneNumber: string):
     },
     body: JSON.stringify({
       token,
-      phone_number: { number: phoneNumber, country: "bj" },
+      phone_number: { number: phoneNumber, country: "BJ" },
     }),
   });
 
