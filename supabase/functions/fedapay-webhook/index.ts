@@ -47,6 +47,7 @@ Deno.serve(async (req: Request) => {
       // Si la signature est invalide, elle lève une exception.
       const event = Webhook.constructEvent(rawBody, signatureHeader, webhookSecret);
       payload = event;
+      console.log("WEBHOOK_PAYLOAD_DEBUG:", JSON.stringify(payload));
     } catch (sigErr) {
       return new Response(
         JSON.stringify({ error: "Signature invalide" }),
