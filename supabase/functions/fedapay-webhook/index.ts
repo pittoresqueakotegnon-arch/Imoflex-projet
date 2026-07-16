@@ -64,7 +64,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const transactionId = entity?.reference || entity?.id?.toString();
+    const transactionId = entity?.id?.toString() || entity?.reference;
 
     if (!transactionId) {
       return new Response(
