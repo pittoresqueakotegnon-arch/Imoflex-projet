@@ -26,6 +26,18 @@ function extractResource(json: any, singularKey: string): any {
   return json?.[`v1/${singularKey}`] ?? json?.[singularKey] ?? json;
 }
 
+async function parseFedapayResponse(res: Response): Promise<any> {
+  const text = await res.text();
+  if (!text) {
+    throw new Error(`Réponse Fedapay vide (HTTP ${res.status})`);
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`Réponse Fedapay illisible (HTTP ${res.status}): ${text.slice(0, 200)}`);
+  }
+}
+
 async function createTransaction(params: {
   amount: number;
   description: string;
@@ -54,7 +66,7 @@ async function createTransaction(params: {
     }),
   });
 
-  const json = await res.json();
+  const json = await parseFedapayResponse(res);
   if (!res.ok) {
     throw new Error(json?.message || `Erreur Fedapay (création transaction): HTTP ${res.status}`);
   }
@@ -78,7 +90,7 @@ async function generateToken(
     },
   });
 
-  const json = await res.json();
+  const json = await parseFedapayResponse(res);
   if (!res.ok) {
     throw new Error(json?.message || `Erreur Fedapay (génération token): HTTP ${res.status}`);
   }
@@ -102,7 +114,7 @@ async function sendDirectPush(mode: string, token: string, phoneNumber: string):
     }),
   });
 
-  const json = await res.json();
+  const json = await parseFedapayResponse(res);
   if (!res.ok) {
     throw new Error(json?.message || `Erreur Fedapay (push ${mode}): HTTP ${res.status}`);
   }
