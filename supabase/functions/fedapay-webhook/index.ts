@@ -55,16 +55,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { name: eventName, data } = payload;
+    const { name: eventName, entity } = payload;
 
-    if (!eventName || !data) {
+    if (!eventName || !entity) {
       return new Response(
         JSON.stringify({ error: "Payload invalide" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const transactionId = data?.transaction?.reference || data?.transaction?.id?.toString();
+    const transactionId = entity?.reference || entity?.id?.toString();
 
     if (!transactionId) {
       return new Response(
@@ -183,7 +183,7 @@ Deno.serve(async (req: Request) => {
       });
     } else if (eventName.startsWith("payout.")) {
       // Logic for Payout Webhooks
-      const payoutId = data?.payout?.id?.toString() || data?.entity?.id?.toString() || data?.id?.toString();
+      const payoutId = entity?.id?.toString();
 
       if (!payoutId) {
         return new Response(
