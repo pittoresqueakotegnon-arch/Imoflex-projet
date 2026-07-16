@@ -95,8 +95,19 @@ async function generateToken(
     throw new Error(json?.message || `Erreur Fedapay (génération token): HTTP ${res.status}`);
   }
 
-  const tokenData = extractResource(json, "token");
-  return { token: tokenData.token, paymentUrl: tokenData.url };
+  // Contrairement à /transactions (enveloppé sous "v1/transaction"), cet endpoint
+  // renvoie directement { token, url } à plat — confirmé par le schéma OpenAPI
+  // officiel de Fedapay. L'ancien code utilisait extractResource() ici par erreur,
+  // ce qui retournait la chaîne du token elle-même au lieu d'un objet, et donc
+  // .token dessus valait undefined.
+  const token = json?.token;
+  const paymentUrl = json?.url;
+
+  if (!token) {
+    throw new Error("Réponse Fedapay inattendue (pas de token reçu): " + JSON.stringify(json));
+  }
+
+  return { token, paymentUrl };
 }
 
 async function sendDirectPush(mode: string, token: string, phoneNumber: string): Promise<any> {
