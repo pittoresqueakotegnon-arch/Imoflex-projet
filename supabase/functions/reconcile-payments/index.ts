@@ -104,7 +104,7 @@ Deno.serve(async (req: Request) => {
           isFirstTransaction = false;
         }
 
-        const transactionObj = fedapayData?.v1?.transaction || fedapayData?.transaction || fedapayData?.data || fedapayData;
+        const transactionObj = fedapayData?.["v1/transaction"] || fedapayData?.v1?.transaction || fedapayData?.transaction || fedapayData?.data || fedapayData;
         const fedapayStatus = transactionObj?.status;
 
         if (!fedapayStatus) {
