@@ -90,7 +90,7 @@ async function generateToken(
 async function sendDirectPush(mode: string, token: string, phoneNumber: string): Promise<any> {
   const fedapayKey = Deno.env.get("FEDAPAY_SECRET_KEY")!;
 
-  const res = await fetch(`${FEDAPAY_BASE_URL}/${mode}`, {
+  const res = await fetch(`${FEDAPAY_BASE_URL}/transactions/${mode}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
