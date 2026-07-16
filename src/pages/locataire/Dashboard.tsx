@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Bell, ChevronRight, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, Payment } from '../../lib/supabase';
-import { daysUntilDeadline } from '../../lib/utils';
+import { daysUntilDeadline, getDeadlineDateForMonth } from '../../lib/utils';
 import BottomNav from '../../components/BottomNav';
 
 interface LeaseWithPeriod {
@@ -58,7 +58,7 @@ export default function Dashboard() {
       try {
         const { data: leasesData, error: leasesError } = await supabase
           .from('leases')
-          .select('id, tenant_id, status, properties:property_id(id, name, address)')
+          .select('id, tenant_id, status, properties:property_id(id, name, address, monthly_rent, payment_deadline_day)')
           .eq('tenant_id', profile.id)
           .eq('status', 'actif')
           .order('created_at', { ascending: true });
@@ -81,6 +81,31 @@ export default function Dashboard() {
           const periodsByLease = new Map(
             (periodsData || []).map((p) => [p.lease_id, p])
           );
+
+          // Lazy generation of missing current month rent periods
+          for (const l of leasesData as any[]) {
+            if (!periodsByLease.has(l.id) && l.properties && l.properties.monthly_rent) {
+              const deadlineDate = getDeadlineDateForMonth(now.getMonth() + 1, now.getFullYear(), l.properties.payment_deadline_day);
+              
+              const { data: newPeriod, error: insertError } = await supabase
+                .from('rent_periods')
+                .insert({
+                  lease_id: l.id,
+                  period_month: now.getMonth() + 1,
+                  period_year: now.getFullYear(),
+                  amount_due: l.properties.monthly_rent,
+                  amount_paid: 0,
+                  deadline_date: deadlineDate,
+                  status: 'en_cours'
+                })
+                .select()
+                .single();
+                
+              if (!insertError && newPeriod) {
+                periodsByLease.set(l.id, newPeriod);
+              }
+            }
+          }
 
           const merged: LeaseWithPeriod[] = leasesData.map((l: any) => {
             const period = periodsByLease.get(l.id);

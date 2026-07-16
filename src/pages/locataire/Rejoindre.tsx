@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, Property } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
-import { getCurrentMonth, getDeadlineDate, calculateProrataAmount } from '../../lib/utils';
+import { getCurrentMonth, getInitialDeadlineDate, calculateProrataAmount } from '../../lib/utils';
 
 type Step = 'input' | 'confirmation' | 'complete';
 
@@ -110,7 +110,7 @@ export default function Rejoindre() {
       if (leaseInsertError) throw leaseInsertError;
 
       // Create rent period
-      const deadlineDate = getDeadlineDate(property.payment_deadline_day);
+      const deadlineDate = getInitialDeadlineDate(property.payment_deadline_day, today);
       const prorataAmount = calculateProrataAmount(property.monthly_rent, today, property.payment_deadline_day);
 
       const { error: periodInsertError } = await supabase

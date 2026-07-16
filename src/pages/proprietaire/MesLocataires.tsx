@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
-import { formatMontant, getCurrentMonth } from '../../lib/utils';
+import { formatMontant, getCurrentMonth, getDeadlineDateForMonth } from '../../lib/utils';
 import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
 import ProgressBar from '../../components/ProgressBar';
@@ -40,7 +40,7 @@ const MesLocataires: React.FC = () => {
         // Get owner's properties
         const { data: properties, error: propertiesError } = await supabase
           .from('properties')
-          .select('id, name')
+          .select('id, name, monthly_rent, payment_deadline_day')
           .eq('owner_id', profile.id)
           .eq('is_active', true);
 
@@ -81,16 +81,41 @@ const MesLocataires: React.FC = () => {
               .eq('period_year', year)
               .maybeSingle();
 
-            if (user && rentPeriods) {
+            let currentRentPeriod = rentPeriods;
+
+            // Lazy generation if missing
+            if (!currentRentPeriod && property.monthly_rent) {
+              const deadlineDate = getDeadlineDateForMonth(month, year, property.payment_deadline_day);
+              
+              const { data: newPeriod, error: insertError } = await supabase
+                .from('rent_periods')
+                .insert({
+                  lease_id: lease.id,
+                  period_month: month,
+                  period_year: year,
+                  amount_due: property.monthly_rent,
+                  amount_paid: 0,
+                  deadline_date: deadlineDate,
+                  status: 'en_cours'
+                })
+                .select('amount_paid, amount_due, status')
+                .single();
+                
+              if (!insertError && newPeriod) {
+                currentRentPeriod = newPeriod;
+              }
+            }
+
+            if (user && currentRentPeriod) {
               grouped[property.id].tenants.push({
                 propertyId: property.id,
                 propertyName: property.name,
                 tenantId: lease.tenant_id,
                 tenantName: user.full_name,
                 tenantPhone: user.phone,
-                amountPaid: rentPeriods.amount_paid || 0,
-                amountDue: rentPeriods.amount_due || 0,
-                status: rentPeriods.status,
+                amountPaid: currentRentPeriod.amount_paid || 0,
+                amountDue: currentRentPeriod.amount_due || 0,
+                status: currentRentPeriod.status,
               });
             }
           }

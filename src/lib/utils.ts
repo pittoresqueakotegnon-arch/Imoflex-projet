@@ -58,12 +58,20 @@ export function getCurrentMonth(): { month: number; year: number } {
   return { month: now.getMonth() + 1, year: now.getFullYear() };
 }
 
-export function getDeadlineDate(day: number): string {
-  const now = new Date();
-  const deadline = new Date(now.getFullYear(), now.getMonth(), day);
-  if (deadline < now) {
-    deadline.setMonth(deadline.getMonth() + 1);
+export function getInitialDeadlineDate(day: number, joinDateStr: string): string {
+  const joinDate = new Date(joinDateStr);
+  const deadline = new Date(joinDate.getFullYear(), joinDate.getMonth(), day);
+  
+  if (deadline < joinDate) {
+    // Échéance passée pour le mois courant, le prorata est dû immédiatement
+    return joinDate.toISOString().split('T')[0];
   }
+  
+  return deadline.toISOString().split('T')[0];
+}
+
+export function getDeadlineDateForMonth(month: number, year: number, day: number): string {
+  const deadline = new Date(year, month - 1, day);
   return deadline.toISOString().split('T')[0];
 }
 
