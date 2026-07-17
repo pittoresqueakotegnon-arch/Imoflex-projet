@@ -40,6 +40,8 @@ export function useWallet(ownerId: string | undefined) {
 
   const ensureWallet = useCallback(async (): Promise<Wallet | null> => {
     if (!ownerId) return null;
+
+    // Vérification locale d'abord (évite un appel réseau inutile)
     const { data: existing } = await supabase
       .from('wallets')
       .select('*')
@@ -47,13 +49,30 @@ export function useWallet(ownerId: string | undefined) {
       .maybeSingle();
     if (existing) return existing as Wallet;
 
-    const { data: created, error: err } = await supabase
-      .from('wallets')
-      .insert({ owner_id: ownerId })
-      .select()
-      .single();
-    if (err) throw new Error(err.message);
-    return created as Wallet;
+    // Création via Edge Function (service_role) — l'insert client direct
+    // est désormais bloqué par RLS (migration 016).
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (!token) throw new Error('Non authentifié');
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-wallet`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
+      throw new Error(errorBody.error || `Erreur HTTP ${response.status}`);
+    }
+
+    const { wallet } = await response.json();
+    return wallet as Wallet;
   }, [ownerId]);
 
   useEffect(() => {
