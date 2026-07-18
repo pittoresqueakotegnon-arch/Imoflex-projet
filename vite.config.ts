@@ -9,6 +9,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
+        id: '/',
         name: 'ImoFlex',
         short_name: 'ImoFlex',
         description: 'ImoFlex — Trouvez votre logement à Cotonou et payez votre loyer progressivement via Mobile Money.',
