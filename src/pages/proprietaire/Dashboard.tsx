@@ -17,6 +17,7 @@ interface DashboardData {
   }>;
   properties: Array<{
     id: string;
+    leaseId: string;
     name: string;
     address: string;
     monthlyRent: number;
@@ -150,6 +151,7 @@ const Dashboard: React.FC = () => {
 
           properties.push({
             id: property.id,
+            leaseId: leaseId,
             name: property.name,
             address: property.address,
             monthlyRent: property.monthly_rent,
@@ -384,9 +386,10 @@ const Dashboard: React.FC = () => {
                 const isSolde = property.status === 'solde' || (property.amountPaid >= property.amountDue && property.amountDue > 0);
                 const isRetard = property.status === 'retard';
                 return (
-                  <div
+                  <Link
                     key={property.id}
-                    className="rounded-[16px] px-4 py-4"
+                    to={`/pro/bail/${property.leaseId}`}
+                    className="rounded-[16px] px-4 py-4 block hover:opacity-90 transition-opacity"
                     style={{ background: '#1A1240', border: '1px solid rgba(255,255,255,0.07)' }}
                   >
                     {/* Top row: name + badge */}
@@ -434,7 +437,7 @@ const Dashboard: React.FC = () => {
                         / {new Intl.NumberFormat('fr-FR').format(property.amountDue)}
                       </span>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>

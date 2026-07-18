@@ -97,7 +97,7 @@ CREATE OR REPLACE VIEW view_tenant_dashboard_stats AS
 SELECT 
   l.tenant_id,
   COUNT(DISTINCT l.id) as total_active_leases,
-  COALESCE(SUM(rp.amount_due - rp.amount_paid) FILTER (WHERE rp.status = 'retard' OR rp.status = 'en_attente'), 0) as total_remaining_to_pay,
+  COALESCE(SUM(rp.amount_due - rp.amount_paid) FILTER (WHERE rp.status = 'retard' OR rp.status = 'en_cours'), 0) as total_remaining_to_pay,
   COUNT(DISTINCT rp.id) FILTER (WHERE rp.status = 'retard') as unpaid_periods_count
 FROM leases l
 LEFT JOIN rent_periods rp ON rp.lease_id = l.id

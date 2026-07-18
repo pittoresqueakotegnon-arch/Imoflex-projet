@@ -22,6 +22,6 @@ SET value = '6', updated_at = NOW()
 WHERE key = 'commission_rate';
 
 -- Insérer la valeur par défaut si la ligne n'existe pas encore
-INSERT INTO app_config (key, value, description)
-VALUES ('commission_rate', '6', 'Taux de commission ImoFlex en pourcentage (ex: 6 = 6%)')
+INSERT INTO app_config (key, value)
+VALUES ('commission_rate', '6')
 ON CONFLICT (key) DO NOTHING;

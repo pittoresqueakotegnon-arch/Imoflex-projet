@@ -33,6 +33,7 @@ import Activer from './pages/proprietaire/Activer';
 import MesLocataires from './pages/proprietaire/MesLocataires';
 import Wallet from './pages/proprietaire/Wallet';
 import Retrait from './pages/proprietaire/Retrait';
+import FicheBail from './pages/proprietaire/FicheBail';
 
 // Admin pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -235,6 +236,16 @@ export default function App() {
                 <MobileFrame>
                   <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
                     <Retrait />
+                  </RoleGuard>
+                </MobileFrame>
+              }
+            />
+            <Route
+              path="/pro/bail/:id"
+              element={
+                <MobileFrame>
+                  <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+                    <FicheBail />
                   </RoleGuard>
                 </MobileFrame>
               }
