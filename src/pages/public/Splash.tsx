@@ -35,7 +35,7 @@ export default function Splash() {
         style={{ boxShadow: '0 12px 48px rgba(123, 63, 228, 0.4), 0 0 0 1px rgba(123,63,228,0.2)' }}
       >
         <img
-          src="/assets/logo-page-d'acceuile.png"
+          src="/assets/logo-icon-transparent-recadre.png"
           alt="ImoFlex"
           className="w-full h-full object-cover"
         />
