@@ -85,7 +85,7 @@ Deno.serve(async (req: Request) => {
     // 3.2 Retraits en échec ou bloqués (> 5 jours en traitement)
     const { data: problematicWithdrawals, error: withdrawalsError } = await serviceClient
       .from('withdrawals')
-      .select('id, amount, status, created_at, user:users!withdrawals_user_id_fkey(full_name)')
+      .select('id, amount, status, created_at, wallet:wallets(owner:users(full_name))')
       .or(`status.eq.echoue,and(status.eq.en_traitement,created_at.lt.${fiveDaysAgo})`)
       .order('created_at', { ascending: false });
     

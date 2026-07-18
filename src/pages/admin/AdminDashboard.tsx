@@ -258,7 +258,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-1 text-xs">
                   {systemHealth.failedWithdrawals.slice(0, 3).map(w => (
                     <div key={w.id} className="flex justify-between items-center">
-                      <span className="text-red-400 truncate max-w-[100px]">{w.user?.full_name || 'Inconnu'}</span>
+                      <span className="text-red-400 truncate max-w-[100px]">{w.wallet?.owner?.full_name || 'Inconnu'}</span>
                       <span className="text-white">{formatMontant(w.amount)}</span>
                     </div>
                   ))}

@@ -37,7 +37,7 @@ export interface SystemHealth {
     amount: number;
     status: string;
     created_at: string;
-    user: { full_name: string };
+    wallet: { owner: { full_name: string } };
   }>;
   cronHealth: Array<{
     jobname: string;
