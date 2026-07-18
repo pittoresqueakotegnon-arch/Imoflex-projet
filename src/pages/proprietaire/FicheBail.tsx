@@ -67,15 +67,16 @@ const FicheBail: React.FC = () => {
 
     const fetchLease = async () => {
       try {
-        const { data, error } = await supabase
+        // Step 1: Fetch the lease with property and rent periods
+        const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
           .select(`
             id,
+            tenant_id,
             start_date,
             end_date,
             status,
             property:properties(name, address, monthly_rent, payment_deadline_day),
-            tenant:users!leases_tenant_id_fkey(full_name, phone),
             rent_periods(
               id,
               period_month,
@@ -94,27 +95,35 @@ const FicheBail: React.FC = () => {
           .eq('id', id)
           .single();
 
-        if (error) throw error;
-        
-        // Check if property is an array or object due to how Supabase returns it sometimes
-        let propertyData = data.property;
-        if (Array.isArray(data.property)) {
-            propertyData = data.property[0];
-        }
-        
-        // Similar for tenant
-        let tenantData = data.tenant;
-        if (Array.isArray(data.tenant)) {
-            tenantData = data.tenant[0];
+        if (leaseError) throw leaseError;
+
+        // Step 2: Fetch tenant info separately (avoids FK hint issues + RLS workaround)
+        const tenantId = (leaseData as any).tenant_id;
+        const { data: tenantData, error: tenantError } = await supabase
+          .from('users')
+          .select('full_name, phone')
+          .eq('id', tenantId)
+          .single();
+
+        if (tenantError) {
+          console.warn('Impossible de charger les infos du locataire (RLS?):', tenantError);
         }
 
+        // Normalize property (Supabase can return array or object for FK relations)
+        let propertyData = (leaseData as any).property;
+        if (Array.isArray(propertyData)) propertyData = propertyData[0];
+
         setLease({
-            ...data,
-            property: propertyData,
-            tenant: tenantData
+          id: leaseData.id,
+          start_date: leaseData.start_date,
+          end_date: leaseData.end_date,
+          status: leaseData.status,
+          property: propertyData ?? { name: '—', address: '—', monthly_rent: 0, payment_deadline_day: 1 },
+          tenant: tenantData ?? { full_name: 'Locataire', phone: '' },
+          rent_periods: (leaseData as any).rent_periods ?? [],
         });
       } catch (err: any) {
-        console.error('Erreur lors de la récupération du bail:', err);
+        console.error('Erreur FicheBail:', err);
         showToast('Impossible de charger les informations du bail.', 'error');
         navigate('/pro/dashboard');
       } finally {
@@ -153,9 +162,13 @@ const FicheBail: React.FC = () => {
   const isSolde = currentPeriod?.status === 'solde' || (currentPeriod && currentPeriod.amount_paid >= currentPeriod.amount_due && currentPeriod.amount_due > 0);
 
   // Flatten and sort payments from newest to oldest
-  const allPayments = lease.rent_periods.flatMap(rp => rp.payments).sort((a, b) => {
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  const allPayments = lease.rent_periods
+    .flatMap((rp) => rp.payments ?? [])
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  const tenantInitial = lease.tenant?.full_name
+    ? lease.tenant.full_name.charAt(0).toUpperCase()
+    : '?';
 
   return (
     <div className="page-container flex flex-col min-h-screen pb-24">
@@ -177,7 +190,7 @@ const FicheBail: React.FC = () => {
         {isRetard && (
           <div className="rounded-[16px] px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
             <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239, 68, 68, 0.2)' }}>
-              <span className="text-red-500 text-lg">⚠️</span>
+              <span className="text-lg">⚠️</span>
             </div>
             <div>
               <p className="font-nunito font-black text-red-500 text-[14px]">Loyer en retard</p>
@@ -191,26 +204,30 @@ const FicheBail: React.FC = () => {
         {/* SECTION 1: LOCATAIRE */}
         <div className="rounded-[20px] p-5" style={{ background: '#1A1240', border: '1px solid rgba(255,255,255,0.07)' }}>
           <div className="flex items-center gap-4 mb-5">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold" style={{ background: 'linear-gradient(135deg, #7B3FE4, #A855F7)' }}>
-              {lease.tenant.full_name.charAt(0).toUpperCase()}
+            <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0" style={{ background: 'linear-gradient(135deg, #7B3FE4, #A855F7)' }}>
+              {tenantInitial}
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="font-nunito font-black text-white text-[18px] truncate">
-                {lease.tenant.full_name}
+                {lease.tenant?.full_name || 'Locataire'}
               </h2>
               <p className="text-[13px] mt-0.5" style={{ color: '#8B7BB5', fontFamily: 'Space Grotesk' }}>
-                {lease.tenant.phone || 'Numéro non renseigné'}
+                {lease.tenant?.phone || 'Numéro non renseigné'}
               </p>
             </div>
           </div>
 
           <a
-            href={`tel:${lease.tenant.phone}`}
+            href={lease.tenant?.phone ? `tel:${lease.tenant.phone}` : '#'}
             className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-[14px] transition-opacity hover:opacity-90"
-            style={{ background: 'rgba(255,255,255,0.05)', color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ 
+              background: lease.tenant?.phone ? 'linear-gradient(135deg, #7B3FE4, #A855F7)' : 'rgba(255,255,255,0.05)', 
+              color: '#FFFFFF', 
+              border: lease.tenant?.phone ? 'none' : '1px solid rgba(255,255,255,0.1)' 
+            }}
           >
             <Phone size={16} />
-            Appeler le locataire
+            {lease.tenant?.phone ? 'Appeler le locataire' : 'Numéro non disponible'}
           </a>
         </div>
 
@@ -227,7 +244,7 @@ const FicheBail: React.FC = () => {
                 </p>
                 <div className="flex items-baseline gap-1">
                   <span className="font-nunito font-black text-white text-[24px]">
-                    {new Intl.NumberFormat('fr-FR').format(lease.property.monthly_rent)}
+                    {new Intl.NumberFormat('fr-FR').format(lease.property?.monthly_rent ?? 0)}
                   </span>
                   <span className="text-[12px] text-white">FCFA</span>
                 </div>
@@ -242,9 +259,9 @@ const FicheBail: React.FC = () => {
                 <MapPin size={16} color="#A855F7" />
               </div>
               <div className="min-w-0">
-                <p className="font-nunito font-bold text-white text-[14px] truncate">{lease.property.name}</p>
+                <p className="font-nunito font-bold text-white text-[14px] truncate">{lease.property?.name || '—'}</p>
                 <p className="text-[11px] mt-0.5" style={{ color: '#8B7BB5', fontFamily: 'Space Grotesk' }}>
-                  {lease.property.address}
+                  {lease.property?.address || '—'}
                 </p>
               </div>
             </div>
@@ -257,13 +274,13 @@ const FicheBail: React.FC = () => {
                 <div>
                   <p className="font-nunito font-bold text-white text-[14px]">Début du bail</p>
                   <p className="text-[11px] mt-0.5" style={{ color: '#8B7BB5', fontFamily: 'Space Grotesk' }}>
-                    {new Date(lease.start_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {lease.start_date ? new Date(lease.start_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="font-nunito font-bold text-white text-[14px]">Limite</p>
                   <p className="text-[11px] mt-0.5" style={{ color: '#8B7BB5', fontFamily: 'Space Grotesk' }}>
-                    Le {lease.property.payment_deadline_day} du mois
+                    Le {lease.property?.payment_deadline_day ?? '—'} du mois
                   </p>
                 </div>
               </div>
