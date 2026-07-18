@@ -98,7 +98,7 @@ export function useAdminMetrics(): AdminMetricsState {
         fetchPendingListings(),
         fetchPendingWithdrawals(),
         fetchRecentActivity(15),
-        supabase.functions.invoke('admin-system-health').catch(e => { console.error('Health error:', e); return { data: null }; })
+        supabase.functions.invoke('admin-system-health', { method: 'GET' }).catch(e => { console.error('Health error:', e); return { data: null }; })
       ]);
       setAlerts(a);
       setKpis(k);
