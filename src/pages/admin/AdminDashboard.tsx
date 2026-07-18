@@ -114,6 +114,7 @@ const AdminDashboard: React.FC = () => {
     period, setPeriod,
     alerts, kpis, revenueChart,
     pendingListings, pendingWithdrawals, activity,
+    systemHealth,
     loading, lastRefresh, refresh,
   } = useAdminMetrics();
 
@@ -142,6 +143,23 @@ const AdminDashboard: React.FC = () => {
       </div>
     );
   }
+
+  // Calcul des anomalies techniques
+  const isCronInactive = (jobName: string, maxMins: number) => {
+    const run = systemHealth?.cronHealth.find(c => c.jobname === jobName);
+    if (!run) return true;
+    const diffMins = (Date.now() - new Date(run.start_time).getTime()) / 60000;
+    return diffMins > maxMins || run.status !== 'succeeded';
+  };
+
+  const isReconcileBad = isCronInactive('reconcile-payments-every-10-min', 20);
+  const isUpdateOverdueBad = isCronInactive('update-overdue-rent-periods-daily', 25 * 60);
+
+  const hasSystemAnomalies = systemHealth && (
+    systemHealth.pendingPayments.length > 0 ||
+    systemHealth.failedWithdrawals.length > 0 ||
+    isReconcileBad || isUpdateOverdueBad
+  );
 
   return (
     <div className="w-full space-y-5 pb-10">
@@ -183,6 +201,85 @@ const AdminDashboard: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* ── Santé du Système ────────────────────────────────────────────────── */}
+      {systemHealth && hasSystemAnomalies ? (
+        <div
+          className="flex flex-col gap-3 p-4 rounded-xl border text-sm"
+          style={{ background: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.3)' }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Activity size={16} className="text-red-400" />
+            <h2 className="font-bold text-red-400">Santé du système : Anomalies techniques détectées</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Crons */}
+            <div className="p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <p className="font-bold mb-2 text-white/90">Tâches de fond (CRON)</p>
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className={isReconcileBad ? 'text-red-400 font-medium' : 'text-emerald-400'}>Réconciliation paiements</span>
+                  <span>{isReconcileBad ? '🔴 Échec/Retard' : '🟢 OK'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={isUpdateOverdueBad ? 'text-red-400 font-medium' : 'text-emerald-400'}>Mise à jour retards loyers</span>
+                  <span>{isUpdateOverdueBad ? '🔴 Échec/Retard' : '🟢 OK'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Paiements bloqués */}
+            <div className="p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <p className="font-bold mb-2 text-white/90">Paiements suspects (&gt; 20m)</p>
+              {systemHealth.pendingPayments.length === 0 ? (
+                <p className="text-emerald-400 text-xs">🟢 Aucun paiement bloqué</p>
+              ) : (
+                <div className="space-y-1 text-xs">
+                  {systemHealth.pendingPayments.slice(0, 3).map(p => (
+                    <div key={p.id} className="flex justify-between items-center">
+                      <span className="text-red-400 truncate max-w-[100px]">{p.tenant?.full_name || 'Inconnu'}</span>
+                      <span className="text-white">{formatMontant(p.amount)}</span>
+                    </div>
+                  ))}
+                  {systemHealth.pendingPayments.length > 3 && (
+                    <p className="text-white/50 text-right italic">+ {systemHealth.pendingPayments.length - 3} autre(s)</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Retraits en échec/bloqués */}
+            <div className="p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <p className="font-bold mb-2 text-white/90">Retraits échoués/bloqués</p>
+              {systemHealth.failedWithdrawals.length === 0 ? (
+                <p className="text-emerald-400 text-xs">🟢 Aucun retrait bloqué</p>
+              ) : (
+                <div className="space-y-1 text-xs">
+                  {systemHealth.failedWithdrawals.slice(0, 3).map(w => (
+                    <div key={w.id} className="flex justify-between items-center">
+                      <span className="text-red-400 truncate max-w-[100px]">{w.user?.full_name || 'Inconnu'}</span>
+                      <span className="text-white">{formatMontant(w.amount)}</span>
+                    </div>
+                  ))}
+                  {systemHealth.failedWithdrawals.length > 3 && (
+                    <p className="text-white/50 text-right italic">+ {systemHealth.failedWithdrawals.length - 3} autre(s)</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : systemHealth && !hasSystemAnomalies ? (
+        <div
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs"
+          style={{ background: 'rgba(16,185,129,0.06)', borderColor: 'rgba(16,185,129,0.2)' }}
+        >
+          <Activity size={14} className="text-emerald-400" />
+          <span className="font-semibold text-emerald-400">Santé du système :</span>
+          <span className="text-white/80">Aucune anomalie technique détectée</span>
+        </div>
+      ) : null}
 
       {/* ── Bandeau d'alertes ───────────────────────────────────────────────── */}
       {alertItems.length > 0 && (

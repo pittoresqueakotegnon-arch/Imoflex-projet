@@ -24,6 +24,29 @@ import {
 
 export type { PeriodKey };
 
+export interface SystemHealth {
+  pendingPayments: Array<{
+    id: string;
+    fedapay_transaction_id: string;
+    amount: number;
+    created_at: string;
+    tenant: { full_name: string };
+  }>;
+  failedWithdrawals: Array<{
+    id: string;
+    amount: number;
+    status: string;
+    created_at: string;
+    user: { full_name: string };
+  }>;
+  cronHealth: Array<{
+    jobname: string;
+    status: string;
+    start_time: string;
+    return_message: string;
+  }>;
+}
+
 interface AdminMetricsState {
   period: PeriodKey;
   setPeriod: (p: PeriodKey) => void;
@@ -33,6 +56,7 @@ interface AdminMetricsState {
   pendingListings: PendingListing[];
   pendingWithdrawals: PendingWithdrawal[];
   activity: ActivityEntry[];
+  systemHealth: SystemHealth | null;
   loading: boolean;
   lastRefresh: Date;
   refresh: () => void;
@@ -57,6 +81,7 @@ export function useAdminMetrics(): AdminMetricsState {
   const [pendingListings, setPendingListings]       = useState<PendingListing[]>([]);
   const [pendingWithdrawals, setPendingWithdrawals] = useState<PendingWithdrawal[]>([]);
   const [activity, setActivity]             = useState<ActivityEntry[]>([]);
+  const [systemHealth, setSystemHealth]     = useState<SystemHealth | null>(null);
   const [loading, setLoading]               = useState(true);
   const [lastRefresh, setLastRefresh]       = useState(new Date());
   const periodRef                           = useRef(period);
@@ -66,13 +91,14 @@ export function useAdminMetrics(): AdminMetricsState {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [a, k, chart, pl, pw, act] = await Promise.all([
+      const [a, k, chart, pl, pw, act, healthResponse] = await Promise.all([
         fetchAlerts(),
         fetchKPIs(periodRef.current),
         fetchRevenueChart(periodRef.current),
         fetchPendingListings(),
         fetchPendingWithdrawals(),
         fetchRecentActivity(15),
+        supabase.functions.invoke('admin-system-health').catch(e => { console.error('Health error:', e); return { data: null }; })
       ]);
       setAlerts(a);
       setKpis(k);
@@ -80,6 +106,9 @@ export function useAdminMetrics(): AdminMetricsState {
       setPendingListings(pl);
       setPendingWithdrawals(pw);
       setActivity(act);
+      if (healthResponse && healthResponse.data) {
+        setSystemHealth(healthResponse.data);
+      }
       setLastRefresh(new Date());
     } catch (err) {
       console.error('[useAdminMetrics] Erreur de chargement:', err);
@@ -137,6 +166,7 @@ export function useAdminMetrics(): AdminMetricsState {
     period, setPeriod,
     alerts, kpis, revenueChart,
     pendingListings, pendingWithdrawals, activity,
+    systemHealth,
     loading, lastRefresh, refresh,
   };
 }
