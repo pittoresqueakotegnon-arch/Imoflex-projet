@@ -145,15 +145,22 @@ const AdminDashboard: React.FC = () => {
   }
 
   // Calcul des anomalies techniques
-  const isCronInactive = (jobName: string, maxMins: number) => {
+  // NB: thresholds différenciés par job — le daily ne tourne qu'une fois par 24h
+  const CRON_THRESHOLDS_MINS: Record<string, number> = {
+    'reconcile-payments-every-10-min':   20,       // 20 minutes
+    'update-overdue-rent-periods-daily': 26 * 60,  // 26 heures
+  };
+
+  const isCronInactive = (jobName: string) => {
     const run = systemHealth?.cronHealth.find(c => c.jobname === jobName);
-    if (!run) return true;
+    if (!run) return true; // pas de run dans la fenêtre → stale
     const diffMins = (Date.now() - new Date(run.start_time).getTime()) / 60000;
+    const maxMins = CRON_THRESHOLDS_MINS[jobName] ?? 30; // fallback 30 min
     return diffMins > maxMins || run.status !== 'succeeded';
   };
 
-  const isReconcileBad = isCronInactive('reconcile-payments-every-10-min', 20);
-  const isUpdateOverdueBad = isCronInactive('update-overdue-rent-periods-daily', 25 * 60);
+  const isReconcileBad    = isCronInactive('reconcile-payments-every-10-min');
+  const isUpdateOverdueBad = isCronInactive('update-overdue-rent-periods-daily');
 
   const hasSystemAnomalies = systemHealth && (
     systemHealth.pendingPayments.length > 0 ||
@@ -215,8 +222,8 @@ const AdminDashboard: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Crons */}
-            <div className="p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
-              <p className="font-bold mb-2 text-white/90">Tâches de fond (CRON)</p>
+            <div className="p-3 rounded-lg" style={{ background: 'var(--adm-surface-alt)' }}>
+              <p className="font-bold mb-2" style={{ color: 'var(--adm-text)' }}>Tâches de fond (CRON)</p>
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between items-center">
                   <span className={isReconcileBad ? 'text-red-400 font-medium' : 'text-emerald-400'}>Réconciliation paiements</span>
@@ -230,8 +237,8 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             {/* Paiements bloqués */}
-            <div className="p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
-              <p className="font-bold mb-2 text-white/90">Paiements suspects (&gt; 20m)</p>
+            <div className="p-3 rounded-lg" style={{ background: 'var(--adm-surface-alt)' }}>
+              <p className="font-bold mb-2" style={{ color: 'var(--adm-text)' }}>Paiements suspects (&gt; 20m)</p>
               {systemHealth.pendingPayments.length === 0 ? (
                 <p className="text-emerald-400 text-xs">🟢 Aucun paiement bloqué</p>
               ) : (
@@ -239,19 +246,19 @@ const AdminDashboard: React.FC = () => {
                   {systemHealth.pendingPayments.slice(0, 3).map(p => (
                     <div key={p.id} className="flex justify-between items-center">
                       <span className="text-red-400 truncate max-w-[100px]">{p.tenant?.full_name || 'Inconnu'}</span>
-                      <span className="text-white">{formatMontant(p.amount)}</span>
+                      <span style={{ color: 'var(--adm-text)' }}>{formatMontant(p.amount)}</span>
                     </div>
                   ))}
                   {systemHealth.pendingPayments.length > 3 && (
-                    <p className="text-white/50 text-right italic">+ {systemHealth.pendingPayments.length - 3} autre(s)</p>
+                    <p className="text-right italic" style={{ color: 'var(--adm-text-dim)' }}>+ {systemHealth.pendingPayments.length - 3} autre(s)</p>
                   )}
                 </div>
               )}
             </div>
 
             {/* Retraits en échec/bloqués */}
-            <div className="p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
-              <p className="font-bold mb-2 text-white/90">Retraits échoués/bloqués</p>
+            <div className="p-3 rounded-lg" style={{ background: 'var(--adm-surface-alt)' }}>
+              <p className="font-bold mb-2" style={{ color: 'var(--adm-text)' }}>Retraits échoués/bloqués</p>
               {systemHealth.failedWithdrawals.length === 0 ? (
                 <p className="text-emerald-400 text-xs">🟢 Aucun retrait bloqué</p>
               ) : (
@@ -259,11 +266,11 @@ const AdminDashboard: React.FC = () => {
                   {systemHealth.failedWithdrawals.slice(0, 3).map(w => (
                     <div key={w.id} className="flex justify-between items-center">
                       <span className="text-red-400 truncate max-w-[100px]">{w.wallet?.owner?.full_name || 'Inconnu'}</span>
-                      <span className="text-white">{formatMontant(w.amount)}</span>
+                      <span style={{ color: 'var(--adm-text)' }}>{formatMontant(w.amount)}</span>
                     </div>
                   ))}
                   {systemHealth.failedWithdrawals.length > 3 && (
-                    <p className="text-white/50 text-right italic">+ {systemHealth.failedWithdrawals.length - 3} autre(s)</p>
+                    <p className="text-right italic" style={{ color: 'var(--adm-text-dim)' }}>+ {systemHealth.failedWithdrawals.length - 3} autre(s)</p>
                   )}
                 </div>
               )}
@@ -277,7 +284,7 @@ const AdminDashboard: React.FC = () => {
         >
           <Activity size={14} className="text-emerald-400" />
           <span className="font-semibold text-emerald-400">Santé du système :</span>
-          <span className="text-white/80">Aucune anomalie technique détectée</span>
+          <span style={{ color: 'var(--adm-text)' }}>Aucune anomalie technique détectée</span>
         </div>
       ) : null}
 

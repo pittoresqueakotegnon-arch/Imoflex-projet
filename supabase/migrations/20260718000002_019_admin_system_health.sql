@@ -18,7 +18,7 @@ AS $$
   SELECT j.jobname, d.status, d.start_time, d.return_message
   FROM cron.job_run_details d
   JOIN cron.job j ON j.jobid = d.jobid
-  WHERE d.start_time > now() - interval '2 hours'
+  WHERE d.start_time > now() - interval '30 hours'
   ORDER BY d.start_time DESC;
 $$;
 
