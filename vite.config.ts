@@ -11,18 +11,20 @@ export default defineConfig({
       manifest: {
         name: 'ImoFlex',
         short_name: 'ImoFlex',
+        description: 'ImoFlex — Trouvez votre logement à Cotonou et payez votre loyer progressivement via Mobile Money.',
         theme_color: '#7B3FE4',
         background_color: '#120D2A',
         display: 'standalone',
+        orientation: 'portrait',
         icons: [
           {
-            src: '/assets/logo-favicon-imoflex.png',
+            src: '/assets/logo-192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any'
           },
           {
-            src: '/assets/logo-favicon-imoflex.png',
+            src: '/assets/logo-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any'
