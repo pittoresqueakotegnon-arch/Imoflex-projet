@@ -24,7 +24,6 @@ interface DashboardData {
     amountPaid: number;
     amountDue: number;
     status: string;
-    updatedAt?: string;
   }>;
   stats: {
     soldes: number;
@@ -123,11 +122,11 @@ const Dashboard: React.FC = () => {
         }
 
         const leaseIds = Object.values(leaseByProperty);
-        let rentPeriodByLease: Record<string, { amount_paid: number; amount_due: number; status: string; updated_at?: string }> = {};
+        let rentPeriodByLease: Record<string, { amount_paid: number; amount_due: number; status: string }> = {};
         if (leaseIds.length > 0) {
           const { data: rentPeriods, error: rentError } = await supabase
             .from('rent_periods')
-            .select('lease_id, amount_paid, amount_due, status, updated_at')
+            .select('lease_id, amount_paid, amount_due, status')
             .in('lease_id', leaseIds)
             .eq('period_month', month)
             .eq('period_year', year);
@@ -136,7 +135,7 @@ const Dashboard: React.FC = () => {
           rentPeriodByLease = (rentPeriods || []).reduce((acc, rp) => {
             acc[rp.lease_id] = rp;
             return acc;
-          }, {} as Record<string, { amount_paid: number; amount_due: number; status: string; updated_at?: string }>);
+          }, {} as Record<string, { amount_paid: number; amount_due: number; status: string }>);
         }
 
         const properties: DashboardData['properties'] = [];
@@ -159,7 +158,6 @@ const Dashboard: React.FC = () => {
             amountPaid: period.amount_paid || 0,
             amountDue: period.amount_due || 0,
             status: period.status,
-            updatedAt: period.updated_at,
           });
           totalEncaisse += period.amount_paid || 0;
 
@@ -168,11 +166,11 @@ const Dashboard: React.FC = () => {
           else if (period.status === 'retard') enRetard++;
         }
 
-        properties.sort((a, b) => {
-          const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-          const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-          return dateB - dateA;
-        });
+        // Mélanger les propriétés (shuffle) au lieu de trier, comme demandé
+        for (let i = properties.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [properties[i], properties[j]] = [properties[j], properties[i]];
+        }
 
         setData({
           totalEncaisse,
