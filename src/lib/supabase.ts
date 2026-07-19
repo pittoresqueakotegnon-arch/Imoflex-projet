@@ -38,6 +38,7 @@ export interface UserProfile {
   full_name: string;
   phone: string;
   email?: string;
+  avatar_url?: string;
   role: UserRole;
   mobile_money_number?: string;
   preferred_operator?: Operator;

@@ -5,6 +5,55 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
 import BottomNav from '../../components/BottomNav';
 
+const compressImage = (file: File): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 500;
+        const MAX_HEIGHT = 500;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Erreur de compression'));
+            }
+          },
+          'image/jpeg',
+          0.8
+        );
+      };
+      img.onerror = (error) => reject(error);
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
+
 export default function Profil() {
   const { profile, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
@@ -20,6 +69,46 @@ export default function Profil() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [pwLoading, setPwLoading] = useState(false);
+
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile) return;
+    
+    setUploadingAvatar(true);
+    try {
+      const compressedImage = await compressImage(file);
+      const fileName = `${profile.id}/${Date.now()}.jpg`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, compressedImage, {
+          contentType: 'image/jpeg',
+          upsert: true,
+        });
+        
+      if (uploadError) throw new Error(uploadError.message);
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+        
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ avatar_url: publicUrl })
+        .eq('id', profile.id);
+        
+      if (updateError) throw new Error(updateError.message);
+      
+      await refreshProfile();
+      showToast('Photo de profil mise à jour', 'success');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Erreur lors de la mise à jour', 'error');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSaveMobileMoney = async () => {
     if (!profile) return;
@@ -104,11 +193,31 @@ export default function Profil() {
       <div className="px-4 py-6 space-y-6 flex-1 pb-6">
         {/* Profile Avatar & Info */}
         <div className="flex flex-col items-center">
-          <div
-            className="w-20 h-20 rounded-full flex items-center justify-center mb-3.5"
-            style={{ background: 'rgba(38, 28, 85, 0.8)', border: '1px solid rgba(168, 85, 247, 0.3)' }}
-          >
-            <span className="font-nunito font-900 text-2xl text-[#C084FC] tracking-wider">{initials}</span>
+          <div className="relative mb-3.5">
+            <div
+              className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden"
+              style={{ background: 'rgba(38, 28, 85, 0.8)', border: '1px solid rgba(168, 85, 247, 0.3)' }}
+            >
+              {profile.avatar_url ? (
+                <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="font-nunito font-900 text-2xl text-[#C084FC] tracking-wider">{initials}</span>
+              )}
+            </div>
+            {/* Edit button */}
+            <label 
+              className="absolute bottom-0 right-0 w-7 h-7 bg-[#7B3FE4] rounded-full flex items-center justify-center cursor-pointer border-2 border-[#120D2A] hover:bg-[#A855F7] transition-colors"
+              title="Modifier la photo"
+            >
+              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
+              {uploadingAvatar ? (
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+                </svg>
+              )}
+            </label>
           </div>
           <h2 className="font-nunito font-800 text-lg text-white">{profile.full_name}</h2>
           

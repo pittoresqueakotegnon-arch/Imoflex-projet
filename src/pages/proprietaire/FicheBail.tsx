@@ -21,6 +21,7 @@ interface LeaseDetails {
   tenant: {
     full_name: string;
     phone: string;
+    avatar_url?: string;
   };
   rent_periods: Array<{
     id: string;
@@ -101,7 +102,7 @@ const FicheBail: React.FC = () => {
         const tenantId = (leaseData as any).tenant_id;
         const { data: tenantData, error: tenantError } = await supabase
           .from('users')
-          .select('full_name, phone')
+          .select('full_name, phone, avatar_url')
           .eq('id', tenantId)
           .single();
 
@@ -204,8 +205,12 @@ const FicheBail: React.FC = () => {
         {/* SECTION 1: LOCATAIRE */}
         <div className="rounded-[20px] p-5" style={{ background: '#1A1240', border: '1px solid rgba(255,255,255,0.07)' }}>
           <div className="flex items-center gap-4 mb-5">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0" style={{ background: 'linear-gradient(135deg, #7B3FE4, #A855F7)' }}>
-              {tenantInitial}
+            <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #7B3FE4, #A855F7)' }}>
+              {lease.tenant?.avatar_url ? (
+                <img src={lease.tenant.avatar_url} alt={lease.tenant.full_name} className="w-full h-full object-cover" />
+              ) : (
+                tenantInitial
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="font-nunito font-black text-white text-[18px] truncate">
