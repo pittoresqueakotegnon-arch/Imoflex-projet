@@ -58,7 +58,13 @@ export function useListings(filters: ListingFilters = {}) {
     if (err) {
       setError(err.message);
     } else {
-      setListings((data || []) as Listing[]);
+      let fetchedListings = [...(data || [])] as Listing[];
+      // Fisher-Yates shuffle pour un ordre aléatoire
+      for (let i = fetchedListings.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [fetchedListings[i], fetchedListings[j]] = [fetchedListings[j], fetchedListings[i]];
+      }
+      setListings(fetchedListings);
     }
     setLoading(false);
   }, [

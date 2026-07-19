@@ -121,7 +121,7 @@ const Marketplace: React.FC = () => {
     return copy;
   }, [listings, sortMode]);
 
-  const sortLabel = sortMode === 'recent' ? 'Récent' : sortMode === 'price_asc' ? 'Prix ↑' : 'Prix ↓';
+  const sortLabel = sortMode === 'recent' ? 'Aléatoire' : sortMode === 'price_asc' ? 'Prix ↑' : 'Prix ↓';
 
   const hasActiveFilter = filterParams.types?.length || filterParams.city || filterParams.minRent || filterParams.maxRent;
 
