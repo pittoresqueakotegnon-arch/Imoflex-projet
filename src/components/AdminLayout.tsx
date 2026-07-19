@@ -61,18 +61,27 @@ export default function AdminLayout() {
           className="px-6 py-5 border-b flex-shrink-0"
           style={{ borderColor: 'var(--adm-border)' }}
         >
-          <div className="flex flex-col gap-1 mt-1">
-            <img 
-              src="/assets/logo-horizontal.png" 
-              alt="ImoFlex Logo" 
-              className="h-7 w-auto object-contain" 
-            />
-            <p
-              className="text-[10px] uppercase tracking-wider font-semibold pl-1"
-              style={{ color: 'var(--adm-text-dim)' }}
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+              style={{ background: '#120D2A' }}
             >
-              Admin Console
-            </p>
+              <img src="/assets/logo-icon-transparent-recadre.png" alt="ImoFlex Logo" className="w-full h-full object-cover" />
+            </div>
+            <div>
+              <p
+                className="font-bold text-sm leading-none"
+                style={{ color: 'var(--adm-text)', fontFamily: 'Space Grotesk' }}
+              >
+                ImoFlex
+              </p>
+              <p
+                className="text-[10px] mt-0.5 uppercase tracking-wider"
+                style={{ color: 'var(--adm-text-dim)' }}
+              >
+                Admin Console
+              </p>
+            </div>
           </div>
         </div>
 
