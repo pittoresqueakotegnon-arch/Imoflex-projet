@@ -60,10 +60,10 @@ export const WalletCard: React.FC<WalletCardProps> = ({ wallet, loading = false 
       </p>
 
       {/* Amount */}
-      <div className="mb-2">
+      <div className="mb-2 w-full flex items-baseline whitespace-nowrap">
         <span
-          className="font-nunito font-black text-[2.6rem] leading-none"
-          style={{ letterSpacing: '-0.5px' }}
+          className="font-nunito font-black leading-none"
+          style={{ letterSpacing: '-0.5px', fontSize: 'clamp(1.75rem, 8vw, 2.6rem)' }}
         >
           {formatMontant(wallet.available_balance || 0)}
         </span>
