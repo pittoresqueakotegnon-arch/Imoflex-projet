@@ -212,6 +212,7 @@ Deno.serve(async (req: Request) => {
     await supabase.from("notifications").insert({
       user_id: owner_id,
       type: "retrait_complete",
+      related_id: withdrawal.id,
       title: "Retrait en cours",
       body: `Votre retrait de ${amount} FCFA vers ${destination_phone} est en traitement. Délai estimé: 3 jours ouvrés.`,
     });

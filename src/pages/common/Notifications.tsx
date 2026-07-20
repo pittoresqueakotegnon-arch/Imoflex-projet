@@ -31,10 +31,32 @@ function getRelativeTime(dateStr: string): string {
 
 export default function Notifications() {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, role } = useAuth();
   const { notifications, unreadCount, loading, markAllRead, markRead } = useNotifications(
     profile?.id
   );
+
+  const handleNotificationClick = async (notif: any) => {
+    if (!notif.is_read) {
+      await markRead(notif.id);
+    }
+    
+    if (notif.related_id) {
+      if (['nouveau_versement', 'confirmation', 'retard'].includes(notif.type)) {
+        if (role === 'proprietaire') {
+          // Sur le dashboard pro, on pourrait aller vers un détail, pour l'instant vers dashboard ou une modale
+          navigate('/pro/dashboard'); 
+        } else {
+          // Côté locataire, on redirige vers l'historique
+          navigate('/historique');
+        }
+      } else if (notif.type === 'nouvelle_demande_contact') {
+        navigate(role === 'proprietaire' ? '/pro/demandes' : '/mes-demandes');
+      } else if (['retrait_complete', 'retrait_echoue'].includes(notif.type)) {
+        navigate('/pro/wallet');
+      }
+    }
+  };
 
   return (
     <div className="page-container">
@@ -84,8 +106,8 @@ export default function Notifications() {
               return (
                 <div
                   key={notif.id}
-                  onClick={() => !notif.is_read && markRead(notif.id)}
-                  className="card p-3 flex gap-3 cursor-pointer items-start transition-all"
+                  onClick={() => handleNotificationClick(notif)}
+                  className="card p-3 flex gap-3 cursor-pointer items-start transition-all hover:opacity-90"
                   style={{ opacity: notif.is_read ? 0.6 : 1 }}
                 >
                   {/* Icon with dark circle background */}

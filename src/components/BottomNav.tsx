@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
+import { useUnreadRequests } from '../hooks/useUnreadRequests';
 
 interface NavItem {
   icon: React.ReactNode;
@@ -69,7 +70,8 @@ const IconWallet = ({ active }: { active: boolean }) => (
 export const BottomNav: React.FC = () => {
   const location = useLocation();
   const { role, profile } = useAuth();
-  const { unreadCount } = useNotifications(profile?.id);
+  // We keep useNotifications here if we need to show unreadCount somewhere else in BottomNav later, but for now we only need useUnreadRequests for Demandes
+  const { unreadRequestsCount } = useUnreadRequests(profile?.id, role);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -86,7 +88,7 @@ export const BottomNav: React.FC = () => {
         return [
           { icon: (a) => <IconDashboard active={a} />, label: 'Dashboard', path: '/pro/dashboard' },
           { icon: (a) => <IconAnnonces active={a} />, label: 'Annonces', path: '/pro/annonces' },
-          { icon: (a) => <IconDemandes active={a} />, label: 'Demandes', path: '/pro/demandes', badge: unreadCount },
+          { icon: (a) => <IconDemandes active={a} />, label: 'Demandes', path: '/pro/demandes', badge: unreadRequestsCount },
           { icon: (a) => <IconWallet active={a} />, label: 'Wallet', path: '/pro/wallet' },
           { icon: (a) => <IconProfil active={a} />, label: 'Profil', path: '/profil' },
         ];

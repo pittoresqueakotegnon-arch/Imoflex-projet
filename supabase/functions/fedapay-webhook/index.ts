@@ -92,6 +92,18 @@ Deno.serve(async (req: Request) => {
     const tenantId = payment.tenant_id;
     const amount = payment.amount;
 
+    let tenantName = "Le locataire";
+    if (tenantId) {
+      const { data: tenantProfile } = await supabase
+        .from("users")
+        .select("full_name")
+        .eq("id", tenantId)
+        .maybeSingle();
+      if (tenantProfile?.full_name) {
+        tenantName = tenantProfile.full_name;
+      }
+    }
+
     if (eventName === "transaction.approved") {
       // ---- Lecture dynamique du taux de commission depuis app_config ----
       // Fallback à 6 si app_config est injoignable (jamais bloquant)
@@ -154,8 +166,9 @@ Deno.serve(async (req: Request) => {
         await supabase.from("notifications").insert({
           user_id: ownerId,
           type: "nouveau_versement",
+          related_id: payment.id,
           title: "Nouveau versement reçu",
-          body: `Un versement de ${amount} FCFA a été validé. ${ownerAmount} FCFA crédités sur votre wallet (${commissionRate}% de commission ImoFlex).`,
+          body: `${tenantName} a versé ${amount} FCFA. ${ownerAmount} FCFA crédités sur votre wallet (${commissionRate}% de commission ImoFlex).`,
         });
       }
 
@@ -163,6 +176,7 @@ Deno.serve(async (req: Request) => {
       await supabase.from("notifications").insert({
         user_id: tenantId,
         type: "confirmation",
+        related_id: payment.id,
         title: "Versement confirmé",
         body: `Votre versement de ${amount} FCFA a été validé avec succès.`,
       });
@@ -178,6 +192,7 @@ Deno.serve(async (req: Request) => {
       await supabase.from("notifications").insert({
         user_id: tenantId,
         type: "retard",
+        related_id: payment.id,
         title: "Versement échoué",
         body: `Votre versement de ${amount} FCFA a échoué. Veuillez réessayer.`,
       });
@@ -219,6 +234,7 @@ Deno.serve(async (req: Request) => {
           await supabase.from("notifications").insert({
             user_id: ownerId,
             type: "retrait_complete",
+            related_id: withdrawal.id,
             title: "Retrait validé",
             body: `Votre retrait de ${withdrawal.amount} FCFA vers ${withdrawal.destination_phone} a été effectué avec succès.`,
           });
@@ -244,6 +260,7 @@ Deno.serve(async (req: Request) => {
           await supabase.from("notifications").insert({
             user_id: ownerId,
             type: "retrait_echoue", // Assuming you handle this type on frontend, or fall back to generic
+            related_id: withdrawal.id,
             title: "Échec du retrait",
             body: `Votre retrait de ${withdrawal.amount} FCFA vers ${withdrawal.destination_phone} a échoué. Les fonds ont été restitués sur votre portefeuille.`,
           });

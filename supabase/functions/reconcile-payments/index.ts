@@ -173,6 +173,7 @@ Deno.serve(async (req: Request) => {
               await supabase.from("notifications").insert({
                 user_id: ownerId,
                 type: "nouveau_versement",
+                related_id: payment.id,
                 title: "Nouveau versement reçu",
                 body: `Un versement de ${amount} FCFA a été validé (Rattrapage). ${ownerAmount} FCFA crédités sur votre wallet (${commissionRate}% de commission ImoFlex).`,
               });
@@ -182,6 +183,7 @@ Deno.serve(async (req: Request) => {
             await supabase.from("notifications").insert({
               user_id: tenantId,
               type: "confirmation",
+              related_id: payment.id,
               title: "Versement confirmé",
               body: `Votre versement de ${amount} FCFA a été validé avec succès.`,
             });
@@ -209,6 +211,7 @@ Deno.serve(async (req: Request) => {
             await supabase.from("notifications").insert({
               user_id: tenantId,
               type: "retard",
+              related_id: payment.id,
               title: "Versement échoué",
               body: `Votre versement de ${amount} FCFA a échoué. Veuillez réessayer.`,
             });

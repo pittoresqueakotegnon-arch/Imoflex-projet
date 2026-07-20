@@ -178,6 +178,7 @@ export interface Notification {
   title: string;
   body: string;
   is_read: boolean;
+  related_id?: string;
   created_at: string;
 }
 

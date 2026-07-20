@@ -6,6 +6,7 @@ import { supabase, ContactRequest } from '../../lib/supabase';
 import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
 import StatusBadge from '../../components/StatusBadge';
+import { HeaderBell } from '../../components/HeaderBell';
 import { useToast } from '../../components/Toast';
 
 interface RequestWithDetails extends ContactRequest {
@@ -129,8 +130,11 @@ const Demandes: React.FC = () => {
   if (requests.length === 0) {
     return (
       <div className="page-container">
-        <header className="sticky-header px-4 py-4">
-          <h1 className="text-xl font-nunito font-900 text-white">Demandes reçues</h1>
+        <header className="sticky-header px-4 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-nunito font-900 text-white">Demandes reçues</h1>
+          </div>
+          <HeaderBell />
         </header>
         <EmptyState
           title="Aucune demande reçue"
@@ -152,9 +156,12 @@ const Demandes: React.FC = () => {
   return (
     <div className="page-container">
       {/* Header */}
-      <header className="sticky-header px-4 py-4">
-        <h1 className="text-xl font-nunito font-900 text-white">Demandes reçues</h1>
-        <p className="text-[#8B7BB5] text-xs mt-0.5" style={{ fontFamily: 'Space Grotesk' }}>Boîte de réception</p>
+      <header className="sticky-header px-4 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-nunito font-900 text-white">Demandes reçues</h1>
+          <p className="text-[#8B7BB5] text-xs mt-0.5" style={{ fontFamily: 'Space Grotesk' }}>Boîte de réception</p>
+        </div>
+        <HeaderBell />
       </header>
 
       <div className="px-4 py-4 space-y-5 flex-1 pb-6">
@@ -185,7 +192,7 @@ const Demandes: React.FC = () => {
                         {req.requester_phone || 'N/A'}
                       </span>
 
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap justify-end gap-2">
                         {req.requester_phone && (
                           <a
                             href={`tel:${req.requester_phone}`}
