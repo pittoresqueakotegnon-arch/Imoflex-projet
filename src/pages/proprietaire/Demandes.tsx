@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Phone, Check, UserCheck } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, ContactRequest } from '../../lib/supabase';
 import BottomNav from '../../components/BottomNav';
@@ -14,6 +15,7 @@ interface RequestWithDetails extends ContactRequest {
 }
 
 const Demandes: React.FC = () => {
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const { showToast } = useToast();
   const [requests, setRequests] = useState<RequestWithDetails[]>([]);
@@ -193,6 +195,14 @@ const Demandes: React.FC = () => {
                             Appeler
                           </a>
                         )}
+
+                        <button
+                          onClick={() => navigate(`/pro/activer/${req.listing_id}?request_id=${req.id}`)}
+                          className="btn-ghost btn-sm flex items-center gap-1.5 text-[#A855F7]"
+                        >
+                          <UserCheck size={12} />
+                          Sélectionner
+                        </button>
 
                         {isNew && (
                           <button

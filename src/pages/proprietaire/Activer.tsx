@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase, Listing } from '../../lib/supabase';
 import { generateUniqueAccessCode } from '../../lib/utils';
 import { useToast } from '../../components/Toast';
@@ -17,8 +17,43 @@ const Activer: React.FC = () => {
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState('5');
   const [copied, setCopied] = useState(false);
+  const [searchParams] = useSearchParams();
+  const requestId = searchParams.get('request_id');
+  const [requesterInfo, setRequesterInfo] = useState<{name: string, phone: string} | null>(null);
 
   const ownerId = profile?.id;
+
+  useEffect(() => {
+    if (!requestId) return;
+
+    const fetchRequester = async () => {
+      try {
+        const { data: request, error: reqError } = await supabase
+          .from('contact_requests')
+          .select('requester_id, contact_phone')
+          .eq('id', requestId)
+          .maybeSingle();
+
+        if (reqError || !request) return;
+
+        const { data: user, error: userError } = await supabase
+          .from('users')
+          .select('full_name, phone')
+          .eq('id', request.requester_id)
+          .maybeSingle();
+
+        if (!userError && user) {
+          setRequesterInfo({
+            name: user.full_name,
+            phone: request.contact_phone || user.phone
+          });
+        }
+      } catch (e) {
+        console.error('Error fetching requester:', e);
+      }
+    };
+    fetchRequester();
+  }, [requestId]);
 
   useEffect(() => {
     if (!listing_id || !ownerId) return;
@@ -75,6 +110,12 @@ const Activer: React.FC = () => {
 
       if (propertyError) throw propertyError;
 
+      if (requestId) {
+        await supabase
+          .from('contact_requests')
+          .update({ status: 'traitee' })
+          .eq('id', requestId);
+      }
 
       setGeneratedCode(code);
       showToast('Code généré avec succès !', 'success');
@@ -100,7 +141,8 @@ const Activer: React.FC = () => {
     if (generatedCode) {
       const message = `Voici votre code d'accès ImoFlex pour le logement « ${listing?.title} » : ${generatedCode}`;
       const encoded = encodeURIComponent(message);
-      window.open(`https://wa.me/?text=${encoded}`, '_blank');
+      const phoneParam = requesterInfo?.phone ? `${requesterInfo.phone.replace(/\D/g, '')}` : '';
+      window.open(`https://wa.me/${phoneParam}?text=${encoded}`, '_blank');
     }
   };
 
@@ -148,6 +190,14 @@ const Activer: React.FC = () => {
               <p className="text-xs text-[#8B7BB5] mt-1" style={{ fontFamily: 'Space Grotesk' }}>{listing.city}</p>
             </div>
 
+            {requesterInfo && (
+              <div className="bg-[#181135] p-4 rounded-2xl border border-[#A855F7]/30">
+                <p className="text-[#A855F7] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-1">POUR LE CANDIDAT</p>
+                <p className="font-nunito font-700 text-white text-sm">{requesterInfo.name}</p>
+                <p className="text-xs text-[#8B7BB5] mt-1">{requesterInfo.phone}</p>
+              </div>
+            )}
+
             {/* Generated Code Display */}
             <div>
               <p className="label block mb-2 text-center">CODE GÉNÉRÉ</p>
@@ -184,6 +234,14 @@ const Activer: React.FC = () => {
               <h3 className="font-nunito font-700 text-white text-base">{listing.title}</h3>
               <p className="text-xs text-[#8B7BB5] mt-1" style={{ fontFamily: 'Space Grotesk' }}>{listing.city}</p>
             </div>
+
+            {requesterInfo && (
+              <div className="bg-[#181135] p-4 rounded-2xl border border-[#A855F7]/30">
+                <p className="text-[#A855F7] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-1">POUR LE CANDIDAT</p>
+                <p className="font-nunito font-700 text-white text-sm">{requesterInfo.name}</p>
+                <p className="text-xs text-[#8B7BB5] mt-1">{requesterInfo.phone}</p>
+              </div>
+            )}
 
             {/* Payment Deadline Day */}
             <div>

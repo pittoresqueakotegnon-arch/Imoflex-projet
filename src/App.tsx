@@ -45,6 +45,7 @@ const AdminUtilisateurs = lazy(() => import('./pages/admin/AdminUtilisateurs'));
 const AdminTransactions = lazy(() => import('./pages/admin/AdminTransactions'));
 const AdminConfig       = lazy(() => import('./pages/admin/AdminConfig'));
 const AdminLogs         = lazy(() => import('./pages/admin/AdminLogs'));
+const AdminLoyersRetard = lazy(() => import('./pages/admin/AdminLoyersRetard'));
 
 // Common
 const Profil        = lazy(() => import('./pages/common/Profil'));
@@ -98,6 +99,7 @@ export default function App() {
                 <Route path="annonces" element={<AdminAnnonces />} />
                 <Route path="utilisateurs" element={<AdminUtilisateurs />} />
                 <Route path="transactions" element={<AdminTransactions />} />
+                <Route path="loyers-retard" element={<AdminLoyersRetard />} />
                 <Route path="config" element={<AdminConfig />} />
                 <Route path="logs" element={<AdminLogs />} />
               </Route>
