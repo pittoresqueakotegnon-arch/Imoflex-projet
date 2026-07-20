@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import confetti from 'canvas-confetti';
 import { supabase, Property } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
@@ -140,7 +141,6 @@ export default function Rejoindre() {
       }
 
       setStep('complete');
-      showToast('Bienvenue dans votre logement !', 'success');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur lors de la création du bail';
       setError(message);
@@ -149,6 +149,18 @@ export default function Rejoindre() {
       setLoading(false);
     }
   };
+
+  // Déclencher les confettis au passage à l'étape 'complete'
+  useEffect(() => {
+    if (step === 'complete') {
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#A855F7', '#7B3FE4', '#E8E0FF', '#4ADE80', '#FBBF24']
+      });
+    }
+  }, [step]);
 
   return (
     <div className="min-h-screen bg-[#120D2A] text-[#E8E0FF] flex flex-col px-5 pt-12 pb-8">
@@ -308,33 +320,39 @@ export default function Rejoindre() {
       {step === 'complete' && (
         <div className="flex flex-col items-center justify-center flex-1 py-8">
           <div
-            className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6"
-            style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(168,85,247,0.05))', border: '1px solid rgba(168,85,247,0.3)' }}
+            className="w-24 h-24 rounded-[32px] flex items-center justify-center mb-8 relative"
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(168,85,247,0.25), rgba(168,85,247,0.05))', 
+              border: '2px solid rgba(168,85,247,0.4)',
+              boxShadow: '0 0 30px rgba(168,85,247,0.2)'
+            }}
           >
-            <span className="text-4xl">🏠</span>
+            <span className="text-5xl absolute">🏠</span>
+            <span className="text-2xl absolute -bottom-2 -right-2 bg-[#120D2A] rounded-full">✨</span>
           </div>
-          <h1 className="font-nunito font-900 text-2xl text-center mb-3">
-            Logement ajouté !<br />
-            <span style={{ color: '#A855F7' }}>Avec succès.</span>
+          
+          <h1 className="font-nunito font-black text-3xl text-center mb-4">
+            Félicitations 🎉
           </h1>
-          <p className="text-[#8B7BB5] text-sm text-center mb-3 max-w-[260px] leading-relaxed font-space-grotesk">
-            <strong className="text-[#E8E0FF]">{property?.name}</strong> fait maintenant partie de vos logements.
-            Retrouvez-le dans votre espace et gérez vos paiements en toute simplicité.
+          
+          <p className="text-[#8B7BB5] text-base text-center mb-10 max-w-[280px] leading-relaxed font-space-grotesk">
+            Vous venez de rejoindre <br/>
+            <strong className="text-[#E8E0FF] text-lg mt-1 block">{property?.name}</strong>
           </p>
 
           <div
-            className="w-full rounded-2xl p-4 mb-10"
+            className="w-full rounded-2xl p-4 mb-12"
             style={{ background: 'rgba(168, 85, 247, 0.07)', border: '1px solid rgba(168, 85, 247, 0.15)' }}
           >
-            <p className="text-[10px] font-space-grotesk font-bold uppercase tracking-wider text-[#8B7BB5] mb-1">Adresse</p>
-            <p className="font-nunito font-700 text-[#E8E0FF] text-sm">{property?.address}</p>
+            <p className="text-[11px] font-space-grotesk font-bold uppercase tracking-wider text-[#8B7BB5] mb-1.5 text-center">Adresse du logement</p>
+            <p className="font-nunito font-700 text-[#E8E0FF] text-[15px] text-center">{property?.address}</p>
           </div>
 
           <button
             onClick={() => navigate('/dashboard')}
-            className="btn-primary w-full"
+            className="btn-primary w-full py-4 text-base"
           >
-            Voir mes logements
+            Continuer vers le Dashboard
           </button>
         </div>
       )}
