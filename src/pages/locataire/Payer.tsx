@@ -20,7 +20,7 @@ export default function Payer() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
-  const [isCustomMode, setIsCustomMode] = useState(false);
+
 
   useEffect(() => {
     if (profile) {
@@ -82,18 +82,13 @@ export default function Payer() {
     fetchData();
   }, [profile?.id, leaseId]);
 
-  const handleQuickAmount = (value: number | 'all' | 'custom') => {
+  const handleQuickAmount = (value: number | 'all') => {
     if (!currentRentPeriod) return;
     const remaining = currentRentPeriod.amount_due - currentRentPeriod.amount_paid;
-    if (value === 'custom') {
-      setIsCustomMode(true);
+    if (value === 'all') {
+      setAmount(remaining);
     } else {
-      setIsCustomMode(false);
-      if (value === 'all') {
-        setAmount(remaining);
-      } else {
-        setAmount(Math.min(value, remaining));
-      }
+      setAmount(Math.min(value, remaining));
     }
   };
 
@@ -198,20 +193,16 @@ export default function Payer() {
           </p>
           <div className="flex items-baseline justify-center gap-2 mb-2">
             <span className="text-[#A855F7] font-nunito font-900 text-xl">FCFA</span>
-            {isCustomMode ? (
-              <input
-                type="number"
-                value={amount || ''}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value) || 0;
-                  setAmount(Math.min(val, remaining));
-                }}
-                className="font-nunito font-900 text-[3.5rem] leading-none text-white bg-transparent border-b-2 border-[#A855F7] focus:border-[#FBBF24] text-center w-full max-w-[200px] outline-none transition-colors"
-                autoFocus
-              />
-            ) : (
-              <span className="font-nunito font-900 text-[3.5rem] leading-none text-white">{new Intl.NumberFormat('fr-FR').format(amount)}</span>
-            )}
+            <input
+              inputMode="numeric"
+              type="number"
+              value={amount || ''}
+              onChange={(e) => {
+                const val = parseInt(e.target.value) || 0;
+                setAmount(Math.min(val, remaining));
+              }}
+              className="font-nunito font-900 text-[3.5rem] leading-none text-white bg-transparent border-b-2 border-[#A855F7] focus:border-[#FBBF24] text-center w-full max-w-[200px] outline-none transition-colors"
+            />
           </div>
           <p className="text-[#645A8A] text-[13px] font-space-grotesk">
             Solde restant : {new Intl.NumberFormat('fr-FR').format(remaining)} FCFA
@@ -219,13 +210,13 @@ export default function Payer() {
         </div>
 
         <div className="mb-8">
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {[500, 5000, 10000].map((val) => (
               <button
                 key={val}
                 onClick={() => handleQuickAmount(val)}
                 className={`py-4 px-1 rounded-2xl font-space-grotesk font-600 text-[11px] sm:text-[13px] transition-all ${
-                  amount === val && !isCustomMode
+                  amount === val
                     ? 'bg-transparent text-[#A855F7] border border-[#A855F7]'
                     : 'bg-[#181135] text-[#8B7BB5] border border-transparent hover:bg-[#1E1545]'
                 }`}
@@ -236,22 +227,12 @@ export default function Payer() {
             <button
               onClick={() => handleQuickAmount('all')}
               className={`py-4 px-1 rounded-2xl font-space-grotesk font-600 text-[11px] sm:text-[13px] transition-all ${
-                amount === remaining && !isCustomMode
+                amount === remaining
                   ? 'bg-transparent text-[#A855F7] border border-[#A855F7]'
                   : 'bg-[#181135] text-[#8B7BB5] border border-transparent hover:bg-[#1E1545]'
               }`}
             >
               Tout
-            </button>
-            <button
-              onClick={() => handleQuickAmount('custom')}
-              className={`py-4 px-1 rounded-2xl font-space-grotesk font-600 text-[11px] sm:text-[13px] transition-all ${
-                isCustomMode
-                  ? 'bg-transparent text-[#A855F7] border border-[#A855F7]'
-                  : 'bg-[#181135] text-[#8B7BB5] border border-transparent hover:bg-[#1E1545]'
-              }`}
-            >
-              Perso.
             </button>
           </div>
         </div>
