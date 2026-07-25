@@ -29,6 +29,7 @@ export function useWallet(ownerId: string | undefined) {
         .from('withdrawals')
         .select('*')
         .eq('wallet_id', data.id)
+        .eq('is_test_data', false)
         .order('created_at', { ascending: false })
         .limit(20);
       setWithdrawals((wds || []) as Withdrawal[]);

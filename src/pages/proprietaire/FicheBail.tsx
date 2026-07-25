@@ -89,7 +89,8 @@ const FicheBail: React.FC = () => {
                 id,
                 amount,
                 created_at,
-                status
+                status,
+                is_test_data
               )
             )
           `)
@@ -165,6 +166,7 @@ const FicheBail: React.FC = () => {
   // Flatten and sort payments from newest to oldest
   const allPayments = lease.rent_periods
     .flatMap((rp) => rp.payments ?? [])
+    .filter((p: any) => p.is_test_data === false)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   const tenantInitial = lease.tenant?.full_name

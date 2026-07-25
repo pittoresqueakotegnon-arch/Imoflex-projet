@@ -64,6 +64,7 @@ export default function LogementDetail() {
           .select('id, amount, status, created_at, operator, fedapay_transaction_id, rent_periods!inner(lease_id)')
           .eq('tenant_id', profile.id)
           .eq('rent_periods.lease_id', leaseId)
+          .eq('is_test_data', false)
           .order('created_at', { ascending: false })
           .limit(5);
 

@@ -132,6 +132,7 @@ export default function Dashboard() {
               'id, amount, status, created_at, operator, fedapay_transaction_id, rent_period_id, rent_periods:rent_period_id(lease_id, leases:lease_id(properties:property_id(name)))'
             )
             .eq('tenant_id', profile.id)
+            .eq('is_test_data', false)
             .order('created_at', { ascending: false })
             .limit(5);
 

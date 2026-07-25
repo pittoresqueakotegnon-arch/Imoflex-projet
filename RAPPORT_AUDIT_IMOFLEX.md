@@ -27,3 +27,9 @@ Un audit rigoureux a été effectué pour garantir que les requêtes Supabase da
 La compilation TypeScript est validée. Le code peut être poussé sur GitHub pour le redéploiement Vercel.
 
 **Statut du projet** : Production Ready 🚀
+
+git add .
+git status
+
+git commit -m "feat(pwa): ajout icone maskable Android + configuration PWA complete"
+git push

@@ -35,6 +35,7 @@ const AdminTransactions: React.FC = () => {
             )
           )
         `)
+        .eq('is_test_data', false)
         .order('created_at', { ascending: false });
 
       if (filter !== 'all') {

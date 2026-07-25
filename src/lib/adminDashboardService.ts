@@ -157,9 +157,9 @@ function fmtDate(iso: string): string {
 
 export async function fetchAlerts(): Promise<DashboardAlerts> {
   const [withdrawals, lateRents, failedPay] = await Promise.all([
-    supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'en_traitement'),
+    supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'en_traitement').eq('is_test_data', false),
     supabase.from('rent_periods').select('*', { count: 'exact', head: true }).eq('status', 'retard'),
-    supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'echoue'),
+    supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'echoue').eq('is_test_data', false),
   ]);
 
   return {
@@ -194,13 +194,13 @@ export async function fetchKPIs(period: PeriodKey): Promise<DashboardKPIs> {
     supabase.from('users').select('*', { count: 'exact', head: true }).gte('created_at', prev.from).lte('created_at', prev.to),
     supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'publiee'),
     supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'en_attente'),
-    supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'en_traitement'),
+    supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'en_traitement').eq('is_test_data', false),
     supabase.from('leases').select('*', { count: 'exact', head: true }).eq('status', 'actif'),
     supabase.from('rent_periods').select('*', { count: 'exact', head: true }).eq('status', 'retard'),
     supabase.from('contact_requests').select('*', { count: 'exact', head: true }).gte('created_at', range.from).lte('created_at', range.to),
     supabase.from('contact_requests').select('*', { count: 'exact', head: true }).gte('created_at', prev.from).lte('created_at', prev.to),
-    supabase.from('payments').select('amount, commission_amount').eq('status', 'valide').gte('validated_at', range.from).lte('validated_at', range.to),
-    supabase.from('payments').select('amount, commission_amount').eq('status', 'valide').gte('validated_at', prev.from).lte('validated_at', prev.to),
+    supabase.from('payments').select('amount, commission_amount').eq('status', 'valide').gte('validated_at', range.from).lte('validated_at', range.to).eq('is_test_data', false),
+    supabase.from('payments').select('amount, commission_amount').eq('status', 'valide').gte('validated_at', prev.from).lte('validated_at', prev.to).eq('is_test_data', false),
   ]);
 
   type PayRow = { amount?: number; commission_amount?: number };
@@ -239,7 +239,8 @@ export async function fetchRevenueChart(period: PeriodKey): Promise<RevenuePoint
     .select('amount, commission_amount, validated_at')
     .eq('status', 'valide')
     .gte('validated_at', range.from)
-    .lte('validated_at', range.to);
+    .lte('validated_at', range.to)
+    .eq('is_test_data', false);
 
   // Calculer le nombre de jours dans la plage
   const fromMs = new Date(range.from).getTime();
@@ -305,6 +306,7 @@ export async function fetchPendingWithdrawals(): Promise<PendingWithdrawal[]> {
     .from('withdrawals')
     .select('id, amount, created_at, operator, wallets!inner(owner_id)')
     .eq('status', 'en_traitement')
+    .eq('is_test_data', false)
     .order('created_at', { ascending: false })
     .limit(5);
 
