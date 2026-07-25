@@ -9,7 +9,7 @@ const corsHeaders = {
 
 // ---- Helpers Fedapay (inclus directement ici, pas d'import externe) ----
 
-const FEDAPAY_BASE_URL = Deno.env.get("FEDAPAY_BASE_URL") || "https://sandbox-api.fedapay.com/v1";
+const FEDAPAY_BASE_URL = Deno.env.get("FEDAPAY_BASE_URL") || "https://api.fedapay.com/v1";
 const IS_SANDBOX = FEDAPAY_BASE_URL.includes("sandbox");
 
 // En sandbox, Fedapay impose un mode de test unique ("momo_test") pour tous les

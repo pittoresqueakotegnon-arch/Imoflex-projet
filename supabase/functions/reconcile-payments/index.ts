@@ -81,7 +81,8 @@ Deno.serve(async (req: Request) => {
         }
 
         // Appel à l'API FedaPay
-        const fedapayResponse = await fetch(`https://sandbox-api.fedapay.com/v1/transactions/${transactionId}`, {
+        const fedapayBaseUrl = Deno.env.get("FEDAPAY_BASE_URL") || "https://api.fedapay.com/v1";
+        const fedapayResponse = await fetch(`${fedapayBaseUrl}/transactions/${transactionId}`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${fedapaySecretKey}`,

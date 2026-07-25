@@ -8,7 +8,7 @@
 // `paymentUrl` ressortent `undefined`, colle-moi la réponse JSON brute et
 // j'ajuste l'extraction en 2 minutes.
 
-const FEDAPAY_BASE_URL = Deno.env.get("FEDAPAY_BASE_URL") || "https://sandbox-api.fedapay.com/v1";
+const FEDAPAY_BASE_URL = Deno.env.get("FEDAPAY_BASE_URL") || "https://api.fedapay.com/v1";
 
 // Codes de "mode" Fedapay pour le push Mobile Money sans redirection.
 // Vérifiables/ajustables dans le dashboard Fedapay (Paramètres > API) si besoin.

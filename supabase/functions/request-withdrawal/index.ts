@@ -37,7 +37,7 @@ Deno.serve(async (req: Request) => {
     );
 
     const fedapayKey = Deno.env.get("FEDAPAY_SECRET_KEY");
-    const fedapayBaseUrl = Deno.env.get("FEDAPAY_BASE_URL") || "https://sandbox-api.fedapay.com/v1";
+    const fedapayBaseUrl = Deno.env.get("FEDAPAY_BASE_URL") || "https://api.fedapay.com/v1";
 
     if (!fedapayKey) {
       return new Response(
