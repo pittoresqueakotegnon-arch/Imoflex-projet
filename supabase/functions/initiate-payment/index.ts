@@ -78,7 +78,9 @@ async function createTransaction(params: {
 
   const json = await parseFedapayResponse(res);
   if (!res.ok) {
-    throw new Error(json?.message || `Erreur Fedapay (création transaction): HTTP ${res.status}`);
+    const errorDetails = JSON.stringify(json);
+    console.error("FedaPay Error Details:", errorDetails);
+    throw new Error(`La création de la transaction a échoué. Détails: ${json?.message || errorDetails}`);
   }
 
   const tx = extractResource(json, "transaction");
@@ -145,7 +147,9 @@ async function sendDirectPush(mode: string, token: string, phoneNumber: string):
 
   const json = await parseFedapayResponse(res);
   if (!res.ok) {
-    throw new Error(json?.message || `Erreur Fedapay (push ${mode}): HTTP ${res.status}`);
+    const errorDetails = JSON.stringify(json);
+    console.error("FedaPay Push Error Details:", errorDetails);
+    throw new Error(`Le Push USSD a échoué. Détails: ${json?.message || errorDetails}`);
   }
   return json;
 }
