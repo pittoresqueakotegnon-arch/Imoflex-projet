@@ -29,6 +29,7 @@
     position: relative;
     background-color: #120D2A;
     overflow-x: hidden;
+    transform: translateZ(0); /* Crée un contenant strict pour les éléments 'fixed' */
   }
 
   @media (min-width: 480px) {
