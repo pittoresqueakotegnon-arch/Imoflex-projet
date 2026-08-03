@@ -219,9 +219,22 @@ export default function Payer() {
               }`}
             />
           </div>
-          <p className="text-[#645A8A] text-[13px] font-space-grotesk">
-            Solde restant : {new Intl.NumberFormat('fr-FR').format(remaining)} FCFA
-          </p>
+          {/* Solde restant — mis à jour dynamiquement à chaque frappe */}
+          {amount > 0 && amount === remaining ? (
+            <p className="text-[#22C55E] text-[13px] font-space-grotesk font-bold flex items-center justify-center gap-1">
+              🎉 Loyer entièrement réglé ! Nouveau solde : <strong>0 FCFA</strong>
+            </p>
+          ) : amount > remaining ? (
+            <p className="text-red-400 text-[13px] font-space-grotesk font-bold">
+              ⚠️ Montant supérieur au solde dû ({new Intl.NumberFormat('fr-FR').format(remaining)} FCFA max)
+            </p>
+          ) : (
+            <p className="text-[#645A8A] text-[13px] font-space-grotesk">
+              {amount > 0
+                ? <>À régler après versement : <strong className="text-white">{new Intl.NumberFormat('fr-FR').format(remaining - amount)} FCFA</strong></>
+                : <>Solde restant : <strong>{new Intl.NumberFormat('fr-FR').format(remaining)} FCFA</strong></>}
+            </p>
+          )}
         </div>
 
         <div className="mb-8">
@@ -311,9 +324,16 @@ export default function Payer() {
               <span className="text-[#22C55E] font-nunito font-900 text-[15px]">0 FCFA (Gratuit)</span>
             </div>
             <div className="h-[1px] bg-[rgba(255,255,255,0.05)] w-full my-4"></div>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-3">
               <span className="text-[#645A8A] font-space-grotesk font-600 text-[13px]">Total débité</span>
               <span className="text-[#A855F7] font-nunito font-900 text-[15px]">{new Intl.NumberFormat('fr-FR').format(amount)} FCFA</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[#645A8A] font-space-grotesk font-600 text-[13px]">Solde après versement</span>
+              <span className={`font-nunito font-900 text-[15px] ${remaining - amount === 0 ? 'text-[#22C55E]' : 'text-white'}`}>
+                {new Intl.NumberFormat('fr-FR').format(Math.max(remaining - amount, 0))} FCFA
+                {remaining - amount === 0 && ' ✓'}
+              </span>
             </div>
           </div>
 
@@ -325,7 +345,7 @@ export default function Payer() {
 
           <button
             onClick={() => { haptics.medium(); handlePay(); }}
-            disabled={processing || amount < 100 || !selectedOperator}
+            disabled={processing || amount < 100 || amount > remaining || !selectedOperator}
             className="w-full text-white font-nunito font-900 text-[17px] rounded-3xl py-5 flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
             style={{ background: '#A855F7' }}
           >
