@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, RentPeriod, Operator } from '../../lib/supabase';
-import { initiatePayment } from '../../lib/fedapay';
+import { initiatePayment, normalizeBjPhone } from '../../lib/fedapay';
 import { useToast } from '../../components/Toast';
 import { BackButton } from '../../components/BackButton';
 import { haptics } from '../../lib/haptics';
@@ -124,9 +124,9 @@ export default function Payer() {
       return;
     }
 
-    const cleanedPhone = phoneNumber.replace(/\s/g, '');
-    if (!cleanedPhone || cleanedPhone.length < 8) {
-      setError('Veuillez saisir un numéro Mobile Money valide');
+    const cleanedPhone = normalizeBjPhone(phoneNumber);
+    if (!cleanedPhone || cleanedPhone.length !== 8) {
+      setError('Numéro invalide. Entrez 8 chiffres locaux béninois (ex: 97 00 00 00)');
       return;
     }
 
@@ -142,7 +142,7 @@ export default function Payer() {
         amount,
         operator: selectedOperator,
         rent_period_id: currentRentPeriod.id,
-        phone_number: cleanedPhone,
+        phone_number: phoneNumber, // normalisé dans fedapay.ts
       });
 
       if (selectedOperator === 'celtiis' && result.payment_url) {
