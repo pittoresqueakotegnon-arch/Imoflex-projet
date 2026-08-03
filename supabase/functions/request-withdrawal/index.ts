@@ -167,6 +167,8 @@ Deno.serve(async (req: Request) => {
             mode: payoutMode,
             description: "Retrait ImoFlex",
             customer: {
+              firstname: authData.user.user_metadata?.first_name || authData.user.user_metadata?.prenom || "Propriétaire",
+              lastname: authData.user.user_metadata?.last_name || authData.user.user_metadata?.nom || "ImoFlex",
               email: authData.user.email || `${owner_id}@imoflex.app`,
               phone_number: { number: destination_phone, country: "bj" },
             },

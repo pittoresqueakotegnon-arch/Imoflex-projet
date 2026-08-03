@@ -43,6 +43,8 @@ async function createTransaction(params: {
   amount: number;
   description: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   phoneNumber: string;
   callbackUrl?: string;
 }): Promise<{ id: string | number; raw: any }> {
@@ -63,6 +65,8 @@ async function createTransaction(params: {
         currency: { iso: "XOF" },
         callback_url: params.callbackUrl,
         customer: {
+          firstname: params.firstName || "Client",
+          lastname: params.lastName || "ImoFlex",
           email: params.email,
           phone_number: { number: params.phoneNumber, country: "BJ" },
         },
@@ -262,6 +266,8 @@ Deno.serve(async (req: Request) => {
         amount,
         description: `Loyer ImoFlex - période ${rent_period_id}`,
         email: authData.user.email || `${tenant_id}@imoflex.app`,
+        firstName: authData.user.user_metadata?.first_name || authData.user.user_metadata?.prenom,
+        lastName: authData.user.user_metadata?.last_name || authData.user.user_metadata?.nom,
         phoneNumber: phone_number,
         callbackUrl,
       });

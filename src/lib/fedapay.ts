@@ -87,10 +87,7 @@ export async function initiatePayment(
     amount: params.amount,
     operator: params.operator,
     rent_period_id: params.rent_period_id,
-    phone_number: {
-      number: normalizedPhone,
-      country: 'BJ',
-    },
+    phone_number: normalizedPhone,
     idempotency_key: params.idempotency_key || crypto.randomUUID(),
   };
 
@@ -124,10 +121,7 @@ export async function requestWithdrawal(
     wallet_id: params.wallet_id,
     amount: params.amount,
     operator: params.operator,
-    destination_phone: {
-      number: normalizedPhone,
-      country: 'BJ',
-    },
+    destination_phone: normalizedPhone,
   };
 
   return callEdgeFunction<RequestWithdrawalResult>('request-withdrawal', payload);
