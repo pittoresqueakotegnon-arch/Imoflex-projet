@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Plus, Building2, ArrowRight, Home } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 import { formatMontant, getCurrentMonth, getMonthName } from '../../lib/utils';
@@ -54,6 +54,7 @@ const ProgressBar: React.FC<{ current: number; total: number; isSolde: boolean }
 const Dashboard: React.FC = () => {
   const { profile } = useAuth();
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -213,6 +214,98 @@ const Dashboard: React.FC = () => {
   const { month, year } = getCurrentMonth();
   const monthName = getMonthName(month, year).toUpperCase();
   const newRequestsTotal = data?.listings.reduce((sum, l) => sum + l.newRequests, 0) || 0;
+
+  // ── Écran d'embarquement si aucun bien géré ──────────────────────────────
+  const hasNoProperty = (data?.properties.length || 0) === 0 && (data?.listings.length || 0) === 0;
+  if (hasNoProperty) {
+    return (
+      <div className="page-container flex flex-col">
+        {/* Role switcher */}
+        <div className="px-4 pt-4 flex justify-center">
+          <div className="bg-[#1A1240] rounded-full p-1 flex items-center border border-white/5">
+            <button className="px-5 py-1.5 rounded-full text-[11px] font-bold text-white bg-[#A855F7] shadow-sm font-nunito">
+              Propriétaire
+            </button>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="px-5 py-1.5 rounded-full text-[11px] font-bold text-[#8B7BB5] hover:text-white transition-colors font-nunito"
+            >
+              Locataire
+            </button>
+          </div>
+        </div>
+
+        {/* Onboarding Screen */}
+        <div className="flex-1 flex flex-col items-center justify-center px-6 pb-24 text-center">
+          {/* Orb illustratif */}
+          <div className="relative mb-8">
+            <div
+              className="w-24 h-24 rounded-3xl flex items-center justify-center"
+              style={{
+                background: 'linear-gradient(145deg, #1A1240 0%, #261C55 100%)',
+                boxShadow: '0 0 40px rgba(168,85,247,0.2)',
+                border: '1px solid rgba(168,85,247,0.15)',
+              }}
+            >
+              <Building2 size={40} className="text-[#A855F7]" />
+            </div>
+            <div
+              className="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl flex items-center justify-center"
+              style={{ background: '#22C55E' }}
+            >
+              <Home size={16} className="text-white" />
+            </div>
+          </div>
+
+          <h1 className="font-nunito font-900 text-white text-[24px] leading-tight mb-3">
+            Vous louez un bien immobilier ?
+          </h1>
+          <p className="text-[#8B7BB5] text-[14px] leading-relaxed mb-10" style={{ fontFamily: 'Space Grotesk', maxWidth: 320 }}>
+            Simplifiez vos encaissements MoMo, suivez vos locataires et sécurisez vos loyers sur ImoFlex.
+          </p>
+
+          {/* CTA principal */}
+          <Link
+            to="/publier"
+            className="w-full max-w-xs flex items-center justify-center gap-2 text-white font-nunito font-900 text-[16px] rounded-3xl py-4 mb-4 transition-all hover:opacity-90 active:scale-95"
+            style={{ background: 'linear-gradient(135deg, #7B3FE4 0%, #A855F7 100%)' }}
+          >
+            <Plus size={20} />
+            Ajouter mon premier logement
+          </Link>
+
+          {/* CTA secondaire */}
+          <Link
+            to="/marketplace"
+            className="flex items-center gap-1.5 text-[#A855F7] text-[13px] font-semibold hover:text-purple-300 transition-colors"
+            style={{ fontFamily: 'Space Grotesk' }}
+          >
+            Parcourir les annonces
+            <ArrowRight size={14} />
+          </Link>
+
+          {/* Feature pills */}
+          <div className="flex flex-wrap justify-center gap-2 mt-10">
+            {['Paiements MoMo', 'Suivi locataires', 'Quittances PDF', 'Sécurité Supabase'].map((f) => (
+              <span
+                key={f}
+                className="text-[11px] font-semibold px-3 py-1 rounded-full"
+                style={{
+                  background: 'rgba(168,85,247,0.08)',
+                  border: '1px solid rgba(168,85,247,0.15)',
+                  color: '#C084FC',
+                  fontFamily: 'Space Grotesk',
+                }}
+              >
+                {f}
+              </span>
+            ))}
+          </div>
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
