@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
 import BottomNav from '../../components/BottomNav';
+import { ShieldCheck, FileText, Receipt, Wallet, MessageCircle, HelpCircle, ChevronRight, FileCheck } from 'lucide-react';
 
 const compressImage = (file: File): Promise<Blob> => {
   return new Promise((resolve, reject) => {
@@ -237,6 +238,23 @@ export default function Profil() {
           <p className="text-xs text-[#8B7BB5] mt-1" style={{ fontFamily: 'Space Grotesk' }}>
             {profile.phone || profile.email}
           </p>
+
+          {/* Badge KYC */}
+          <div className="mt-2">
+            {(profile as any).kyc_status === 'verifie' ? (
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full"
+                style={{ background: 'rgba(34,197,94,0.1)', color: '#22C55E', border: '1px solid rgba(34,197,94,0.25)' }}
+              >
+                <ShieldCheck size={11} /> Identité vérifiée
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full"
+                style={{ background: 'rgba(251,191,36,0.1)', color: '#FBBF24', border: '1px solid rgba(251,191,36,0.25)' }}
+              >
+                <ShieldCheck size={11} /> Compte à vérifier
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Menu Options inside single styled card container */}
@@ -312,7 +330,7 @@ export default function Profil() {
             )}
           </div>
 
-          {/* Changer le mot de passe */}
+            {/* Changer le mot de passe */}
           <div className="w-full px-4 py-4 flex flex-col gap-3">
             <button
               onClick={() => setChangingPassword(!changingPassword)}
@@ -341,9 +359,96 @@ export default function Profil() {
               </div>
             )}
           </div>
+
+          {/* Mes Documents & Pièces d'identité */}
+          <button
+            className="w-full px-4 py-4 flex items-center justify-between hover:bg-[#261C55]/20 transition-colors"
+            onClick={() => showToast('Fonctionnalité bientôt disponible', 'success')}
+          >
+            <div className="flex items-center gap-3">
+              <FileCheck size={16} className="text-[#A855F7] flex-shrink-0" />
+              <span className="text-sm text-[#E8E0FF] font-medium" style={{ fontFamily: 'Space Grotesk' }}>Mes Documents & Pièces d'identité</span>
+            </div>
+            <ChevronRight size={16} className="text-[#8B7BB5]" />
+          </button>
         </div>
 
-        {/* Se déconnecter (outline red button matching mockup) */}
+        {/* ── BLOC DOCUMENTS IMMO (différencié par rôle) ──────────────────── */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#645A8A] mb-2 px-1" style={{ fontFamily: 'Space Grotesk' }}>
+            Documents Immobiliers
+          </p>
+          <div className="card divide-y divide-[#261C55] overflow-hidden">
+            {profile.role === 'locataire' ? (
+              <Link
+                to="/historique"
+                className="w-full px-4 py-4 flex items-center justify-between hover:bg-[#261C55]/20 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Receipt size={16} className="text-[#22C55E] flex-shrink-0" />
+                  <span className="text-sm text-[#E8E0FF] font-medium" style={{ fontFamily: 'Space Grotesk' }}>Mes Quittances de loyer</span>
+                </div>
+                <ChevronRight size={16} className="text-[#8B7BB5]" />
+              </Link>
+            ) : (
+              <>
+                <button
+                  className="w-full px-4 py-4 flex items-center justify-between hover:bg-[#261C55]/20 transition-colors"
+                  onClick={() => showToast('Fonctionnalité bientôt disponible', 'success')}
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText size={16} className="text-[#A855F7] flex-shrink-0" />
+                    <span className="text-sm text-[#E8E0FF] font-medium" style={{ fontFamily: 'Space Grotesk' }}>Relevés d'encaissement</span>
+                  </div>
+                  <ChevronRight size={16} className="text-[#8B7BB5]" />
+                </button>
+                <button
+                  className="w-full px-4 py-4 flex items-center justify-between hover:bg-[#261C55]/20 transition-colors"
+                  onClick={() => showToast('Fonctionnalité bientôt disponible', 'success')}
+                >
+                  <div className="flex items-center gap-3">
+                    <Wallet size={16} className="text-[#FBBF24] flex-shrink-0" />
+                    <span className="text-sm text-[#E8E0FF] font-medium" style={{ fontFamily: 'Space Grotesk' }}>Coordonnées de retrait MoMo</span>
+                  </div>
+                  <ChevronRight size={16} className="text-[#8B7BB5]" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* ── BLOC SUPPORT & AIDE ─────────────────────────────────── */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#645A8A] mb-2 px-1" style={{ fontFamily: 'Space Grotesk' }}>
+            Support & Aide
+          </p>
+          <div className="card divide-y divide-[#261C55] overflow-hidden">
+            <a
+              href="https://wa.me/22900000000?text=Bonjour%20ImoFlex%20Support"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full px-4 py-4 flex items-center justify-between hover:bg-[#261C55]/20 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <MessageCircle size={16} className="text-[#22C55E] flex-shrink-0" />
+                <span className="text-sm text-[#E8E0FF] font-medium" style={{ fontFamily: 'Space Grotesk' }}>Centre d'aide & WhatsApp Support</span>
+              </div>
+              <ChevronRight size={16} className="text-[#8B7BB5]" />
+            </a>
+            <Link
+              to="/contact"
+              className="w-full px-4 py-4 flex items-center justify-between hover:bg-[#261C55]/20 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <HelpCircle size={16} className="text-[#60A5FA] flex-shrink-0" />
+                <span className="text-sm text-[#E8E0FF] font-medium" style={{ fontFamily: 'Space Grotesk' }}>FAQ / Mode d'emploi ImoFlex</span>
+              </div>
+              <ChevronRight size={16} className="text-[#8B7BB5]" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Se déconnecter */}
         <button
           onClick={handleSignOut}
           className="w-full flex items-center justify-center font-bold text-sm transition-all border border-[#EF4444] text-[#EF4444] hover:bg-[#EF4444]/5"
@@ -351,6 +456,20 @@ export default function Profil() {
         >
           Se déconnecter
         </button>
+
+        {/* ── PIED DE PAGE PROFIL ────────────────────────────────── */}
+        <div className="text-center pb-4 space-y-2">
+          <button
+            onClick={() => showToast('Conditions disponibles bientôt', 'success')}
+            className="text-[11px] text-[#645A8A] hover:text-[#8B7BB5] transition-colors"
+            style={{ fontFamily: 'Space Grotesk' }}
+          >
+            Conditions d'utilisation & Confidentialité
+          </button>
+          <p className="text-[10px] text-[#3D3060]" style={{ fontFamily: 'Space Grotesk' }}>
+            ImoFlex v1.0.0 (Production)
+          </p>
+        </div>
       </div>
 
       <BottomNav />
