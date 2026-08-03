@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { maskPhone, ServiceUnavailableError, fetchWithRetry } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,10 +32,32 @@ Deno.serve(async (req: Request) => {
     }
     const owner_id = authData.user.id; // <-- source de vérité, jamais body.owner_id
 
+    // ---- Audit Trail : capture IP + User-Agent ----
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0].trim()
+      || req.headers.get("x-real-ip")
+      || "unknown";
+    const userAgent = req.headers.get("user-agent") || "unknown";
+    console.log(`[audit] request-withdrawal uid=${owner_id} ip=${clientIp} ua=${userAgent.slice(0, 80)}`);
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // ---- Rate Limiting : max 3 retraits par minute (seuil strict) ----
+    const { data: allowed, error: rlError } = await supabase.rpc("check_rate_limit", {
+      p_user_id: owner_id,
+      p_endpoint: "request-withdrawal",
+      p_max_requests: 3,
+      p_window_seconds: 60,
+    });
+    if (rlError) console.error("Rate limit RPC error:", rlError.message);
+    if (allowed === false) {
+      return new Response(
+        JSON.stringify({ error: "Trop de requêtes de retrait. Veuillez patienter avant de réessayer (max 3/min)." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" } }
+      );
+    }
 
     const fedapayKey = Deno.env.get("FEDAPAY_SECRET_KEY");
     const fedapayBaseUrl = Deno.env.get("FEDAPAY_BASE_URL") || "https://api.fedapay.com/v1";
@@ -130,23 +153,27 @@ Deno.serve(async (req: Request) => {
 
     let payoutId: string;
     try {
-      const payoutRes = await fetch(`${fedapayBaseUrl}/payouts`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${fedapayKey}`,
-        },
-        body: JSON.stringify({
-          amount,
-          currency: { iso: "XOF" },
-          mode: payoutMode,
-          description: "Retrait ImoFlex",
-          customer: {
-            email: authData.user.email || `${owner_id}@imoflex.app`,
-            phone_number: { number: destination_phone, country: "bj" },
+      const payoutRes = await fetchWithRetry(
+        `${fedapayBaseUrl}/payouts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${fedapayKey}`,
           },
-        }),
-      });
+          body: JSON.stringify({
+            amount,
+            currency: { iso: "XOF" },
+            mode: payoutMode,
+            description: "Retrait ImoFlex",
+            customer: {
+              email: authData.user.email || `${owner_id}@imoflex.app`,
+              phone_number: { number: destination_phone, country: "bj" },
+            },
+          }),
+        },
+        { maxRetries: 3, timeoutMs: 10000, retryDelayMs: 500 }
+      );
 
       const payoutJson = await payoutRes.json();
       if (!payoutRes.ok) {
@@ -166,10 +193,18 @@ Deno.serve(async (req: Request) => {
         })
         .eq("id", wallet_id);
 
-      const msg = payoutErr instanceof Error ? payoutErr.message : "Erreur Fedapay";
+      const isUnavailable = payoutErr instanceof ServiceUnavailableError;
+      const isTimeout = payoutErr instanceof Error && payoutErr.name === "TimeoutError";
+      const msg = isUnavailable
+        ? payoutErr.message
+        : isTimeout
+          ? "La demande de retrait a échoué : délai d'attente Fedapay dépassé. Votre solde a été restitué."
+          : (payoutErr instanceof Error ? payoutErr.message : "Erreur Fedapay");
+
+      console.error(`[circuit-breaker] Payout failed (phone=${maskPhone(destination_phone)}):`, msg);
       return new Response(
         JSON.stringify({ error: msg }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: isUnavailable ? 503 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -226,10 +261,12 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: unknown) {
+    const isUnavailable = err instanceof ServiceUnavailableError;
     const message = err instanceof Error ? err.message : "Erreur interne";
+    if (isUnavailable) console.error("[circuit-breaker] request-withdrawal PSP unavailable:", message);
     return new Response(
       JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: isUnavailable ? 503 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

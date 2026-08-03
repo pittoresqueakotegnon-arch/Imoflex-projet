@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowDownLeft, Calendar, FileText, Download, X, Printer } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, Payment } from '../../lib/supabase';
 
@@ -8,6 +9,7 @@ import { useToast } from '../../components/Toast';
 import { formatMontant, formatDate, getMonthName, operatorColor, operatorLabel } from '../../lib/utils';
 import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
+import { BackButton } from '../../components/BackButton';
 
 type FilterStatus = 'all' | 'valide' | 'echoue';
 
@@ -19,6 +21,7 @@ export default function Historique() {
   const [payments, setPayments] = useState<PaymentWithProperty[]>([]);
   const [leases, setLeases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedReceipt, setSelectedReceipt] = useState<(Payment & { propertyName?: string }) | null>(null);
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [selectedLeaseId, setSelectedLeaseId] = useState<string>('all');
 
@@ -126,14 +129,7 @@ export default function Historique() {
     <div className="page-container">
       {/* Header */}
       <header className="sticky-header px-4 py-3.5 flex items-center gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-[#E8E0FF] hover:text-[#A855F7] transition-colors p-1 -ml-1"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </button>
+        <BackButton />
         <h1 className="font-nunito font-800 text-lg text-white">Historique</h1>
       </header>
 
@@ -240,14 +236,24 @@ export default function Historique() {
                           </div>
                         </div>
 
-                        {/* Amount & Date */}
-                        <div className="text-right">
+                        {/* Amount, Date & Download */}
+                        <div className="flex flex-col items-end gap-1.5">
                           <p className={`font-bold text-sm ${isSuccess ? 'text-[#EF4444]' : 'text-[#8B7BB5]'}`}>
                             -{formatMontant(payment.amount)}
                           </p>
-                          <p className="text-[#8B7BB5] text-[10px]" style={{ fontFamily: 'Space Grotesk' }}>
-                            {formatDate(payment.created_at)}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-[#8B7BB5] text-[10px]" style={{ fontFamily: 'Space Grotesk' }}>
+                              {formatDate(payment.created_at)}
+                            </p>
+                            {isSuccess && (
+                              <button
+                                onClick={() => setSelectedReceipt(payment)}
+                                className="p-1 rounded-full bg-[#1A1240] border border-white/10 text-[#A855F7] hover:bg-[#A855F7] hover:text-white transition-colors"
+                              >
+                                <Download size={14} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -266,6 +272,70 @@ export default function Historique() {
       </div>
 
       <BottomNav />
+
+      {/* ── Modale Reçu de Paiement (PDF Print) ── */}
+      {selectedReceipt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-white rounded-[24px] w-full max-w-sm overflow-hidden flex flex-col relative printable-receipt">
+            <button
+              onClick={() => setSelectedReceipt(null)}
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 z-10 no-print"
+            >
+              <X size={20} />
+            </button>
+            <div className="p-6 text-center border-b border-gray-100 bg-gray-50">
+              <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                <Printer size={20} />
+              </div>
+              <h2 className="font-nunito font-black text-xl text-gray-900">Reçu Officiel</h2>
+              <p className="text-sm text-gray-500 font-space-grotesk mt-1">ImoFlex Paiments</p>
+            </div>
+            <div className="p-6 space-y-4 font-space-grotesk">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Date</span>
+                <span className="font-medium text-gray-900">{new Date(selectedReceipt.created_at).toLocaleString('fr-FR')}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Montant</span>
+                <span className="font-bold text-gray-900 text-base">{formatMontant(selectedReceipt.amount)}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Logement</span>
+                <span className="font-medium text-gray-900">{selectedReceipt.propertyName || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Référence</span>
+                <span className="font-mono text-gray-900 text-xs bg-gray-100 px-2 py-1 rounded">{selectedReceipt.fedapay_transaction_id}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Opérateur</span>
+                <span className="font-medium text-gray-900 capitalize">{selectedReceipt.operator}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Statut</span>
+                <span className="font-bold text-emerald-600 uppercase tracking-wide text-xs">PAYÉ</span>
+              </div>
+            </div>
+            <div className="p-6 bg-gray-50 border-t border-gray-100 no-print">
+              <button
+                onClick={() => window.print()}
+                className="w-full bg-[#1A1240] hover:bg-[#2A1D5A] text-white font-bold py-3.5 rounded-xl transition-colors font-nunito flex items-center justify-center gap-2"
+              >
+                <Download size={18} />
+                Imprimer / Sauvegarder PDF
+              </button>
+            </div>
+          </div>
+          <style>{`
+            @media print {
+              body * { visibility: hidden; }
+              .printable-receipt, .printable-receipt * { visibility: visible; }
+              .printable-receipt { position: absolute; left: 0; top: 0; width: 100%; border-radius: 0; box-shadow: none; }
+              .no-print { display: none !important; }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 }

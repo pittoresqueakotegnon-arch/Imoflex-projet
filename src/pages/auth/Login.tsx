@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
+import { BackButton } from '../../components/BackButton';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -54,16 +55,9 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col px-5 pt-12 pb-8" style={{ background: '#120D2A', color: '#E8E0FF' }}>
       {/* ← Retour */}
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-1.5 text-[#A855F7] text-sm mb-10 w-fit"
-        style={{ fontFamily: 'Space Grotesk', fontWeight: 600 }}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-        Retour
-      </button>
+      <div className="mb-10">
+        <BackButton />
+      </div>
 
       {/* Titre */}
       <div className="mb-8">

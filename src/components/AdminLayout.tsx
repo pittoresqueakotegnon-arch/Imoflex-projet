@@ -63,10 +63,10 @@ export default function AdminLayout() {
         >
           <div className="flex items-center gap-2.5">
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
               style={{ background: '#120D2A' }}
             >
-              <img src="/assets/logo-icon-transparent-recadre.png" alt="ImoFlex Logo" className="w-full h-full object-cover" />
+              <img src="/assets/logo-icon-transparent-recadre.png" alt="ImoFlex Logo" className="w-full h-full object-cover" loading="lazy" />
             </div>
             <div>
               <p

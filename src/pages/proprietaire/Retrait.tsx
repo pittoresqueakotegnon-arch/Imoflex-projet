@@ -32,6 +32,21 @@ const Retrait: React.FC = () => {
     init();
   }, [profile?.id, ensureWallet, showToast]);
 
+  // Auto-détection de l'opérateur
+  useEffect(() => {
+    const cleanNumber = phoneNumber.replace(/\s+/g, '').replace(/^\+229/, '');
+    if (cleanNumber.length >= 2) {
+      const prefix = cleanNumber.substring(0, 2);
+      if (['97', '96', '67', '66', '61', '62', '51', '52', '53', '54', '42', '46', '91'].includes(prefix)) {
+        setSelectedOperator('mtn');
+      } else if (['95', '94', '65', '64', '60', '55', '44', '58'].includes(prefix)) {
+        setSelectedOperator('moov');
+      } else if (['90', '40', '41', '43'].includes(prefix)) {
+        setSelectedOperator('celtiis');
+      }
+    }
+  }, [phoneNumber]);
+
   const validateForm = (): boolean => {
     setError(null);
     const parsedAmount = parseInt(amount);
@@ -100,16 +115,19 @@ const Retrait: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#120D2A] text-[#E8E0FF] flex flex-col px-5 pt-12 pb-8">
       {/* Header */}
-      <button
-        onClick={() => navigate('/pro/wallet')}
-        className="flex items-center gap-1.5 text-[#A855F7] text-sm mb-8 w-fit"
-        style={{ fontFamily: 'Space Grotesk', fontWeight: 600 }}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-        Retirer des fonds
-      </button>
+      <div className="flex items-center gap-4 mb-10 w-full">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-11 h-11 rounded-2xl flex items-center justify-center transition"
+          style={{ background: '#1A1240', border: '1px solid rgba(255,255,255,0.05)' }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </button>
+        <h1 className="text-white font-nunito font-black text-[22px]">Retirer des fonds</h1>
+      </div>
 
       <div className="flex-1 flex flex-col justify-between">
         <div className="space-y-6">
@@ -122,7 +140,8 @@ const Retrait: React.FC = () => {
                 type="number"
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
-                className="bg-transparent border-none outline-none font-nunito font-950 text-4xl text-white text-center w-48"
+                disabled={loading}
+                className="bg-transparent border-none outline-none font-nunito font-950 text-4xl text-white text-center w-48 disabled:opacity-50"
                 placeholder="0"
                 style={{ caretColor: '#A855F7' }}
               />
@@ -137,67 +156,27 @@ const Retrait: React.FC = () => {
             <label className="block text-[#8B7BB5] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-3">
               OPÉRATEUR DE RÉCEPTION
             </label>
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-3 gap-3">
               {([
-                {
-                  id: 'mtn',
-                  title: 'MTN Money',
-                  subtitle: 'Mobile Money',
-                  color: '#F59E0B',
-                  icon: (
-                    <div className="w-10 h-10 bg-[#F59E0B] rounded-xl flex items-center justify-center font-nunito font-900 text-[10px] text-[#0D0720] shadow-sm">
-                      MTN
-                    </div>
-                  )
-                },
-                {
-                  id: 'moov',
-                  title: 'Moov Money',
-                  subtitle: 'Mobile Money',
-                  color: '#0066CC',
-                  icon: (
-                    <div className="w-10 h-10 bg-[#0066CC] rounded-xl flex flex-col items-center justify-center text-[8px] text-white font-nunito font-900 leading-none shadow-sm">
-                      <span>MOOV</span>
-                      <span className="text-[6px] font-bold mt-0.5">MONEY</span>
-                    </div>
-                  )
-                },
-                {
-                  id: 'celtiis',
-                  title: 'Celtiis Cash',
-                  subtitle: 'Mobile Money BJ',
-                  color: '#8B5CF6',
-                  icon: (
-                    <div className="w-10 h-10 bg-[#8B5CF6] rounded-xl flex flex-col items-center justify-center text-[7px] text-white font-nunito font-bold leading-none shadow-sm p-0.5">
-                      <div className="w-3 h-3 bg-white/20 rounded-full flex items-center justify-center text-[8px] font-black mb-0.5">c</div>
-                      <span className="font-extrabold tracking-tighter">CELTIIS</span>
-                    </div>
-                  )
-                }
+                { id: 'mtn', title: 'MTN', bg: '#FBBF24', text: '#412402' },
+                { id: 'moov', title: 'Moov', bg: '#3B82F6', text: '#042C53' },
+                { id: 'celtiis', title: 'Celtiis', bg: '#10B981', text: '#04342C' },
               ] as const).map((op) => {
                 const isSelected = selectedOperator === op.id;
                 return (
                   <button
                     key={op.id}
                     type="button"
-                    onClick={() => setSelectedOperator(op.id)}
-                    className="rounded-2xl border bg-[#1E1545] p-3 flex flex-col items-center text-center transition-all cursor-pointer min-h-[120px] justify-between"
+                    onClick={() => !loading && setSelectedOperator(op.id)}
+                    disabled={loading}
+                    className="rounded-[24px] flex items-center justify-center transition-all cursor-pointer min-h-[80px] font-nunito font-800 text-[14px] disabled:opacity-50"
                     style={{
-                      borderColor: isSelected ? op.color : 'rgba(255, 255, 255, 0.08)',
-                      boxShadow: isSelected ? `0 0 0 2.5px ${op.color}` : 'none',
-                      background: isSelected ? `${op.color}12` : '#1E1545'
+                      backgroundColor: op.bg,
+                      color: op.text,
+                      boxShadow: isSelected ? '0 0 0 2px #A855F7, 0 0 0 5px rgba(168,85,247,0.25)' : 'none',
                     }}
                   >
-                    {op.icon}
-
-                    <div className="mt-2 flex flex-col items-center">
-                      <span className="text-[10px] font-bold text-white leading-tight">
-                        {op.title}
-                      </span>
-                      <span className="text-[8px] text-[#8B7BB5] font-space-grotesk mt-0.5 leading-none">
-                        {op.subtitle}
-                      </span>
-                    </div>
+                    {op.title}
                   </button>
                 );
               })}
@@ -213,21 +192,30 @@ const Retrait: React.FC = () => {
               type="tel"
               value={phoneNumber}
               onChange={e => setPhoneNumber(e.target.value)}
-              className="input-field"
+              disabled={loading}
+              className="input-field disabled:opacity-50"
               placeholder="+229 XX XX XX XX"
             />
           </div>
 
           {/* Recap Box */}
-          <div className="card p-4 space-y-2 bg-[#1A1240]">
-            <div className="flex justify-between text-xs font-space-grotesk text-[#8B7BB5]">
-              <span>Montant demandé</span>
-              <span className="text-white font-semibold">{formatMontant(parsedAmt)}</span>
+          <div className="rounded-[20px] p-5 space-y-4" style={{ background: '#18113B' }}>
+            <div className="flex justify-between items-center text-[13px] font-space-grotesk">
+              <span className="text-[#8B7BB5] font-medium">Montant demandé</span>
+              <span className="text-white font-black font-nunito text-[14px]">{formatMontant(parsedAmt)}</span>
             </div>
-            <div className="h-px bg-[#261C55] my-1"></div>
-            <div className="flex justify-between text-xs font-space-grotesk text-[#8B7BB5]">
-              <span>Délai estimé</span>
-              <span className="text-white font-semibold">3 jours ouvrés</span>
+            <div className="flex justify-between items-center text-[13px] font-space-grotesk">
+              <span className="text-[#8B7BB5] font-medium">Frais de retrait</span>
+              <span className="text-[#22C55E] font-black font-nunito text-[14px]">0 FCFA (Gratuit)</span>
+            </div>
+            <div className="h-[1px] bg-[rgba(255,255,255,0.05)] w-full"></div>
+            <div className="flex justify-between items-center text-[13px] font-space-grotesk">
+              <span className="text-[#8B7BB5] font-medium">Total prélevé</span>
+              <span className="text-[#A855F7] font-black font-nunito text-[14px]">{formatMontant(parsedAmt)}</span>
+            </div>
+            <div className="flex justify-between items-center text-[13px] font-space-grotesk">
+              <span className="text-[#8B7BB5] font-medium">Délai estimé</span>
+              <span className="text-white font-black font-nunito text-[14px]">3 jours ouvrés</span>
             </div>
           </div>
 
@@ -242,9 +230,16 @@ const Retrait: React.FC = () => {
         <button
           onClick={handleSubmit}
           disabled={loading || parsedAmt <= 0 || parsedAmt > availableBalance}
-          className="btn-primary w-full mt-6"
+          className="btn-primary w-full mt-6 flex items-center justify-center gap-2 disabled:opacity-60"
         >
-          {loading ? 'Traitement en cours...' : 'Confirmer le retrait'}
+          {loading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Traitement en cours...
+            </>
+          ) : (
+            'Confirmer le retrait'
+          )}
         </button>
       </div>
     </div>

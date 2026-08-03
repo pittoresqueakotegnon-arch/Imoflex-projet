@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Mail } from 'lucide-react';
+import { ChevronLeft, Mail, KeyRound, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/Toast';
+import { BackButton } from '../../components/BackButton';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -39,13 +40,8 @@ export default function ForgotPassword() {
   return (
     <div className="min-h-screen bg-[#120D2A] text-[#E8E0FF] flex flex-col p-6">
       {/* Header */}
-      <div className="flex items-center mb-12">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 hover:bg-[#1E1545] rounded-lg transition-colors"
-        >
-          <ChevronLeft size={24} />
-        </button>
+      <div className="mb-6">
+        <BackButton />
       </div>
 
       {/* Content */}

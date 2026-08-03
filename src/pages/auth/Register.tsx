@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Check, Search, KeyRound, Mail } from 'lucide-react';
 import { useAuth, SignUpParams } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
+import { BackButton } from '../../components/BackButton';
 
 type UserRole = 'locataire' | 'proprietaire';
 
@@ -176,13 +177,8 @@ export default function Register() {
   return (
     <div className="min-h-screen bg-[#120D2A] text-[#E8E0FF] flex flex-col p-6">
       {/* Header */}
-      <div className="flex items-center mb-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 -ml-2 hover:bg-[#1E1545] rounded-lg transition-colors"
-        >
-          <ChevronLeft size={24} />
-        </button>
+      <div className="mb-6">
+        <BackButton />
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -190,44 +186,70 @@ export default function Register() {
         <p className="text-[#8B7BB5] mb-6">Quel est votre profil ?</p>
 
         {/* Role selection */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <button
-            type="button"
-            onClick={() => setSelectedRole('locataire')}
-            className={`card p-5 transition-all cursor-pointer ${
-              selectedRole === 'locataire'
-                ? 'border-2 border-[#7B3FE4] bg-[#7B3FE4] bg-opacity-10'
-                : 'border border-[#261C55] hover:border-[#7B3FE4]'
-            }`}
-          >
-            <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center mb-3"
-              style={{ background: 'linear-gradient(135deg, #7B3FE4, #A855F7)' }}
-            >
-              <Search size={20} className="text-white" />
-            </div>
-            <p className="font-nunito font-700 text-sm mb-1">Locataire</p>
-            <p className="text-[#8B7BB5] text-xs">Je cherche un logement</p>
-          </button>
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {[
+            {
+              role: 'locataire' as UserRole,
+              label: 'Locataire',
+              subtitle: 'Je cherche un logement',
+              iconBg: 'linear-gradient(135deg, #7B3FE4 0%, #A855F7 100%)',
+              glowColor: '#7B3FE4',
+              textColor: '#C084FC',
+              icon: <Search size={26} className="text-white" />,
+            },
+            {
+              role: 'proprietaire' as UserRole,
+              label: 'Propriétaire',
+              subtitle: 'Je mets en location',
+              iconBg: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)',
+              glowColor: '#F59E0B',
+              textColor: '#FBBF24',
+              icon: <KeyRound size={26} className="text-[#0D0720]" style={{ transform: 'rotate(45deg)' }} />,
+            },
+          ].map((item) => {
+            const isSelected = selectedRole === item.role;
+            return (
+              <button
+                key={item.role}
+                type="button"
+                onClick={() => setSelectedRole(item.role)}
+                className="relative flex flex-col items-center justify-center gap-3 py-6 px-4 rounded-[22px] transition-all duration-200 cursor-pointer"
+                style={{
+                  background: isSelected ? `${item.glowColor}14` : '#161033',
+                  border: isSelected
+                    ? `2px solid ${item.glowColor}`
+                    : '1.5px solid rgba(255,255,255,0.06)',
+                  boxShadow: isSelected
+                    ? `0 0 20px ${item.glowColor}30, inset 0 0 12px ${item.glowColor}08`
+                    : 'none',
+                }}
+              >
+                {/* Big gradient circle icon */}
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
+                  style={{ background: item.iconBg }}
+                >
+                  {item.icon}
+                </div>
 
-          <button
-            type="button"
-            onClick={() => setSelectedRole('proprietaire')}
-            className={`card p-5 transition-all cursor-pointer ${
-              selectedRole === 'proprietaire'
-                ? 'border-2 border-[#7B3FE4] bg-[#7B3FE4] bg-opacity-10'
-                : 'border border-[#261C55] hover:border-[#7B3FE4]'
-            }`}
-          >
-            <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center mb-3"
-              style={{ background: 'linear-gradient(135deg, #FBBF24, #F59E0B)' }}
-            >
-              <KeyRound size={20} className="text-[#0D0720]" />
-            </div>
-            <p className="font-nunito font-700 text-sm mb-1">Propriétaire</p>
-            <p className="text-[#8B7BB5] text-xs">Je mets en location</p>
-          </button>
+                {/* Role name */}
+                <span
+                  className="font-nunito font-black text-[15px] leading-none"
+                  style={{ color: isSelected ? item.textColor : '#C8BFF0' }}
+                >
+                  {item.label}
+                </span>
+
+                {/* Selection dot indicator */}
+                {isSelected && (
+                  <div
+                    className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full"
+                    style={{ background: item.glowColor }}
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
         {errors.role && <p className="text-[#EF4444] text-xs mb-4">{errors.role}</p>}
 

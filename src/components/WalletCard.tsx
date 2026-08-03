@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Wallet } from '../lib/supabase';
 import { formatMontant } from '../lib/utils';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface WalletCardProps {
   wallet: Wallet | null;
@@ -9,6 +10,7 @@ interface WalletCardProps {
 }
 
 export const WalletCard: React.FC<WalletCardProps> = ({ wallet, loading = false }) => {
+  const [showBalance, setShowBalance] = useState(true);
   if (loading) {
     return (
       <div
@@ -52,12 +54,20 @@ export const WalletCard: React.FC<WalletCardProps> = ({ wallet, loading = false 
       />
 
       {/* Label */}
-      <p
-        className="text-[10px] font-bold uppercase tracking-[0.12em] mb-2"
-        style={{ color: '#B89FD8', fontFamily: 'Space Grotesk' }}
-      >
-        Solde disponible
-      </p>
+      <div className="flex items-center justify-between mb-2">
+        <p
+          className="text-[10px] font-bold uppercase tracking-[0.12em]"
+          style={{ color: '#B89FD8', fontFamily: 'Space Grotesk' }}
+        >
+          Solde disponible
+        </p>
+        <button 
+          onClick={() => setShowBalance(!showBalance)}
+          className="p-1 text-[#B89FD8] hover:text-white transition-colors"
+        >
+          {showBalance ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
 
       {/* Amount */}
       <div className="mb-2 w-full flex items-baseline whitespace-nowrap">
@@ -65,7 +75,7 @@ export const WalletCard: React.FC<WalletCardProps> = ({ wallet, loading = false 
           className="font-nunito font-black leading-none"
           style={{ letterSpacing: '-0.5px', fontSize: 'clamp(1.75rem, 8vw, 2.6rem)' }}
         >
-          {formatMontant(wallet.available_balance || 0)}
+          {showBalance ? formatMontant(wallet.available_balance || 0) : '••••••••'}
         </span>
       </div>
 

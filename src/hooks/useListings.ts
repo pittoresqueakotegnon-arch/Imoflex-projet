@@ -41,7 +41,7 @@ export function useListings(filters: ListingFilters = {}) {
     if (filters.minRent !== undefined) {
       query = query.gte('monthly_rent', filters.minRent);
     }
-    if (filters.maxRent !== undefined) {
+    if (filters.maxRent !== undefined && filters.maxRent < 1500000) {
       query = query.lte('monthly_rent', filters.maxRent);
     }
     if (filters.minBedrooms !== undefined && filters.minBedrooms > 0) {

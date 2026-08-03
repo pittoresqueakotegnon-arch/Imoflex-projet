@@ -4,7 +4,15 @@ import { supabase, Notification } from '../lib/supabase';
 export function useNotifications(userId: string | undefined) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadDemandesCount, setUnreadDemandesCount] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const computeCounts = (items: Notification[]) => {
+    const unread = items.filter(n => !n.is_read);
+    setUnreadCount(unread.length);
+    // Demandes non lues = notifications nouvelle_demande_contact non lues
+    setUnreadDemandesCount(unread.filter(n => n.type === 'nouvelle_demande_contact').length);
+  };
 
   const fetchNotifications = useCallback(async () => {
     if (!userId) {
@@ -21,7 +29,7 @@ export function useNotifications(userId: string | undefined) {
 
     const items = (data || []) as Notification[];
     setNotifications(items);
-    setUnreadCount(items.filter(n => !n.is_read).length);
+    computeCounts(items);
     setLoading(false);
   }, [userId]);
 
@@ -32,8 +40,11 @@ export function useNotifications(userId: string | undefined) {
       .update({ is_read: true })
       .eq('user_id', userId)
       .eq('is_read', false);
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-    setUnreadCount(0);
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, is_read: true }));
+      computeCounts(updated);
+      return updated;
+    });
   }, [userId]);
 
   const markRead = useCallback(async (id: string) => {
@@ -41,10 +52,11 @@ export function useNotifications(userId: string | undefined) {
       .from('notifications')
       .update({ is_read: true })
       .eq('id', id);
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, is_read: true } : n))
-    );
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    setNotifications(prev => {
+      const updated = prev.map(n => (n.id === id ? { ...n, is_read: true } : n));
+      computeCounts(updated);
+      return updated;
+    });
   }, []);
 
   useEffect(() => {
@@ -80,7 +92,7 @@ export function useNotifications(userId: string | undefined) {
           const updatedNotification = payload.new as Notification;
           setNotifications((prev) => {
             const newNotifs = prev.map((n) => (n.id === updatedNotification.id ? updatedNotification : n));
-            setUnreadCount(newNotifs.filter((n) => !n.is_read).length);
+            computeCounts(newNotifs);
             return newNotifs;
           });
         }
@@ -95,6 +107,7 @@ export function useNotifications(userId: string | undefined) {
   return {
     notifications,
     unreadCount,
+    unreadDemandesCount,
     loading,
     refetch: fetchNotifications,
     markAllRead,

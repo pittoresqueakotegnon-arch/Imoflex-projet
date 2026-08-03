@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { Webhook } from "npm:fedapay@1";
+import * as crypto from "node:crypto";
+import { safeLog } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,15 +20,11 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // ---- Sécurité : vérification obligatoire de la signature Fedapay ----
-    // Sans ça, n'importe qui peut poster un faux "transaction.approved"
-    // et créditer un wallet sans paiement réel.
     const webhookSecret = Deno.env.get("FEDAPAY_WEBHOOK_SECRET") || "";
     const signatureHeader = req.headers.get("x-fedapay-signature") || "";
     const rawBody = await req.text();
 
     if (!webhookSecret) {
-      // Aucun secret configuré = on refuse tout, jamais de mode "ouvert" en prod
       return new Response(
         JSON.stringify({ error: "Webhook non configuré (secret manquant)" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -41,18 +38,56 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    let payload: any;
+    // Calcul du HMAC SHA-256 en mode Node crypto
+    const expectedSignature = crypto
+      .createHmac("sha256", webhookSecret)
+      .update(rawBody, "utf8")
+      .digest("hex");
+
+    const expectedBuf = Buffer.from(expectedSignature, "hex");
+    let signatureBuf: Buffer;
     try {
-      // Webhook.constructEvent vérifie la signature ET parse le payload.
-      // Si la signature est invalide, elle lève une exception.
-      const event = Webhook.constructEvent(rawBody, signatureHeader, webhookSecret);
-      payload = event;
-      console.log("WEBHOOK_PAYLOAD_DEBUG:", JSON.stringify(payload));
-    } catch (sigErr) {
+      signatureBuf = Buffer.from(signatureHeader, "hex");
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Format de signature invalide" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // timingSafeEqual pour éviter les failles temporelles
+    if (expectedBuf.length !== signatureBuf.length || !crypto.timingSafeEqual(expectedBuf, signatureBuf)) {
       return new Response(
         JSON.stringify({ error: "Signature invalide" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    let payload: any;
+    try {
+      payload = JSON.parse(rawBody);
+      safeLog("WEBHOOK_PAYLOAD_DEBUG:", payload);
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "JSON Invalide" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ---- Anti-Replay Attack : rejeter les webhooks datant de plus de 5 minutes ----
+    const payloadTimestamp = payload?.created_at
+      ? Date.parse(payload.created_at)
+      : (payload?.timestamp ? Number(payload.timestamp) * 1000 : null);
+
+    if (payloadTimestamp) {
+      const ageMs = Math.abs(Date.now() - payloadTimestamp);
+      if (ageMs > 5 * 60 * 1000) {
+        console.warn(`[anti-replay] Webhook rejected: age=${Math.round(ageMs / 1000)}s > 300s`);
+        return new Response(
+          JSON.stringify({ error: "Webhook expiré (timestamp trop ancien ou dans le futur)" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     const { name: eventName, entity } = payload;
@@ -64,140 +99,91 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const transactionId = entity?.id?.toString() || entity?.reference;
-
-    if (!transactionId) {
-      return new Response(
-        JSON.stringify({ error: "Transaction ID manquant" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Fetch the payment record
-    const { data: payment, error: paymentError } = await supabase
-      .from("payments")
-      .select("*, rent_periods!inner(*, leases!inner(*, properties!inner(owner_id)))")
-      .eq("fedapay_transaction_id", transactionId)
-      .maybeSingle();
-
-    if (paymentError || !payment) {
-      return new Response(
-        JSON.stringify({ error: "Paiement introuvable" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const rentPeriod = payment.rent_periods;
-    const ownerId = rentPeriod?.leases?.properties?.owner_id;
-    const tenantId = payment.tenant_id;
-    const amount = payment.amount;
-
-    let tenantName = "Le locataire";
-    if (tenantId) {
-      const { data: tenantProfile } = await supabase
-        .from("users")
-        .select("full_name")
-        .eq("id", tenantId)
-        .maybeSingle();
-      if (tenantProfile?.full_name) {
-        tenantName = tenantProfile.full_name;
+    if (eventName === "transaction.approved" || eventName === "transaction.declined") {
+      const transactionId = entity?.id?.toString() || entity?.reference;
+      
+      if (!transactionId) {
+        return new Response(
+          JSON.stringify({ error: "Transaction ID manquant" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-    }
 
-    if (eventName === "transaction.approved") {
-      // ---- Lecture dynamique du taux de commission depuis app_config ----
-      // Fallback à 6 si app_config est injoignable (jamais bloquant)
-      const { data: configData } = await supabase
-        .from("app_config")
-        .select("value")
-        .eq("key", "commission_rate")
-        .maybeSingle();
+      // Appel au RPC atomique (qui fait les locks et idempontence)
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        "process_payment_webhook",
+        {
+          p_fedapay_tx_id: transactionId,
+          p_event_type: eventName,
+        }
+      );
 
-      const commissionRate = configData?.value ? parseFloat(configData.value) : 6;
-      const ownerAmount = Math.round(amount * (1 - commissionRate / 100));
-      const commissionAmount = amount - ownerAmount;
+      if (rpcError) {
+        console.error("RPC Error:", rpcError);
+        return new Response(
+          JSON.stringify({ error: "Erreur lors du traitement (RPC)" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
-      // Update payment status + enregistrement de la commission exacte appliquée
-      await supabase
-        .from("payments")
-        .update({
-          status: "valide",
-          validated_at: new Date().toISOString(),
-          commission_amount: commissionAmount,
-          commission_rate_applied: commissionRate,
-        })
-        .eq("id", payment.id);
+      // Traitement des notifications basé sur le retour du RPC
+      if (rpcResult?.status === "already_processed") {
+        return new Response(
+          JSON.stringify({ received: true, event: eventName, status: "ignored_duplicate" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
-      // Update rent_period amount_paid
-      const newAmountPaid = (rentPeriod.amount_paid || 0) + amount;
-      const newStatus = newAmountPaid >= rentPeriod.amount_due ? "solde" : "en_cours";
-
-      await supabase
-        .from("rent_periods")
-        .update({ amount_paid: newAmountPaid, status: newStatus })
-        .eq("id", rentPeriod.id);
-
-      // Credit owner wallet
-      if (ownerId) {
-        const { data: wallet } = await supabase
-          .from("wallets")
-          .select("*")
-          .eq("owner_id", ownerId)
-          .maybeSingle();
-
-        if (wallet) {
-          await supabase
-            .from("wallets")
-            .update({
-              available_balance: wallet.available_balance + ownerAmount,
-              total_earned: wallet.total_earned + ownerAmount,
-            })
-            .eq("id", wallet.id);
-        } else {
-          // Create wallet if it doesn't exist
-          await supabase.from("wallets").insert({
-            owner_id: ownerId,
-            available_balance: ownerAmount,
-            total_earned: ownerAmount,
-          });
+      if (rpcResult?.status === "approved") {
+        const { owner_id, tenant_id, amount, owner_amount, commission_rate, payment_id } = rpcResult;
+        
+        let tenantName = "Le locataire";
+        if (tenant_id) {
+          const { data: tenantProfile } = await supabase
+            .from("users")
+            .select("full_name")
+            .eq("id", tenant_id)
+            .maybeSingle();
+          if (tenantProfile?.full_name) {
+            tenantName = tenantProfile.full_name;
+          }
         }
 
         // Notify owner
-        await supabase.from("notifications").insert({
-          user_id: ownerId,
-          type: "nouveau_versement",
-          related_id: payment.id,
-          title: "Nouveau versement reçu",
-          body: `${tenantName} a versé ${amount} FCFA. ${ownerAmount} FCFA crédités sur votre wallet (${commissionRate}% de commission ImoFlex).`,
-        });
+        if (owner_id) {
+          await supabase.from("notifications").insert({
+            user_id: owner_id,
+            type: "nouveau_versement",
+            related_id: payment_id,
+            title: "Nouveau versement reçu",
+            body: `${tenantName} a versé ${amount} FCFA. ${owner_amount} FCFA crédités sur votre wallet (${commission_rate}% de commission ImoFlex).`,
+          });
+        }
+        // Notify tenant
+        if (tenant_id) {
+          await supabase.from("notifications").insert({
+            user_id: tenant_id,
+            type: "confirmation",
+            related_id: payment_id,
+            title: "Versement confirmé",
+            body: `Votre versement de ${amount} FCFA a été validé avec succès.`,
+          });
+        }
+      } else if (rpcResult?.status === "declined") {
+        const { tenant_id, amount, payment_id } = rpcResult;
+        // Notify tenant
+        if (tenant_id) {
+          await supabase.from("notifications").insert({
+            user_id: tenant_id,
+            type: "retard",
+            related_id: payment_id,
+            title: "Versement échoué",
+            body: `Votre versement de ${amount} FCFA a échoué. Veuillez réessayer.`,
+          });
+        }
       }
-
-      // Notify tenant
-      await supabase.from("notifications").insert({
-        user_id: tenantId,
-        type: "confirmation",
-        related_id: payment.id,
-        title: "Versement confirmé",
-        body: `Votre versement de ${amount} FCFA a été validé avec succès.`,
-      });
-
-    } else if (eventName === "transaction.declined") {
-      // Update payment status to failed
-      await supabase
-        .from("payments")
-        .update({ status: "echoue" })
-        .eq("id", payment.id);
-
-      // Notify tenant
-      await supabase.from("notifications").insert({
-        user_id: tenantId,
-        type: "retard",
-        related_id: payment.id,
-        title: "Versement échoué",
-        body: `Votre versement de ${amount} FCFA a échoué. Veuillez réessayer.`,
-      });
     } else if (eventName.startsWith("payout.")) {
-      // Logic for Payout Webhooks
+      // Payout Logic stays the same
       const payoutId = entity?.id?.toString();
 
       if (!payoutId) {
@@ -207,7 +193,6 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      // Fetch the withdrawal record
       const { data: withdrawal, error: withdrawalError } = await supabase
         .from("withdrawals")
         .select("*, wallets!inner(*)")
@@ -241,13 +226,14 @@ Deno.serve(async (req: Request) => {
         }
       } else if (["payout.failed", "payout.declined", "payout.canceled"].includes(eventName)) {
         if (withdrawal.status !== "echoue") {
-          // Update status to failed
+          // Utiliser RPC atomique aussi pour les retraits ?
+          // Pour l'instant on garde le JS car ce n'est pas ciblé par le plan de priorité, 
+          // ou on peut faire une autre migration. Le plan cible les paiements (rent_periods).
           await supabase
             .from("withdrawals")
             .update({ status: "echoue" })
             .eq("id", withdrawal.id);
 
-          // Refund the wallet
           await supabase
             .from("wallets")
             .update({
@@ -256,16 +242,14 @@ Deno.serve(async (req: Request) => {
             })
             .eq("id", wallet.id);
 
-          // Notify the owner
           await supabase.from("notifications").insert({
             user_id: ownerId,
-            type: "retrait_echoue", // Assuming you handle this type on frontend, or fall back to generic
+            type: "retrait_echoue",
             related_id: withdrawal.id,
             title: "Échec du retrait",
             body: `Votre retrait de ${withdrawal.amount} FCFA vers ${withdrawal.destination_phone} a échoué. Les fonds ont été restitués sur votre portefeuille.`,
           });
 
-          // Create audit log for the refund
           await supabase.from("audit_logs").insert({
             user_id: ownerId,
             action: "echec_retrait",

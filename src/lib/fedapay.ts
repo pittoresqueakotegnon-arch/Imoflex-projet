@@ -36,6 +36,7 @@ export interface InitiatePaymentParams {
   operator: Operator;
   rent_period_id: string;
   phone_number: string;
+  idempotency_key?: string;
 }
 
 export interface InitiatePaymentResult {
@@ -48,7 +49,11 @@ export interface InitiatePaymentResult {
 export async function initiatePayment(
   params: InitiatePaymentParams
 ): Promise<InitiatePaymentResult> {
-  return callEdgeFunction<InitiatePaymentResult>('initiate-payment', params);
+  const payload = {
+    ...params,
+    idempotency_key: params.idempotency_key || crypto.randomUUID(),
+  };
+  return callEdgeFunction<InitiatePaymentResult>('initiate-payment', payload);
 }
 
 export interface RequestWithdrawalParams {

@@ -34,7 +34,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
           {/* Image */}
           <div className="listing-card-h-img">
             {coverPhoto?.photo_url ? (
-              <img src={coverPhoto.photo_url} alt={listing.title} className="w-full h-full object-cover" />
+              <img src={`${coverPhoto.photo_url}?width=600&format=webp`} alt={listing.title} className="w-full h-full object-cover" loading="lazy" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-[#4A3D7A]">
                 <Building2 size={32} />
@@ -46,7 +46,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
               style={{ background: 'linear-gradient(0deg, rgba(123,63,228,0.95) 0%, rgba(123,63,228,0) 100%)' }}
             >
               <span className="text-white font-nunito font-900 text-xs">
-                {formatMontant(listing.monthly_rent)} F/mois
+                {formatMontant(listing.monthly_rent)} / mois
               </span>
             </div>
           </div>
@@ -80,7 +80,9 @@ export const ListingCard: React.FC<ListingCardProps> = ({
             {/* Progressive payment */}
             {listing.accepts_progressive_payment && (
               <div className="mt-2">
-                <span className="badge badge-violet text-[10px]">ImoFlex ✓</span>
+                <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full px-2 py-0.5 text-[10px] font-semibold flex items-center gap-1 w-fit">
+                  ⚡ Paiement Échelonné
+                </span>
               </div>
             )}
           </div>
@@ -96,7 +98,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
         {/* Image fixe 160px */}
         <div className="relative overflow-hidden bg-[#261C55]" style={{ height: '160px' }}>
           {coverPhoto?.photo_url ? (
-            <img src={coverPhoto.photo_url} alt={listing.title} className="w-full h-full object-cover" />
+            <img src={`${coverPhoto.photo_url}?width=600&format=webp`} alt={listing.title} className="w-full h-full object-cover" loading="lazy" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-[#4A3D7A]">
               <Building2 size={48} />
@@ -130,7 +132,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
             style={{ background: 'rgba(123, 63, 228, 0.92)', backdropFilter: 'blur(4px)' }}
           >
             <span className="font-nunito font-900 text-white text-xs">
-              {formatMontant(listing.monthly_rent)} F/mois
+              {formatMontant(listing.monthly_rent)} / mois
             </span>
           </div>
         </div>
@@ -148,8 +150,10 @@ export const ListingCard: React.FC<ListingCardProps> = ({
             </span>
           </div>
           {listing.accepts_progressive_payment && (
-            <div className="mt-2">
-              <span className="badge badge-violet text-[10px]">✓ Paiement progressif ImoFlex</span>
+            <div className="mt-2.5">
+              <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full px-2.5 py-1 text-[10px] font-semibold flex items-center gap-1 w-fit">
+                ⚡ Paiement Échelonné
+              </span>
             </div>
           )}
         </div>

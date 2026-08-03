@@ -4,6 +4,7 @@ import { AuthProvider } from './hooks/useAuth';
 import { ToastProvider } from './components/Toast';
 import RoleGuard from './components/RoleGuard';
 import AdminLayout from './components/AdminLayout';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // ── Lazy-loaded pages ─────────────────────────────────────────────────────────
 // Public
@@ -80,11 +81,12 @@ function MobileFrame({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <ToastProvider>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <ToastProvider>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
 
               {/* ── ESPACE ADMIN (Desktop layout) ──────────────────── */}
               <Route
@@ -294,5 +296,6 @@ export default function App() {
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }

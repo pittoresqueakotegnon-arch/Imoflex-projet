@@ -216,8 +216,23 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="page-container">
+      {/* ── Role Switcher ── */}
+      <div className="px-4 pt-4 flex justify-center">
+        <div className="bg-[#1A1240] rounded-full p-1 flex items-center border border-white/5">
+          <button className="px-5 py-1.5 rounded-full text-[11px] font-bold text-white bg-[#A855F7] shadow-sm font-nunito">
+            Propriétaire
+          </button>
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="px-5 py-1.5 rounded-full text-[11px] font-bold text-[#8B7BB5] hover:text-white transition-colors font-nunito"
+          >
+            Locataire
+          </button>
+        </div>
+      </div>
+
       {/* ── Header ── */}
-      <div className="px-4 pt-6 pb-4 flex items-center justify-between">
+      <div className="px-4 pt-3 pb-4 flex items-center justify-between">
         <div>
           <span
             className="text-[11px] font-semibold"

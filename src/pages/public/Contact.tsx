@@ -6,6 +6,7 @@ import { useToast } from '../../components/Toast';
 import { supabase } from '../../lib/supabase';
 import { formatMontant } from '../../lib/utils';
 import { Building2 } from 'lucide-react';
+import { BackButton } from '../../components/BackButton';
 
 const Contact: React.FC = () => {
   const { listing_id } = useParams<{ listing_id: string }>();
@@ -93,11 +94,7 @@ const Contact: React.FC = () => {
     return (
       <div className="page-container">
         <header className="sticky-header px-4 py-3.5 flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="text-[#E8E0FF] p-1 -ml-1">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
-          </button>
+          <BackButton />
           <h1 className="font-nunito font-800 text-lg text-[#E8E0FF]">Contacter le propriétaire</h1>
         </header>
         <div className="px-4 py-6 space-y-4">
@@ -113,11 +110,7 @@ const Contact: React.FC = () => {
     <div className="page-container pb-24">
       {/* Header */}
       <header className="sticky-header px-4 py-3.5 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="text-[#E8E0FF] p-1 -ml-1">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </button>
+        <BackButton />
         <h1 className="font-nunito font-800 text-lg text-[#E8E0FF]">Contacter le propriétaire</h1>
       </header>
 

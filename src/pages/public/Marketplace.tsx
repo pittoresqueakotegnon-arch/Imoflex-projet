@@ -6,6 +6,7 @@ import { useToast } from '../../components/Toast';
 import ListingCard from '../../components/ListingCard';
 import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
+import { SplashScreen } from '../../components/SplashScreen';
 import { supabase, PropertyType } from '../../lib/supabase';
 import { propertyTypeLabel } from '../../lib/utils';
 
@@ -24,6 +25,9 @@ const Marketplace: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<PropertyType | null>(null);
+  const [showSplash, setShowSplash] = useState(() => {
+    return !sessionStorage.getItem('hasSeenSplash');
+  });
   const [favorites, setFavorites] = useState<string[]>([]);
   const [sortMode, setSortMode] = useState<'recent' | 'price_asc' | 'price_desc'>('recent');
 
@@ -127,20 +131,31 @@ const Marketplace: React.FC = () => {
 
   return (
     <div className="page-container">
+      {showSplash && <SplashScreen onComplete={() => {
+        sessionStorage.setItem('hasSeenSplash', 'true');
+        setShowSplash(false);
+      }} />}
+      
       {/* ── Header ─────────────────────────────────────────── */}
       <header className="sticky-header px-4 pt-5 pb-3">
         <div className="flex items-start justify-between mb-3">
-          <div>
-            <div className="flex items-center gap-1 mb-0.5">
-              <span className="text-xs text-[#8B7BB5]">📍</span>
-              <span className="text-xs text-[#8B7BB5]" style={{ fontFamily: 'Space Grotesk' }}>Cotonou, Bénin</span>
+          <div className="flex items-center gap-3">
+            {/* Logo ImoFlex intégré dans la navigation (Header) */}
+            <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center bg-[#120D2A] border border-white/5">
+              <img src="/assets/logo-icon-transparent-recadre.png" alt="ImoFlex" className="w-full h-full object-cover" loading="lazy" />
             </div>
-            <h1
-              className="text-xl text-[#E8E0FF] leading-tight"
-              style={{ fontFamily: 'Nunito', fontWeight: 900 }}
-            >
-              Trouvez votre logement
-            </h1>
+            <div>
+              <div className="flex items-center gap-1 mb-0.5">
+                <span className="text-xs text-[#8B7BB5]">📍</span>
+                <span className="text-xs text-[#8B7BB5]" style={{ fontFamily: 'Space Grotesk' }}>Cotonou, Bénin</span>
+              </div>
+              <h1
+                className="text-xl text-[#E8E0FF] leading-tight"
+                style={{ fontFamily: 'Nunito', fontWeight: 900 }}
+              >
+                Trouvez votre logement
+              </h1>
+            </div>
           </div>
           <button
             onClick={() => showToast('Vue carte bientôt disponible', 'info')}

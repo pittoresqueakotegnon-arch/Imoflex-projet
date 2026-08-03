@@ -5,6 +5,14 @@
 @layer base {
   * {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  input, textarea, [contenteditable="true"] {
+    user-select: auto;
+    -webkit-user-select: auto;
   }
 
   html, body, #root {
@@ -37,6 +45,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+    overscroll-behavior-y: none;
   }
 
   h1, h2, h3, h4, h5, h6 {

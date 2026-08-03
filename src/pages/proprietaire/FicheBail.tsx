@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/Toast';
 import { getCurrentMonth, getMonthName } from '../../lib/utils';
 import BottomNav from '../../components/BottomNav';
+import { BackButton } from '../../components/BackButton';
 
 interface LeaseDetails {
   id: string;
@@ -177,13 +178,7 @@ const FicheBail: React.FC = () => {
     <div className="page-container flex flex-col min-h-screen pb-24">
       {/* ── HEADER ── */}
       <div className="px-4 pt-6 pb-4 flex items-center justify-between sticky top-0 z-40" style={{ background: '#0B0819' }}>
-        <button
-          onClick={() => navigate(-1)}
-          className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-        >
-          <ArrowLeft size={20} className="text-white" />
-        </button>
+        <BackButton />
         <h1 className="text-lg font-nunito font-black text-white">Détails du bail</h1>
         <div className="w-10"></div> {/* Spacer for centering */}
       </div>

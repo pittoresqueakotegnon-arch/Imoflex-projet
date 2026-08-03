@@ -1,19 +1,28 @@
 import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Heart, MapPin, Building2, Bed, Wallet, Coins, Zap, Droplets, Car, Wifi } from 'lucide-react';
+import { Heart, MapPin, Building2, Bed, Wallet, Coins, Zap, Droplets, Car, Wifi, ChevronLeft, ChevronRight, Snowflake, Armchair, ShieldCheck, Sparkles } from 'lucide-react';
 import { useListing } from '../../hooks/useListings';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
 import EmptyState from '../../components/EmptyState';
 import { formatMontant } from '../../lib/utils';
+import { haptics } from '../../lib/haptics';
 
 const AMENITY_ICONS: Record<string, React.ReactNode> = {
   electricity: <Zap size={14} />,
   electricite: <Zap size={14} />,
+  'électricité': <Zap size={14} />,
   water:       <Droplets size={14} />,
   eau:         <Droplets size={14} />,
+  'eau courante': <Droplets size={14} />,
   parking:     <Car size={14} />,
   wifi:        <Wifi size={14} />,
+  climatisation: <Snowflake size={14} />,
+  meuble:      <Armchair size={14} />,
+  'meublé':    <Armchair size={14} />,
+  securite:    <ShieldCheck size={14} />,
+  'sécurité':  <ShieldCheck size={14} />,
+  balcon:      <Building2 size={14} />,
 };
 
 const Annonce: React.FC = () => {
@@ -102,44 +111,73 @@ const Annonce: React.FC = () => {
 
   return (
     <div className="page-container pb-24">
-      {/* ── Header ────────────────────────────────────────── */}
-      <header className="sticky-header px-4 py-3.5 flex items-center justify-between">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-[#E8E0FF] hover:text-[#A855F7] transition-colors p-1 -ml-1"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-        </button>
-        <button
-          onClick={handleToggleFavorite}
-          className="text-[#E8E0FF] hover:text-[#A855F7] transition-colors p-1 -mr-1"
-        >
-          <Heart size={22} className={isFavorite ? 'fill-red-500 text-red-500' : ''} />
-        </button>
-      </header>
-
-      {/* ── Carousel photo ────────────────────────────────── */}
+      {/* ── Photo & Boutons flottants ─────────────────────── */}
       <div
         className="w-full bg-[#261C55] relative overflow-hidden"
-        style={{ height: '240px' }}
+        style={{ height: '280px' }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
+        {/* Boutons flottants superposés */}
+        <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
+          <button
+            onClick={() => { haptics.light(); navigate(-1); }}
+            aria-label="Retour au marché"
+            className="pointer-events-auto flex items-center justify-center w-10 h-10 rounded-full text-[#10B981] bg-[#120D2A]/85 backdrop-blur-md border border-[#10B981]/40 hover:bg-[#10B981]/20 hover:border-[#10B981] transition-all shadow-lg shadow-emerald-950/40 active:scale-95"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <button
+            onClick={handleToggleFavorite}
+            aria-label="Favoris"
+            className="pointer-events-auto w-10 h-10 rounded-full flex items-center justify-center text-white bg-[#120D2A]/70 backdrop-blur-md border border-white/15 hover:bg-[#120D2A]/90 transition-all shadow-lg active:scale-95"
+          >
+            <Heart size={20} className={isFavorite ? 'fill-red-500 text-red-500' : 'text-[#E8E0FF]'} />
+          </button>
+        </div>
+
         {photos.length > 0 ? (
           <>
             <img
-              src={currentPhoto.photo_url}
+              src={`${currentPhoto.photo_url}?width=800&format=webp`}
               alt=""
               aria-hidden="true"
               className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-40"
+              loading="lazy"
             />
             <img
-              src={currentPhoto.photo_url}
+              src={`${currentPhoto.photo_url}?width=800&format=webp`}
               alt={`Photo ${currentPhotoIndex + 1}`}
-              className="relative w-full h-full object-contain"
+              className="relative w-full h-full object-cover"
+              loading="lazy"
             />
+            {/* Flèches de navigation carrousel image (gauche & droite) */}
+            {photos.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentPhotoIndex((prev) => (prev === 0 ? photos.length - 1 : prev - 1));
+                  }}
+                  aria-label="Photo précédente"
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center text-white/80 bg-black/40 backdrop-blur-sm border border-white/10 hover:bg-black/60 hover:text-white transition-all shadow-md active:scale-95"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentPhotoIndex((prev) => (prev === photos.length - 1 ? 0 : prev + 1));
+                  }}
+                  aria-label="Photo suivante"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center text-white/80 bg-black/40 backdrop-blur-sm border border-white/10 hover:bg-black/60 hover:text-white transition-all shadow-md active:scale-95"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </>
+            )}
             {/* Compteur photos */}
             {photos.length > 1 && (
               <div
@@ -170,7 +208,7 @@ const Annonce: React.FC = () => {
                 border: `2px solid ${idx === currentPhotoIndex ? '#A855F7' : 'rgba(255,255,255,0.1)'}`,
               }}
             >
-              <img src={photo.photo_url} alt="" className="w-full h-full object-cover" />
+              <img src={`${photo.photo_url}?width=200&format=webp`} alt="" className="w-full h-full object-cover" loading="lazy" />
             </button>
           ))}
         </div>
@@ -232,7 +270,7 @@ const Annonce: React.FC = () => {
                 style={{ background: '#1A1240', border: '1px solid rgba(255,255,255,0.07)' }}
               >
                 <span className="text-[#A855F7]">
-                  {AMENITY_ICONS[amenity.toLowerCase()] || <Building2 size={13} />}
+                  {AMENITY_ICONS[amenity.toLowerCase()] || <Sparkles size={13} />}
                 </span>
                 {amenity}
               </div>
@@ -240,6 +278,30 @@ const Annonce: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ── Charges incluses ──────────────────────────────── */}
+      <div className="px-4 py-4" style={{ borderBottom: '1px solid rgba(123,63,228,0.1)' }}>
+        <h2 className="font-nunito font-800 text-[#E8E0FF] text-[15px] mb-3">Charges & Compteurs</h2>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-[#1A1240] border border-white/5">
+            <Droplets size={20} className="text-[#3B82F6] mb-1.5" />
+            <span className="text-[10px] font-bold text-[#8B7BB5] uppercase tracking-wider font-space-grotesk text-center">Eau</span>
+            <span className="text-[12px] font-bold text-white font-nunito mt-0.5">Forfaitaire</span>
+          </div>
+          <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-[#1A1240] border border-white/5">
+            <Zap size={20} className="text-[#F59E0B] mb-1.5" />
+            <span className="text-[10px] font-bold text-[#8B7BB5] uppercase tracking-wider font-space-grotesk text-center">Électricité</span>
+            <span className="text-[12px] font-bold text-white font-nunito mt-0.5">Cash-Power</span>
+          </div>
+          <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-[#1A1240] border border-white/5">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mb-1.5">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            <span className="text-[10px] font-bold text-[#8B7BB5] uppercase tracking-wider font-space-grotesk text-center">Vidange</span>
+            <span className="text-[12px] font-bold text-white font-nunito mt-0.5">Propriétaire</span>
+          </div>
+        </div>
+      </div>
 
       {/* ── Paiement progressif ───────────────────────────── */}
       {listing.accepts_progressive_payment && (

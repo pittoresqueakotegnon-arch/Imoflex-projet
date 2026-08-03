@@ -21,8 +21,8 @@ const BEDROOM_OPTIONS = [
 ];
 
 const BUDGET_MIN = 10000;
-const BUDGET_MAX = 150000;
-const BUDGET_STEP = 5000;
+const BUDGET_MAX = 1500000;
+const BUDGET_STEP = 25000;
 
 // Petite case à cocher réutilisable, dans le style "checkbox-row-mini" de la maquette
 const FilterCheckbox: React.FC<{ checked: boolean; label: string; onToggle: () => void }> = ({
@@ -181,7 +181,7 @@ const Filtres: React.FC = () => {
           </div>
           <div className="flex justify-between text-xs text-[#8B7BB5]">
             <span>{formatMontant(minBudget)}</span>
-            <span>{formatMontant(maxBudget)}</span>
+            <span>{maxBudget === BUDGET_MAX ? formatMontant(maxBudget).replace(' FCFA', '+ FCFA') : formatMontant(maxBudget)}</span>
           </div>
         </div>
 

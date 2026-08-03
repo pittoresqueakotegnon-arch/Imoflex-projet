@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
+import { KeyRound } from 'lucide-react';
 import { supabase, Property } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
+import { BackButton } from '../../components/BackButton';
 import { getCurrentMonth, getInitialDeadlineDate, calculateProrataAmount } from '../../lib/utils';
 
 type Step = 'input' | 'confirmation' | 'complete';
@@ -165,31 +167,25 @@ export default function Rejoindre() {
   return (
     <div className="min-h-screen bg-[#120D2A] text-[#E8E0FF] flex flex-col px-5 pt-12 pb-8">
       {/* Header / Back */}
-      <div className="flex items-center gap-4 mb-12 w-full">
-        <button
-          onClick={() => navigate(-1)}
-          className="w-11 h-11 rounded-2xl flex items-center justify-center transition"
-          style={{ background: '#1A1240', border: '1px solid rgba(255,255,255,0.05)' }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B7BB5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-        </button>
-        <h1 className="text-white font-nunito font-black text-xl">Rejoindre un logement</h1>
+      <div className="flex items-center mb-10 w-full">
+        <BackButton />
+      </div>
+
+      <div className="flex items-center justify-center mb-8 w-full">
+        <h1 className="text-white font-nunito font-black text-[22px]">Rejoindre un logement</h1>
       </div>
 
       {step === 'input' && (
         <div className="flex flex-col flex-1">
           <div className="text-center mb-10 flex flex-col items-center">
             {/* Key Icon */}
-            <span className="text-5xl mb-5">🔑</span>
+            <KeyRound size={56} className="text-[#FBBF24] mb-6" style={{ transform: 'rotate(45deg)', fill: '#FBBF24' }} />
             <p className="text-[#8B7BB5] text-[13px] max-w-[280px] leading-relaxed" style={{ fontFamily: 'Space Grotesk' }}>
               Le code vous a été communiqué par le propriétaire après votre accord de location.
             </p>
           </div>
 
-          <form onSubmit={handleInputSubmit} className="flex-1 flex flex-col justify-between pb-4">
+          <form onSubmit={handleInputSubmit} className="flex flex-col gap-4 pb-4">
             <div>
               <label className="text-[10px] font-space-grotesk font-semibold text-[#8B7BB5] uppercase tracking-wider block mb-2 px-1">
                 CODE D'ACCÈS

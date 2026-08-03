@@ -5,6 +5,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { supabase, RentPeriod, Operator } from '../../lib/supabase';
 import { initiatePayment } from '../../lib/fedapay';
 import { useToast } from '../../components/Toast';
+import { BackButton } from '../../components/BackButton';
+import { haptics } from '../../lib/haptics';
 
 export default function Payer() {
   const navigate = useNavigate();
@@ -27,6 +29,21 @@ export default function Payer() {
       setPhoneNumber(profile.mobile_money_number || profile.phone || '');
     }
   }, [profile]);
+
+  // Auto-détection de l'opérateur
+  useEffect(() => {
+    const cleanNumber = phoneNumber.replace(/\s+/g, '').replace(/^\+229/, '');
+    if (cleanNumber.length >= 2) {
+      const prefix = cleanNumber.substring(0, 2);
+      if (['97', '96', '67', '66', '61', '62', '51', '52', '53', '54', '42', '46', '91'].includes(prefix)) {
+        setSelectedOperator('mtn');
+      } else if (['95', '94', '65', '64', '60', '55', '44', '58'].includes(prefix)) {
+        setSelectedOperator('moov');
+      } else if (['90', '40', '41', '43'].includes(prefix)) {
+        setSelectedOperator('celtiis');
+      }
+    }
+  }, [phoneNumber]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -154,12 +171,9 @@ export default function Payer() {
   if (!currentRentPeriod) {
     return (
       <div className="min-h-screen bg-[#120D2A] text-[#E8E0FF] p-6 flex flex-col">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 hover:bg-[#1E1545] rounded-lg transition-colors w-fit"
-        >
-          <ChevronLeft size={24} />
-        </button>
+        <div className="mb-6">
+          <BackButton />
+        </div>
         <div className="flex-1 flex items-center justify-center">
           <p className="text-[#8B7BB5]">Aucune période de loyer active pour ce logement</p>
         </div>
@@ -172,12 +186,7 @@ export default function Payer() {
   return (
     <div className="min-h-screen bg-[#120D2A] text-[#E8E0FF] flex flex-col p-6">
       <div className="flex items-center gap-4 mb-2">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-3 bg-[#1E1545] hover:bg-[#2A1E5C] rounded-2xl transition-colors"
-        >
-          <ChevronLeft size={20} className="text-white" />
-        </button>
+        <BackButton />
         <h1 className="font-nunito font-900 text-[22px] text-white">Effectuer un versement</h1>
       </div>
       {propertyName && (
@@ -201,7 +210,8 @@ export default function Payer() {
                 const val = parseInt(e.target.value) || 0;
                 setAmount(Math.min(val, remaining));
               }}
-              className="font-nunito font-900 text-[3.5rem] leading-none text-white bg-transparent border-b-2 border-[#A855F7] focus:border-[#FBBF24] text-center w-full max-w-[200px] outline-none transition-colors"
+              disabled={processing}
+              className="font-nunito font-900 text-[3.5rem] leading-none text-white bg-transparent border-b-2 border-[#A855F7] focus:border-[#FBBF24] text-center w-full max-w-[200px] outline-none transition-colors disabled:opacity-50"
             />
           </div>
           <p className="text-[#645A8A] text-[13px] font-space-grotesk">
@@ -215,7 +225,8 @@ export default function Payer() {
               <button
                 key={val}
                 onClick={() => handleQuickAmount(val)}
-                className={`py-4 px-1 rounded-2xl font-space-grotesk font-600 text-[11px] sm:text-[13px] transition-all ${
+                disabled={processing}
+                className={`py-4 px-1 rounded-2xl font-space-grotesk font-600 text-[11px] sm:text-[13px] transition-all disabled:opacity-50 ${
                   amount === val
                     ? 'bg-transparent text-[#A855F7] border border-[#A855F7]'
                     : 'bg-[#181135] text-[#8B7BB5] border border-transparent hover:bg-[#1E1545]'
@@ -226,7 +237,8 @@ export default function Payer() {
             ))}
             <button
               onClick={() => handleQuickAmount('all')}
-              className={`py-4 px-1 rounded-2xl font-space-grotesk font-600 text-[11px] sm:text-[13px] transition-all ${
+              disabled={processing}
+              className={`py-4 px-1 rounded-2xl font-space-grotesk font-600 text-[11px] sm:text-[13px] transition-all disabled:opacity-50 ${
                 amount === remaining
                   ? 'bg-transparent text-[#A855F7] border border-[#A855F7]'
                   : 'bg-[#181135] text-[#8B7BB5] border border-transparent hover:bg-[#1E1545]'
@@ -242,27 +254,30 @@ export default function Payer() {
             OPÉRATEUR
           </label>
           <div className="grid grid-cols-3 gap-3">
-            {(['mtn', 'moov', 'celtiis'] as const).map((op) => (
-              <button
-                key={op}
-                onClick={() => setSelectedOperator(op)}
-                disabled={processing}
-                className={`py-6 rounded-[24px] flex flex-col items-center gap-4 font-nunito font-800 text-[13px] transition-all ${
-                  selectedOperator === op
-                    ? 'bg-transparent border border-[#A855F7] text-[#FBBF24]'
-                    : 'bg-[#181135] border border-transparent text-[#645A8A] hover:bg-[#1E1545]'
-                }`}
-              >
-                <div
-                  className="w-5 h-5 rounded-full"
+            {(['mtn', 'moov', 'celtiis'] as Operator[]).map((op) => {
+              const opColors: Record<Operator, { bg: string; text: string }> = {
+                mtn: { bg: '#FBBF24', text: '#412402' },
+                moov: { bg: '#3B82F6', text: '#042C53' },
+                celtiis: { bg: '#10B981', text: '#04342C' },
+              };
+              const isSelected = selectedOperator === op;
+              return (
+                <button
+                  key={op}
+                  onClick={() => { haptics.light(); setSelectedOperator(op); }}
+                  disabled={processing}
+                  className="py-6 rounded-[24px] flex items-center justify-center font-nunito font-800 text-[14px] transition-all"
                   style={{
-                    backgroundColor: op === 'mtn' ? '#FBBF24' : op === 'moov' ? '#3B82F6' : '#F97316',
-                    boxShadow: selectedOperator === op ? `0 0 15px ${op === 'mtn' ? 'rgba(251,191,36,0.6)' : op === 'moov' ? 'rgba(59,130,246,0.6)' : 'rgba(249,115,22,0.6)'}` : 'none'
+                    backgroundColor: opColors[op].bg,
+                    color: opColors[op].text,
+                    boxShadow: isSelected ? '0 0 0 2px #A855F7, 0 0 0 5px rgba(168,85,247,0.25)' : 'none',
+                    opacity: processing && !isSelected ? 0.6 : 1,
                   }}
-                ></div>
-                <span>{op === 'mtn' ? 'MTN' : op === 'moov' ? 'Moov' : 'Celtiis'}</span>
-              </button>
-            ))}
+                >
+                  {op === 'mtn' ? 'MTN' : op === 'moov' ? 'Moov' : 'Celtiis'}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -286,6 +301,10 @@ export default function Payer() {
               <span className="text-[#645A8A] font-space-grotesk font-600 text-[13px]">Versement</span>
               <span className="text-white font-nunito font-900 text-[15px]">{new Intl.NumberFormat('fr-FR').format(amount)} FCFA</span>
             </div>
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-[#645A8A] font-space-grotesk font-600 text-[13px]">Frais de transaction</span>
+              <span className="text-[#22C55E] font-nunito font-900 text-[15px]">0 FCFA (Gratuit)</span>
+            </div>
             <div className="h-[1px] bg-[rgba(255,255,255,0.05)] w-full my-4"></div>
             <div className="flex justify-between items-center">
               <span className="text-[#645A8A] font-space-grotesk font-600 text-[13px]">Total débité</span>
@@ -300,7 +319,7 @@ export default function Payer() {
           )}
 
           <button
-            onClick={handlePay}
+            onClick={() => { haptics.medium(); handlePay(); }}
             disabled={processing || amount < 100 || !selectedOperator}
             className="w-full text-white font-nunito font-900 text-[17px] rounded-3xl py-5 flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
             style={{ background: '#A855F7' }}

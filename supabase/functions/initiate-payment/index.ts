@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { maskPhone, ServiceUnavailableError, fetchWithRetry } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,23 +49,27 @@ async function createTransaction(params: {
   const fedapayKey = Deno.env.get("FEDAPAY_SECRET_KEY");
   if (!fedapayKey) throw new Error("FEDAPAY_SECRET_KEY non configurée");
 
-  const res = await fetch(`${FEDAPAY_BASE_URL}/transactions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${fedapayKey}`,
-    },
-    body: JSON.stringify({
-      description: params.description,
-      amount: params.amount,
-      currency: { iso: "XOF" },
-      callback_url: params.callbackUrl,
-      customer: {
-        email: params.email,
-        phone_number: { number: params.phoneNumber, country: "BJ" },
+  const res = await fetchWithRetry(
+    `${FEDAPAY_BASE_URL}/transactions`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${fedapayKey}`,
       },
-    }),
-  });
+      body: JSON.stringify({
+        description: params.description,
+        amount: params.amount,
+        currency: { iso: "XOF" },
+        callback_url: params.callbackUrl,
+        customer: {
+          email: params.email,
+          phone_number: { number: params.phoneNumber, country: "BJ" },
+        },
+      }),
+    },
+    { maxRetries: 3, timeoutMs: 10000, retryDelayMs: 500 }
+  );
 
   const json = await parseFedapayResponse(res);
   if (!res.ok) {
@@ -82,13 +87,17 @@ async function generateToken(
 ): Promise<{ token: string; paymentUrl?: string }> {
   const fedapayKey = Deno.env.get("FEDAPAY_SECRET_KEY")!;
 
-  const res = await fetch(`${FEDAPAY_BASE_URL}/transactions/${transactionId}/token`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${fedapayKey}`,
+  const res = await fetchWithRetry(
+    `${FEDAPAY_BASE_URL}/transactions/${transactionId}/token`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${fedapayKey}`,
+      },
     },
-  });
+    { maxRetries: 3, timeoutMs: 10000, retryDelayMs: 500 }
+  );
 
   const json = await parseFedapayResponse(res);
   if (!res.ok) {
@@ -113,17 +122,21 @@ async function generateToken(
 async function sendDirectPush(mode: string, token: string, phoneNumber: string): Promise<any> {
   const fedapayKey = Deno.env.get("FEDAPAY_SECRET_KEY")!;
 
-  const res = await fetch(`${FEDAPAY_BASE_URL}/${mode}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${fedapayKey}`,
+  const res = await fetchWithRetry(
+    `${FEDAPAY_BASE_URL}/${mode}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${fedapayKey}`,
+      },
+      body: JSON.stringify({
+        token,
+        phone_number: { number: phoneNumber, country: "BJ" },
+      }),
     },
-    body: JSON.stringify({
-      token,
-      phone_number: { number: phoneNumber, country: "BJ" },
-    }),
-  });
+    { maxRetries: 3, timeoutMs: 10000, retryDelayMs: 500 }
+  );
 
   const json = await parseFedapayResponse(res);
   if (!res.ok) {
@@ -157,13 +170,54 @@ Deno.serve(async (req: Request) => {
     }
     const tenant_id = authData.user.id;
 
+    // ---- Audit Trail : capture IP + User-Agent ----
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0].trim()
+      || req.headers.get("x-real-ip")
+      || "unknown";
+    const userAgent = req.headers.get("user-agent") || "unknown";
+    console.log(`[audit] initiate-payment uid=${tenant_id} ip=${clientIp} ua=${userAgent.slice(0, 80)}`);
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // ---- Rate Limiting : max 5 initiations de paiement par minute ----
+    const { data: allowed, error: rlError } = await supabase.rpc("check_rate_limit", {
+      p_user_id: tenant_id,
+      p_endpoint: "initiate-payment",
+      p_max_requests: 5,
+      p_window_seconds: 60,
+    });
+    if (rlError) console.error("Rate limit RPC error:", rlError.message);
+    if (allowed === false) {
+      return new Response(
+        JSON.stringify({ error: "Trop de requêtes. Veuillez patienter avant de réessayer (max 5/min)." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" } }
+      );
+    }
+
     const body = await req.json();
-    const { amount, operator, rent_period_id, phone_number } = body;
+    const { amount, operator, rent_period_id, phone_number, idempotency_key } = body;
+
+    if (idempotency_key) {
+      const { data: existingPayment } = await supabase
+        .from("payments")
+        .select("id, fedapay_transaction_id, status")
+        .eq("idempotency_key", idempotency_key)
+        .maybeSingle();
+
+      if (existingPayment) {
+        return new Response(
+          JSON.stringify({
+            payment_id: existingPayment.id,
+            fedapay_transaction_id: existingPayment.fedapay_transaction_id,
+            status: existingPayment.status,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     if (!amount || !operator || !rent_period_id || !phone_number) {
       return new Response(
@@ -221,10 +275,12 @@ Deno.serve(async (req: Request) => {
         paymentUrl = url;
       }
     } catch (fedapayErr: unknown) {
+      const isUnavailable = fedapayErr instanceof ServiceUnavailableError;
       const msg = fedapayErr instanceof Error ? fedapayErr.message : "Erreur Fedapay";
+      console.error(`[circuit-breaker] initiate-payment failed (phone=${maskPhone(phone_number)}):`, msg);
       return new Response(
         JSON.stringify({ error: msg }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: isUnavailable ? 503 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -238,6 +294,7 @@ Deno.serve(async (req: Request) => {
         operator,
         status: "en_attente",
         fedapay_transaction_id: fedapayTxId,
+        idempotency_key: idempotency_key || null,
       })
       .select()
       .single();
@@ -259,10 +316,11 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: unknown) {
+    const isUnavailable = err instanceof ServiceUnavailableError;
     const message = err instanceof Error ? err.message : "Erreur interne";
     return new Response(
       JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: isUnavailable ? 503 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

@@ -10,6 +10,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       manifest: {
         id: '/',
+        start_url: '/splash',
         name: 'ImoFlex',
         short_name: 'ImoFlex',
         description: 'ImoFlex — Trouvez votre logement à Cotonou et payez votre loyer progressivement via Mobile Money.',

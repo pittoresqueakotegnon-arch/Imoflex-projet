@@ -182,7 +182,22 @@ export default function Dashboard() {
 
   return (
     <div className="page-container">
-      <div className="flex justify-between items-center px-4 pt-6 pb-4">
+      {/* ── Role Switcher ── */}
+      <div className="px-4 pt-4 flex justify-center">
+        <div className="bg-[#1A1240] rounded-full p-1 flex items-center border border-white/5">
+          <button className="px-5 py-1.5 rounded-full text-[11px] font-bold text-white bg-[#A855F7] shadow-sm font-nunito">
+            Locataire
+          </button>
+          <button 
+            onClick={() => navigate('/pro/dashboard')}
+            className="px-5 py-1.5 rounded-full text-[11px] font-bold text-[#8B7BB5] hover:text-white transition-colors font-nunito"
+          >
+            Propriétaire
+          </button>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center px-4 pt-3 pb-4">
         <div>
           <span className="text-[#8B7BB5] text-xs font-space-grotesk">Bonjour ☀️</span>
           <h1 className="font-nunito font-900 text-xl text-white">{firstName} {lastName}</h1>
@@ -246,13 +261,40 @@ export default function Dashboard() {
               </p>
             )}
 
-            <div className="flex flex-col gap-2 mb-6">
-              {sortedLeases.map((lease) => {
+            <div className="flex flex-col gap-3 mb-6">
+              {sortedLeases.map((lease, index) => {
                 const status = getLeaseStatus(lease);
                 const period = lease.currentPeriod;
                 const remaining = period ? Math.max(period.amount_due - period.amount_paid, 0) : 0;
                 const daysLeft = period ? daysUntilDeadline(period.deadline_date) : 0;
 
+                // Hero Card "Prochain Loyer" pour le bail le plus urgent (index 0) si non soldé
+                if (index === 0 && (status === 'retard' || status === 'a_venir')) {
+                  return (
+                    <div key={lease.leaseId} className="rounded-[24px] p-5 mb-2 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #261C55 0%, #1A1240 100%)', border: `1px solid ${status === 'retard' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(168, 85, 247, 0.3)'}` }}>
+                      <div className="flex justify-between items-start mb-3">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#B89FD8] font-space-grotesk">Prochain Loyer</span>
+                        <div className={`px-2.5 py-1 rounded-lg text-[10px] font-bold font-space-grotesk flex items-center gap-1 ${status === 'retard' ? 'bg-red-500/15 text-[#EF4444]' : 'bg-[#A855F7]/15 text-[#A855F7]'}`}>
+                          {status === 'retard' ? <AlertCircle size={12} /> : <Clock size={12} />}
+                          {status === 'retard' ? `J-${Math.abs(daysLeft)} (Retard)` : `J-${daysLeft}`}
+                        </div>
+                      </div>
+                      
+                      <p className="font-nunito font-900 text-3xl text-white leading-none mb-1">{new Intl.NumberFormat('fr-FR').format(remaining)} <span className="text-sm text-[#8B7BB5] font-normal">F</span></p>
+                      <p className="text-[13px] text-[#E8E0FF] font-nunito font-bold mb-4">{lease.propertyName}</p>
+                      
+                      <button
+                        onClick={() => navigate(`/payer/${lease.leaseId}`)}
+                        className="w-full flex items-center justify-center gap-2 font-bold text-[14px] text-white rounded-2xl py-3.5 transition-transform active:scale-[0.98]"
+                        style={{ background: status === 'retard' ? '#EF4444' : '#A855F7', fontFamily: 'Nunito' }}
+                      >
+                        Payer maintenant
+                      </button>
+                    </div>
+                  );
+                }
+
+                // Affichage liste classique pour les autres
                 const statusIcon =
                   status === 'retard' ? (
                     <AlertCircle size={18} color="#EF4444" />
