@@ -51,18 +51,17 @@ export const BottomNav: React.FC = () => {
       className="bottom-nav"
       style={{
         position: 'fixed',
-        bottom: '16px',
+        bottom: 0,
         left: '50%',
         transform: 'translateX(-50%)',
-        width: 'calc(100% - 32px)',
-        maxWidth: '358px',
+        width: '100%',
+        maxWidth: '390px',
         zIndex: 40,
-        background: 'rgba(11, 8, 25, 0.85)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: '24px',
-        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6)',
+        background: 'rgba(11, 8, 25, 0.92)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderTop: '1px solid rgba(255, 255, 255, 0.07)',
+        boxShadow: '0 -8px 32px rgba(0, 0, 0, 0.45)',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)'
       }}
     >
