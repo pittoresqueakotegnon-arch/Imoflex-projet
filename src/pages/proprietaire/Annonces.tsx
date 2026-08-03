@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Home } from 'lucide-react';
+import { Plus, Home, Eye } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, Listing } from '../../lib/supabase';
 import BottomNav from '../../components/BottomNav';
@@ -25,7 +25,7 @@ const Annonces: React.FC = () => {
       try {
         const { data, error } = await supabase
           .from('listings')
-          .select('id, title, city, neighborhood, availability_status, status, rejection_reason, created_at, owner_id, listing_photos(photo_url, is_cover)')
+          .select('id, title, city, neighborhood, availability_status, status, rejection_reason, created_at, owner_id, monthly_rent, listing_photos(photo_url, is_cover)')
           .eq('owner_id', profile.id)
           .order('created_at', { ascending: false });
 
@@ -124,6 +124,12 @@ const Annonces: React.FC = () => {
                         {listing.neighborhood || listing.city}
                       </p>
                     </div>
+                    {/* Prix loyer mensuel */}
+                    {(listing as any).monthly_rent && (
+                      <span className="text-[10px] font-bold text-[#A855F7] whitespace-nowrap flex-shrink-0" style={{ fontFamily: 'Space Grotesk' }}>
+                        {new Intl.NumberFormat('fr-FR').format((listing as any).monthly_rent)} FCFA/mois
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-end justify-between mt-2 pt-2 border-t border-[#261C55]">
@@ -151,10 +157,10 @@ const Annonces: React.FC = () => {
                       {listing.availability_status === 'disponible' && (listing as any).status === 'publiee' && (
                         <Link
                           to={`/pro/activer/${listing.id}`}
-                          className="btn-primary btn-sm py-1.5"
-                          style={{ height: '30px', fontSize: '10px' }}
+                          className="flex items-center gap-1 text-[10px] font-bold text-[#A855F7] hover:text-purple-300 transition-colors"
                         >
-                          Activer
+                          <Eye size={11} />
+                          Voir les demandes
                         </Link>
                       )}
                     </div>

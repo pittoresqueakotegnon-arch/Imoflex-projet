@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Check, UserCheck } from 'lucide-react';
+import { Phone, Check, UserCheck, MessageCircle, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, ContactRequest } from '../../lib/supabase';
 import BottomNav from '../../components/BottomNav';
@@ -22,6 +22,8 @@ const Demandes: React.FC = () => {
   const [requests, setRequests] = useState<RequestWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingAsRead, setMarkingAsRead] = useState<string | null>(null);
+  const [allListings, setAllListings] = useState<{ id: string; title: string }[]>([]);
+  const [selectedListingFilter, setSelectedListingFilter] = useState<string>('all');
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -37,6 +39,7 @@ const Demandes: React.FC = () => {
         if (listingsError) throw listingsError;
 
         const listingIds = listings?.map(l => l.id) || [];
+        setAllListings(listings || []);
         if (listingIds.length === 0) {
           setRequests([]);
           setLoading(false);
@@ -164,8 +167,37 @@ const Demandes: React.FC = () => {
         <HeaderBell />
       </header>
 
+      {/* Filtre par logement */}
+      {allListings.length > 1 && (
+        <div className="px-4 pb-2">
+          <div className="relative">
+            <select
+              value={selectedListingFilter}
+              onChange={(e) => setSelectedListingFilter(e.target.value)}
+              className="w-full appearance-none font-nunito text-[13px] font-600 text-white rounded-xl px-4 pr-9 py-2.5 outline-none"
+              style={{ background: '#1A1240', border: '1px solid rgba(168,85,247,0.2)' }}
+            >
+              <option value="all">Tous les logements</option>
+              {allListings.map(l => (
+                <option key={l.id} value={l.id}>{l.title}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8B7BB5] pointer-events-none" />
+          </div>
+        </div>
+      )}
+
       <div className="px-4 py-4 space-y-5 flex-1 pb-6">
-        {Object.entries(groupedRequests).map(([listingTitle, groupRequests]) => (
+        {Object.entries(
+          // Appliquer le filtre par logement sélectionné
+          (selectedListingFilter === 'all' ? requests : requests.filter(r => r.listing_id === selectedListingFilter))
+            .reduce((acc, req) => {
+              const title = req.listing_title || 'Non spécifié';
+              if (!acc[title]) acc[title] = [];
+              acc[title].push(req);
+              return acc;
+            }, {} as Record<string, RequestWithDetails[]>)
+        ).map(([listingTitle, groupRequests]) => (
           <div key={listingTitle} className="space-y-2.5">
             <h2 className="text-[#8B7BB5] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-1">
               {listingTitle}
@@ -203,12 +235,25 @@ const Demandes: React.FC = () => {
                           </a>
                         )}
 
+                        {req.requester_phone && (
+                          <a
+                            href={`https://wa.me/${req.requester_phone.replace(/\D/g, '')}?text=Bonjour%2C%20je%20suis%20votre%20bailleur%20sur%20ImoFlex.`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-sm flex items-center gap-1.5 font-bold text-white rounded-xl px-3"
+                            style={{ background: '#16A34A', fontSize: '11px', height: '30px' }}
+                          >
+                            <MessageCircle size={12} />
+                            WhatsApp
+                          </a>
+                        )}
+
                         <button
                           onClick={() => navigate(`/pro/activer/${req.listing_id}?request_id=${req.id}`)}
                           className="btn-ghost btn-sm flex items-center gap-1.5 text-[#A855F7]"
                         >
                           <UserCheck size={12} />
-                          Sélectionner
+                          Accepter ce locataire
                         </button>
 
                         {isNew && (
