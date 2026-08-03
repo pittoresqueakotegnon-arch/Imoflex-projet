@@ -48,17 +48,22 @@ export const BottomNav: React.FC = () => {
 
   return (
     <nav
-      className="bottom-nav shadow-[0_-4px_24px_rgba(0,0,0,0.4)]"
+      className="bottom-nav"
       style={{
         position: 'fixed',
-        bottom: 0,
+        bottom: '16px',
         left: '50%',
         transform: 'translateX(-50%)',
-        width: '100%',
-        maxWidth: '390px',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        width: 'calc(100% - 32px)',
+        maxWidth: '358px',
         zIndex: 40,
-        background: '#0B0819'
+        background: 'rgba(11, 8, 25, 0.85)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '24px',
+        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
       }}
     >
       <div className="flex justify-around items-center h-[68px] px-2">
