@@ -34,9 +34,12 @@ const Retrait: React.FC = () => {
 
   // Auto-détection de l'opérateur
   useEffect(() => {
-    const cleanNumber = phoneNumber.replace(/\s+/g, '').replace(/^\+229/, '');
-    if (cleanNumber.length >= 2) {
-      const prefix = cleanNumber.substring(0, 2);
+    let cleanNumber = phoneNumber.replace(/\s+/g, '').replace(/^\+229/, '');
+    if (cleanNumber.startsWith('229')) cleanNumber = cleanNumber.slice(3);
+    if (cleanNumber.length === 8) cleanNumber = '01' + cleanNumber;
+
+    if (cleanNumber.length >= 4 && cleanNumber.startsWith('01')) {
+      const prefix = cleanNumber.substring(2, 4);
       if (['97', '96', '67', '66', '61', '62', '51', '52', '53', '54', '42', '46', '91'].includes(prefix)) {
         setSelectedOperator('mtn');
       } else if (['95', '94', '65', '64', '60', '55', '44', '58'].includes(prefix)) {

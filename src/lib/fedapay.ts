@@ -5,14 +5,16 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 /**
- * Normalise un numéro de téléphone béninois en 8 chiffres locaux.
- * FedaPay exige le format { number: "61000000", country: "BJ" } pour déclencher le Push USSD.
- * Cette fonction retire tout préfixe international (+229 ou 229) pour ne garder que les 8 chiffres.
+ * Normalise un numéro de téléphone béninois au nouveau format 10 chiffres.
+ * FedaPay exige le format { number: "0161000000", country: "BJ" } pour déclencher le Push USSD.
+ * Cette fonction retire tout préfixe international (+229 ou 229).
+ * Si le numéro fait 8 chiffres (ancien format), on lui ajoute le préfixe "01".
  *
  * Exemples :
- *   "+22997000000" → "97000000"
- *   "229 97 00 00 00" → "97000000"
- *   "97000000" → "97000000"
+ *   "+22997000000" → "97000000" → "0197000000"
+ *   "229 01 97 00 00 00" → "0197000000"
+ *   "01 97 00 00 00" → "0197000000"
+ *   "97000000" → "0197000000"
  */
 export function normalizeBjPhone(raw: string): string {
   // Retirer espaces, tirets, parenthèses
@@ -24,10 +26,12 @@ export function normalizeBjPhone(raw: string): string {
   // Retirer le préfixe pays béninois : 229
   if (cleaned.startsWith('229')) cleaned = cleaned.slice(3);
 
-  // Retirer le zéro d'appel national éventuel
-  if (cleaned.startsWith('0') && cleaned.length === 9) cleaned = cleaned.slice(1);
+  // Ajout du préfixe '01' si l'utilisateur a entré l'ancien format à 8 chiffres
+  if (cleaned.length === 8) {
+    cleaned = '01' + cleaned;
+  }
 
-  return cleaned; // Doit être 8 chiffres
+  return cleaned; // Doit être 10 chiffres (commençant par 01)
 }
 
 async function callEdgeFunction<T>(
@@ -75,12 +79,11 @@ export interface InitiatePaymentResult {
 export async function initiatePayment(
   params: InitiatePaymentParams
 ): Promise<InitiatePaymentResult> {
-  // 🔴 CORRECTIF CRITIQUE : Normalisation du numéro au format FedaPay Push USSD
-  // FedaPay exige : { number: "8 chiffres locaux", country: "BJ" }
+  // 🔴 CORRECTIF CRITIQUE : Normalisation du numéro au format FedaPay Push USSD 10 chiffres
   const normalizedPhone = normalizeBjPhone(params.phone_number);
 
-  if (normalizedPhone.length !== 8) {
-    throw new Error(`Numéro invalide : "${params.phone_number}" → "${normalizedPhone}". Entrez 8 chiffres locaux (ex: 97000000)`);
+  if (normalizedPhone.length !== 10) {
+    throw new Error(`Numéro invalide : "${params.phone_number}". Entrez 10 chiffres locaux (ex: 0197000000)`);
   }
 
   const payload = {
@@ -113,8 +116,8 @@ export async function requestWithdrawal(
   // 🔴 CORRECTIF CRITIQUE : Même normalisation pour les retraits Propriétaire
   const normalizedPhone = normalizeBjPhone(params.destination_phone);
 
-  if (normalizedPhone.length !== 8) {
-    throw new Error(`Numéro invalide : "${params.destination_phone}". Entrez 8 chiffres locaux (ex: 97000000)`);
+  if (normalizedPhone.length !== 10) {
+    throw new Error(`Numéro invalide : "${params.destination_phone}". Entrez 10 chiffres locaux (ex: 0197000000)`);
   }
 
   const payload = {

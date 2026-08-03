@@ -125,8 +125,8 @@ export default function Payer() {
     }
 
     const cleanedPhone = normalizeBjPhone(phoneNumber);
-    if (!cleanedPhone || cleanedPhone.length !== 8) {
-      setError('Numéro invalide. Entrez 8 chiffres locaux béninois (ex: 97 00 00 00)');
+    if (!cleanedPhone || cleanedPhone.length !== 10) {
+      setError('Numéro invalide. Entrez 10 chiffres (ex: 01 97 00 00 00)');
       return;
     }
 
