@@ -59,6 +59,10 @@ const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // ── Court-circuit pour un locataire curieux qui clique sur "Propriétaire" ──
+  // On affiche directement l'écran d'onboarding sans chercher des données en base
+  const isLocataire = profile?.role === 'locataire';
+
   useEffect(() => {
     if (!profile?.id) return;
 
@@ -193,7 +197,7 @@ const Dashboard: React.FC = () => {
     fetchData();
   }, [profile?.id, showToast]);
 
-  if (loading) {
+  if (loading && !isLocataire) {
     return (
       <div className="page-container">
         <div className="px-4 pt-6 space-y-4">
@@ -220,7 +224,9 @@ const Dashboard: React.FC = () => {
   // ── Écran d'embarquement si VRAIMENT aucun bien géré ──────────────────────
   // On utilise totalListingsRaw (compte brut) pour ne pas confondre "pas de demandes" avec "pas d'annonces"
   const hasNoProperty = (data?.totalListingsRaw || 0) === 0 && (data?.properties.length || 0) === 0;
-  if (hasNoProperty) {
+
+  // ── Locataire curieux : afficher l'écran d'invitation Propriétaire ──────────
+  if (isLocataire || hasNoProperty) {
     return (
       <div className="page-container flex flex-col">
         {/* Role switcher */}
@@ -267,15 +273,27 @@ const Dashboard: React.FC = () => {
             Simplifiez vos encaissements MoMo, suivez vos locataires et sécurisez vos loyers sur ImoFlex.
           </p>
 
-          {/* CTA principal */}
-          <Link
-            to="/publier"
-            className="w-full max-w-xs flex items-center justify-center gap-2 text-white font-nunito font-900 text-[16px] rounded-3xl py-4 mb-4 transition-all hover:opacity-90 active:scale-95"
-            style={{ background: 'linear-gradient(135deg, #7B3FE4 0%, #A855F7 100%)' }}
-          >
-            <Plus size={20} />
-            Ajouter mon premier logement
-          </Link>
+          {/* CTA principal — adapté selon le rôle */}
+          {isLocataire ? (
+            <a
+              href="https://wa.me/22960000000?text=Bonjour%20ImoFlex%20!%20Je%20suis%20locataire%20et%20souhaite%20créer%20un%20compte%20Bailleur."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full max-w-xs flex items-center justify-center gap-2 text-white font-nunito font-900 text-[16px] rounded-3xl py-4 mb-4 transition-all hover:opacity-90 active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)' }}
+            >
+              💬 Demander un compte Bailleur
+            </a>
+          ) : (
+            <Link
+              to="/pro/publier"
+              className="w-full max-w-xs flex items-center justify-center gap-2 text-white font-nunito font-900 text-[16px] rounded-3xl py-4 mb-4 transition-all hover:opacity-90 active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #7B3FE4 0%, #A855F7 100%)' }}
+            >
+              <Plus size={20} />
+              Ajouter mon premier logement
+            </Link>
+          )}
 
           {/* CTA secondaire */}
           <Link

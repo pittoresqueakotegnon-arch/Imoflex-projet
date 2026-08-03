@@ -197,7 +197,9 @@ export default function App() {
                 path="/pro/dashboard"
                 element={
                   <MobileFrame>
-                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+                    {/* Locataires ET Propriétaires peuvent accéder ici :
+                        le composant lui-même gère l'affichage selon le rôle */}
+                    <RoleGuard allowedRoles={['locataire', 'proprietaire']} redirectTo="/login">
                       <ProprietaireDashboard />
                     </RoleGuard>
                   </MobileFrame>
