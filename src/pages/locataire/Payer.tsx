@@ -17,6 +17,7 @@ export default function Payer() {
   const [currentRentPeriod, setCurrentRentPeriod] = useState<RentPeriod | null>(null);
   const [propertyName, setPropertyName] = useState('');
   const [amount, setAmount] = useState(0);
+  const [userHasInteracted, setUserHasInteracted] = useState(false); // true dès qu'il tape ou clique un quick amount
   const [selectedOperator, setSelectedOperator] = useState<Operator | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(true);
@@ -102,6 +103,7 @@ export default function Payer() {
   const handleQuickAmount = (value: number | 'all') => {
     if (!currentRentPeriod) return;
     const remaining = currentRentPeriod.amount_due - currentRentPeriod.amount_paid;
+    setUserHasInteracted(true);
     if (value === 'all') {
       setAmount(remaining);
     } else {
@@ -210,6 +212,7 @@ export default function Payer() {
                 // Extraire uniquement les chiffres
                 const raw = e.target.value.replace(/\D/g, '');
                 const val = parseInt(raw) || 0;
+                setUserHasInteracted(true);
                 setAmount(Math.min(val, remaining));
               }}
               placeholder="0"
@@ -219,8 +222,12 @@ export default function Payer() {
               }`}
             />
           </div>
-          {/* Solde restant — mis à jour dynamiquement à chaque frappe */}
-          {amount > 0 && amount === remaining ? (
+          {/* Solde restant — mis à jour dynamiquement SEULEMENT après interaction */}
+          {!userHasInteracted ? (
+            <p className="text-[#645A8A] text-[13px] font-space-grotesk">
+              Solde restant : <strong className="text-white">{new Intl.NumberFormat('fr-FR').format(remaining)} FCFA</strong>
+            </p>
+          ) : amount > 0 && amount === remaining ? (
             <p className="text-[#22C55E] text-[13px] font-space-grotesk font-bold flex items-center justify-center gap-1">
               ✨ Ce versement soldera l'intégralité de votre loyer (0 FCFA restant)
             </p>

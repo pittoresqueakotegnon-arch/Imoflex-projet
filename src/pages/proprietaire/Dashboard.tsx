@@ -10,6 +10,7 @@ import { useToast } from '../../components/Toast';
 
 interface DashboardData {
   totalEncaisse: number;
+  totalListingsRaw: number;  // total brut des annonces (avant filtre par demandes)
   listings: Array<{
     id: string;
     title: string;
@@ -176,6 +177,7 @@ const Dashboard: React.FC = () => {
 
         setData({
           totalEncaisse,
+          totalListingsRaw: (listingsData || []).length,  // compte brut avant filtre
           listings: listingsWithRequests.filter(l => l.newRequests > 0),
           properties,
           stats: { soldes, enCours, enRetard },
@@ -215,8 +217,9 @@ const Dashboard: React.FC = () => {
   const monthName = getMonthName(month, year).toUpperCase();
   const newRequestsTotal = data?.listings.reduce((sum, l) => sum + l.newRequests, 0) || 0;
 
-  // ── Écran d'embarquement si aucun bien géré ──────────────────────────────
-  const hasNoProperty = (data?.properties.length || 0) === 0 && (data?.listings.length || 0) === 0;
+  // ── Écran d'embarquement si VRAIMENT aucun bien géré ──────────────────────
+  // On utilise totalListingsRaw (compte brut) pour ne pas confondre "pas de demandes" avec "pas d'annonces"
+  const hasNoProperty = (data?.totalListingsRaw || 0) === 0 && (data?.properties.length || 0) === 0;
   if (hasNoProperty) {
     return (
       <div className="page-container flex flex-col">
