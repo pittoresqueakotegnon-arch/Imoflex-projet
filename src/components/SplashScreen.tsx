@@ -25,7 +25,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
 
   return (
     <div
-      className="absolute inset-0 flex flex-col items-center justify-center z-50 transition-opacity duration-500"
+      className="fixed inset-0 flex flex-col items-center justify-center z-50 transition-opacity duration-500"
       style={{ 
         background: 'linear-gradient(160deg, #0D0720 0%, #1E1545 45%, #120D2A 100%)',
         opacity: isFading ? 0 : 1,
