@@ -17,10 +17,11 @@ const IS_SANDBOX = FEDAPAY_BASE_URL.includes("sandbox");
 // opérateurs, avec des numéros de test dédiés (confirmé par leur support le 13/07/2026) —
 // pas les vrais codes mtn_open/moov, qui ne s'utilisent qu'en production.
 const FEDAPAY_MODES: Record<string, string> = IS_SANDBOX
-  ? { mtn: "momo_test", moov: "momo_test" }
+  ? { mtn: "momo_test", moov: "momo_test", celtiis: "momo_test" }
   : {
       mtn: Deno.env.get("FEDAPAY_MODE_MTN") || "mtn_open",
       moov: Deno.env.get("FEDAPAY_MODE_MOOV") || "moov",
+      celtiis: Deno.env.get("FEDAPAY_MODE_CELTIIS") || "sbin",
     };
 
 function extractResource(json: any, singularKey: string): any {
@@ -275,7 +276,7 @@ Deno.serve(async (req: Request) => {
       const { token, paymentUrl: url } = await generateToken(transactionId);
       fedapayTxId = String(transactionId);
 
-      if (operator === "mtn" || operator === "moov") {
+      if (operator === "mtn" || operator === "moov" || operator === "celtiis") {
         await sendDirectPush(FEDAPAY_MODES[operator], token, phone_number);
       } else {
         paymentUrl = url;

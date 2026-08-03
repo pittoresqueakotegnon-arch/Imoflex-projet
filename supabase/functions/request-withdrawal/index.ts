@@ -86,11 +86,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Le payout Fedapay n'est confirmé que pour MTN et Moov pour l'instant.
-    // On refuse explicitement plutôt que de deviner un opérateur par défaut.
-    if (operator !== "mtn" && operator !== "moov") {
+    // Le payout Fedapay est confirmé pour MTN, Moov et Celtiis
+    if (operator !== "mtn" && operator !== "moov" && operator !== "celtiis") {
       return new Response(
-        JSON.stringify({ error: "Opérateur de retrait non supporté (MTN ou Moov uniquement)" }),
+        JSON.stringify({ error: "Opérateur de retrait non supporté (MTN, Moov ou Celtiis uniquement)" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -149,6 +148,8 @@ Deno.serve(async (req: Request) => {
     const payoutMode =
       operator === "mtn"
         ? Deno.env.get("FEDAPAY_MODE_MTN") || "mtn_open"
+        : operator === "celtiis"
+        ? Deno.env.get("FEDAPAY_MODE_CELTIIS") || "sbin"
         : Deno.env.get("FEDAPAY_MODE_MOOV") || "moov";
 
     let payoutId: string;
