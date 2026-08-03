@@ -1,6 +1,6 @@
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './hooks/useAuth';
+import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ToastProvider } from './components/Toast';
 import RoleGuard from './components/RoleGuard';
 import AdminLayout from './components/AdminLayout';
@@ -76,6 +76,15 @@ function PageLoader() {
 }
 
 function MobileFrame({ children }: { children: React.ReactNode }) {
+  const { user, profile } = useAuth();
+  
+  // 🛡️ Gardien de route anti-admin :
+  // Si un admin tente d'afficher l'interface client/marketplace (qui utilise MobileFrame),
+  // on le redirige de force vers l'interface d'administration.
+  if (user && profile?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+
   return <div className="mobile-frame">{children}</div>;
 }
 
