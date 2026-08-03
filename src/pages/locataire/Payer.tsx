@@ -222,7 +222,7 @@ export default function Payer() {
           {/* Solde restant — mis à jour dynamiquement à chaque frappe */}
           {amount > 0 && amount === remaining ? (
             <p className="text-[#22C55E] text-[13px] font-space-grotesk font-bold flex items-center justify-center gap-1">
-              🎉 Loyer entièrement réglé ! Nouveau solde : <strong>0 FCFA</strong>
+              ✨ Ce versement soldera l'intégralité de votre loyer (0 FCFA restant)
             </p>
           ) : amount > remaining ? (
             <p className="text-red-400 text-[13px] font-space-grotesk font-bold">
