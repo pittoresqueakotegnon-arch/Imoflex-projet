@@ -204,14 +204,19 @@ export default function Payer() {
             <span className="text-[#A855F7] font-nunito font-900 text-xl">FCFA</span>
             <input
               inputMode="numeric"
-              type="number"
-              value={amount || ''}
+              type="text"
+              value={amount ? new Intl.NumberFormat('fr-FR').format(amount) : ''}
               onChange={(e) => {
-                const val = parseInt(e.target.value) || 0;
+                // Extraire uniquement les chiffres
+                const raw = e.target.value.replace(/\D/g, '');
+                const val = parseInt(raw) || 0;
                 setAmount(Math.min(val, remaining));
               }}
+              placeholder="0"
               disabled={processing}
-              className="font-nunito font-900 text-[3.5rem] leading-none text-white bg-transparent border-b-2 border-[#A855F7] focus:border-[#FBBF24] text-center w-full max-w-[200px] outline-none transition-colors disabled:opacity-50"
+              className={`font-nunito font-900 leading-none text-white bg-transparent border-b-2 border-[#A855F7] focus:border-[#FBBF24] text-center w-full max-w-[220px] outline-none transition-colors disabled:opacity-50 ${
+                amount >= 1000000 ? 'text-[2rem]' : amount >= 100000 ? 'text-[2.5rem]' : 'text-[3rem]'
+              }`}
             />
           </div>
           <p className="text-[#645A8A] text-[13px] font-space-grotesk">
