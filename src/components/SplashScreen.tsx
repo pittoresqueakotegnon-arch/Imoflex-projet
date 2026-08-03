@@ -32,17 +32,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         pointerEvents: isFading ? 'none' : 'auto',
       }}
     >
-      <style>{`
-        @keyframes splashLogoPulse {
-          0% { transform: scale(0.9); opacity: 0; }
-          50% { transform: scale(1.05); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes splashTextFade {
-          0% { opacity: 0; transform: translateY(10px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
 
       {/* Grand Logo Animé */}
       <div
