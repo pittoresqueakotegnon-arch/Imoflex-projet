@@ -4,6 +4,7 @@ import { ChevronLeft, Check, Search, KeyRound, Mail } from 'lucide-react';
 import { useAuth, SignUpParams } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
 import { BackButton } from '../../components/BackButton';
+import { diagnoseAndShowError } from '../../utils/errorDiagnostics';
 
 type UserRole = 'locataire' | 'proprietaire';
 
@@ -79,9 +80,7 @@ export default function Register() {
       await signUp(params);
       setStep('waiting');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la création du compte';
-      showToast(message, 'error');
-      setErrors({ form: message });
+      diagnoseAndShowError(err, 'Authentification');
     } finally {
       setLoading(false);
     }
@@ -93,8 +92,7 @@ export default function Register() {
       await resendSignupOtp(formData.email);
       showToast('Email de confirmation renvoyé', 'success');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du renvoi';
-      showToast(message, 'error');
+      diagnoseAndShowError(err, 'Authentification');
     } finally {
       setResending(false);
     }

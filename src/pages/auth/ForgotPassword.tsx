@@ -4,6 +4,7 @@ import { ChevronLeft, Mail, KeyRound, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/Toast';
 import { BackButton } from '../../components/BackButton';
+import { diagnoseAndShowError } from '../../utils/errorDiagnostics';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -29,9 +30,7 @@ export default function ForgotPassword() {
       setSent(true);
       showToast('Email envoyé avec succès !', 'success');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de l\'envoi du lien';
-      setError(message);
-      showToast(message, 'error');
+      diagnoseAndShowError(err, 'Authentification');
     } finally {
       setLoading(false);
     }

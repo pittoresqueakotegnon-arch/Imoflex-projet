@@ -4,6 +4,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
 import { BackButton } from '../../components/BackButton';
+import { diagnoseAndShowError } from '../../utils/errorDiagnostics';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -46,8 +47,7 @@ export default function Login() {
       // Ne PAS faire setLoading(false) ni navigate ici.
       // Le useEffect va détecter les changements de `user` et `profile` et naviguer proprement.
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur de connexion';
-      setError(message);
+      diagnoseAndShowError(err, 'Authentification');
       setLoading(false);
     }
   };

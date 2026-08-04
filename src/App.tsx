@@ -5,7 +5,8 @@ import { ToastProvider } from './components/Toast';
 import RoleGuard from './components/RoleGuard';
 import AdminLayout from './components/AdminLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
+import { useEffect } from 'react';
 
 // ── Lazy-loaded pages ─────────────────────────────────────────────────────────
 // Public
@@ -90,6 +91,19 @@ function MobileFrame({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  useEffect(() => {
+    const handleOffline = () => toast.error('🌐 Vous êtes hors ligne', { description: 'Vérifiez votre connexion internet.', duration: Infinity });
+    const handleOnline = () => toast.success('🌐 Connexion rétablie', { description: 'Vous êtes de nouveau en ligne.', duration: 4000 });
+    
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+    
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       <BrowserRouter>

@@ -6,6 +6,7 @@ import { supabase, PropertyType } from '../../lib/supabase';
 import { propertyTypeLabel } from '../../lib/utils';
 import { logAction } from '../../lib/audit';
 import { useToast } from '../../components/Toast';
+import { diagnoseAndShowError } from '../../utils/errorDiagnostics';
 
 const PROPERTY_TYPES: PropertyType[] = ['chambre', 'studio', 'appartement', 'maison', 'bureau', 'parcelle'];
 const AMENITIES = ['Électricité', 'Eau courante', 'Parking', 'Climatisation', 'WiFi', 'Sécurité', 'Balcon', 'Meublé'];
@@ -60,8 +61,7 @@ const Publier: React.FC = () => {
       newPhotos[index] = publicUrl.publicUrl;
       setUploadedPhotos(newPhotos);
     } catch (err) {
-      console.error('Photo upload error:', err);
-      showToast('Erreur lors du téléchargement de la photo', 'error');
+      diagnoseAndShowError(err, 'Gestion Logement/Contrat');
     } finally {
       setUploadingImage(false);
     }
@@ -155,10 +155,7 @@ const Publier: React.FC = () => {
       showToast('Annonce publiée avec succès !', 'success');
       navigate('/pro/annonces');
     } catch (err) {
-      console.error('Submit error:', err);
-      const message = err instanceof Error ? err.message : 'Erreur lors de la création de l\'annonce';
-      setError(message);
-      showToast(message, 'error');
+      diagnoseAndShowError(err, 'Gestion Logement/Contrat');
     } finally {
       setLoading(false);
     }

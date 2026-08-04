@@ -4,6 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, RentPeriod, Operator } from '../../lib/supabase';
 import { initiatePayment, normalizeBjPhone } from '../../lib/fedapay';
+import { diagnoseAndShowError } from '../../utils/errorDiagnostics';
 import { useToast } from '../../components/Toast';
 import { BackButton } from '../../components/BackButton';
 import { haptics } from '../../lib/haptics';
@@ -154,9 +155,7 @@ export default function Payer() {
 
       navigate('/historique');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du traitement du paiement';
-      setError(message);
-      showToast(message, 'error');
+      diagnoseAndShowError(err, 'Paiement FedaPay');
     } finally {
       setProcessing(false);
     }
