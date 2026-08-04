@@ -112,6 +112,64 @@ export default function Payer() {
     }
   };
 
+  // Nouveau state pour le polling
+  const [pollingPaymentId, setPollingPaymentId] = useState<string | null>(null);
+  const [pollingMessage, setPollingMessage] = useState('');
+
+  // Polling Realtime : écoute les changements de statut du paiement en DB
+  useEffect(() => {
+    if (!pollingPaymentId) return;
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const channel = supabase
+      .channel(`payment-status-${pollingPaymentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'payments',
+          filter: `id=eq.${pollingPaymentId}`,
+        },
+        (payload) => {
+          const updated = payload.new as any;
+          clearTimeout(timeoutId);
+          supabase.removeChannel(channel);
+          setPollingPaymentId(null);
+          setProcessing(false);
+
+          if (updated.status === 'valide') {
+            showToast('Paiement réussi ! Votre versement a été enregistré.', 'success');
+            navigate('/historique');
+          } else if (['echoue', 'canceled', 'declined'].includes(updated.status)) {
+            const reason = updated.failure_reason || 'INSUFFICIENT_FUND';
+            diagnoseAndShowError(
+              { message: reason },
+              'Paiement Mobile Money'
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    // Timeout de sécurité : 45 secondes si l'opérateur ne répond pas
+    timeoutId = setTimeout(() => {
+      supabase.removeChannel(channel);
+      setPollingPaymentId(null);
+      setProcessing(false);
+      diagnoseAndShowError(
+        { message: 'La transaction a expiré. Vous n\'avez pas répondu au Push USSD à temps. Veuillez réessayer.' },
+        'Timeout Paiement'
+      );
+    }, 45000);
+
+    return () => {
+      clearTimeout(timeoutId);
+      supabase.removeChannel(channel);
+    };
+  }, [pollingPaymentId]);
+
   const handlePay = async () => {
     setError('');
 
@@ -143,23 +201,27 @@ export default function Payer() {
         amount,
         operator: selectedOperator,
         rent_period_id: currentRentPeriod.id,
-        phone_number: phoneNumber, // normalisé dans fedapay.ts
+        phone_number: phoneNumber,
       });
 
       if (selectedOperator === 'celtiis' && result.payment_url) {
+        // Celtiis : redirection externe, pas de polling
         window.open(result.payment_url, '_blank');
         showToast('Finalisez le paiement dans l\'onglet Fedapay ouvert', 'success');
+        setProcessing(false);
+        navigate('/historique');
       } else {
-        showToast('Versement initié, confirmez sur votre téléphone', 'success');
+        // MTN / Moov : démarrer le polling Realtime sur payment_id
+        setPollingMessage('Confirmez sur votre téléphone — en attente de réponse...');
+        setPollingPaymentId(result.payment_id);
+        // setProcessing reste true jusqu'à la réponse du webhook ou timeout
       }
-
-      navigate('/historique');
     } catch (err) {
       diagnoseAndShowError(err, 'Paiement FedaPay');
-    } finally {
       setProcessing(false);
     }
   };
+
 
   if (loading) {
     return (
@@ -362,7 +424,9 @@ export default function Payer() {
             {processing ? (
               <>
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Traitement en cours...
+                {pollingPaymentId
+                  ? 'En attente de confirmation...'
+                  : 'Traitement en cours...'}
               </>
             ) : (
               <>
@@ -370,6 +434,11 @@ export default function Payer() {
               </>
             )}
           </button>
+          {pollingPaymentId && (
+            <p className="text-[#8B7BB5] text-[11px] font-space-grotesk text-center mt-3 animate-pulse">
+              📲 Vérifiez votre téléphone et entrez votre code PIN Mobile Money
+            </p>
+          )}
         </div>
       </div>
     </div>
