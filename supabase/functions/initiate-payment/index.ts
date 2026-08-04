@@ -19,9 +19,10 @@ const IS_SANDBOX = FEDAPAY_BASE_URL.includes("sandbox");
 const FEDAPAY_MODES: Record<string, string> = IS_SANDBOX
   ? { mtn: "momo_test", moov: "momo_test", celtiis: "momo_test" }
   : {
-      mtn: Deno.env.get("FEDAPAY_MODE_MTN") || "mtn_open",
-      moov: Deno.env.get("FEDAPAY_MODE_MOOV") || "moov",
-      celtiis: Deno.env.get("FEDAPAY_MODE_CELTIIS") || "sbin",
+      // Mapping strict et hardcodé pour le LIVE (Ignore les variables d'environnement qui pourraient être erronées)
+      mtn: "mtn_open",
+      moov: "moov",
+      celtiis: "sbin",
     };
 
 function extractResource(json: any, singularKey: string): any {
@@ -126,7 +127,7 @@ async function generateToken(
   return { token, paymentUrl };
 }
 
-async function sendDirectPush(mode: string, token: string, phoneNumber: string): Promise<any> {
+async function sendDirectPush(mode: string, token: string): Promise<any> {
   const fedapayKey = Deno.env.get("FEDAPAY_SECRET_KEY")!;
 
   const res = await fetchWithRetry(
@@ -138,8 +139,7 @@ async function sendDirectPush(mode: string, token: string, phoneNumber: string):
         Authorization: `Bearer ${fedapayKey}`,
       },
       body: JSON.stringify({
-        token,
-        phone_number: { number: phoneNumber, country: "BJ" },
+        token
       }),
     },
     { maxRetries: 3, timeoutMs: 10000, retryDelayMs: 500 }
@@ -281,7 +281,7 @@ Deno.serve(async (req: Request) => {
       fedapayTxId = String(transactionId);
 
       if (operator === "mtn" || operator === "moov" || operator === "celtiis") {
-        await sendDirectPush(FEDAPAY_MODES[operator], token, phone_number);
+        await sendDirectPush(FEDAPAY_MODES[operator], token);
       } else {
         paymentUrl = url;
       }
