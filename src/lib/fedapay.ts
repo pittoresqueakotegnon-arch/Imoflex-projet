@@ -36,29 +36,56 @@ export function normalizeBjPhone(raw: string): string {
 
 async function callEdgeFunction<T>(
   slug: string,
-  body: object
+  body: object,
+  maxRetries = 2
 ): Promise<T> {
   const session = await supabase.auth.getSession();
   const token = session.data.session?.access_token || SUPABASE_ANON_KEY;
 
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/${slug}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      'Apikey': SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify(body),
-  });
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
-    throw new Error(err.error || `Erreur serveur (${response.status})`);
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    // Backoff exponentiel entre les tentatives : 0ms, 800ms, 1600ms
+    if (attempt > 0) {
+      await new Promise(resolve => setTimeout(resolve, attempt * 800));
+    }
+
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/${slug}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        // Ne pas retenter sur les erreurs client (4xx) sauf timeout
+        if (response.status >= 400 && response.status < 500) {
+          throw new Error(err.error || `Erreur serveur (${response.status})`);
+        }
+        lastError = new Error(err.error || `Erreur serveur (${response.status})`);
+        continue; // Retenter sur les erreurs 5xx
+      }
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      return data as T;
+
+    } catch (err: any) {
+      // Erreur réseau (fetch échoue) → retenter
+      if (err?.name === 'TypeError' || err?.message?.includes('Failed to fetch')) {
+        lastError = err;
+        continue;
+      }
+      throw err; // Erreur applicative → ne pas retenter
+    }
   }
 
-  const data = await response.json();
-  if (data.error) throw new Error(data.error);
-  return data as T;
+  throw lastError || new Error('Échec après plusieurs tentatives. Vérifiez votre connexion.');
 }
 
 export interface InitiatePaymentParams {

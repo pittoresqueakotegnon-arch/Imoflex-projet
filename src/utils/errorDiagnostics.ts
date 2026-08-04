@@ -128,6 +128,9 @@ export function showPaymentStatusError(status: string, failureReason?: string) {
     'CANCELLED': 'Transaction annulée depuis le téléphone.',
     'TIMEOUT': 'Délai de validation dépassé.',
     'DECLINED': 'Transaction refusée par l\'opérateur.',
+    'OPERATOR_TIMEOUT': 'L\'opérateur n\'a pas répondu dans le délai imparti.',
+    'OVER_PARTIAL_LIMIT': 'Plafond de paiement progressif dépassé.',
+    'INSUFFICIENT_FUNDS': 'Solde Mobile Money insuffisant.',
   };
 
   const reason = failureReason
@@ -139,3 +142,13 @@ export function showPaymentStatusError(status: string, failureReason?: string) {
     'Paiement Mobile Money'
   );
 }
+
+/** Helper pour avertir l'utilisateur d'une mise à jour du bail pendant le paiement */
+export function showLeaseUpdatedWarning(newAmount: number) {
+  toast.warning('⚠️ Mise à jour des informations', {
+    description: `Les détails de votre loyer ont été actualisés. Veuillez vérifier le nouveau solde restant (${new Intl.NumberFormat('fr-FR').format(newAmount)} FCFA).`,
+    duration: 8000,
+    dismissible: true,
+  });
+}
+
