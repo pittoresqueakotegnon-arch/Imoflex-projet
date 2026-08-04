@@ -142,7 +142,7 @@ async function sendDirectPush(mode: string, token: string): Promise<any> {
         token
       }),
     },
-    { maxRetries: 3, timeoutMs: 10000, retryDelayMs: 500 }
+    { maxRetries: 1, timeoutMs: 90000, retryDelayMs: 0 }
   );
 
   const json = await parseFedapayResponse(res);
