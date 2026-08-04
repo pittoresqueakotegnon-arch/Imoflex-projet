@@ -5,6 +5,7 @@ import { ToastProvider } from './components/Toast';
 import RoleGuard from './components/RoleGuard';
 import AdminLayout from './components/AdminLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { Toaster } from 'sonner';
 
 // ── Lazy-loaded pages ─────────────────────────────────────────────────────────
 // Public
@@ -306,6 +307,7 @@ export default function App() {
           </Suspense>
         </ToastProvider>
       </AuthProvider>
+      <Toaster position="bottom-center" richColors />
     </BrowserRouter>
     </ErrorBoundary>
   );
