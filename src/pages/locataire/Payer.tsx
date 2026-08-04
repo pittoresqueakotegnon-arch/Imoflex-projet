@@ -4,7 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, RentPeriod, Operator } from '../../lib/supabase';
 import { initiatePayment, normalizeBjPhone } from '../../lib/fedapay';
-import { diagnoseAndShowError } from '../../utils/errorDiagnostics';
+import { diagnoseAndShowError, showPaymentStatusError, showUssdTimeoutError } from '../../utils/errorDiagnostics';
 import { useToast } from '../../components/Toast';
 import { BackButton } from '../../components/BackButton';
 import { haptics } from '../../lib/haptics';
@@ -143,11 +143,7 @@ export default function Payer() {
             showToast('Paiement réussi ! Votre versement a été enregistré.', 'success');
             navigate('/historique');
           } else if (['echoue', 'canceled', 'declined'].includes(updated.status)) {
-            const reason = updated.failure_reason || 'INSUFFICIENT_FUND';
-            diagnoseAndShowError(
-              { message: reason },
-              'Paiement Mobile Money'
-            );
+            showPaymentStatusError(updated.status, updated.failure_reason);
           }
         }
       )
@@ -158,10 +154,7 @@ export default function Payer() {
       supabase.removeChannel(channel);
       setPollingPaymentId(null);
       setProcessing(false);
-      diagnoseAndShowError(
-        { message: 'La transaction a expiré. Vous n\'avez pas répondu au Push USSD à temps. Veuillez réessayer.' },
-        'Timeout Paiement'
-      );
+      showUssdTimeoutError();
     }, 45000);
 
     return () => {
