@@ -171,6 +171,16 @@ Deno.serve(async (req: Request) => {
         }
       } else if (rpcResult?.status === "declined") {
         const { tenant_id, amount, payment_id } = rpcResult;
+        
+        // Inspecter la raison de l'échec depuis l'entité FedaPay
+        const errorCode = String(entity.error_code || entity.sub_status || entity.last_error?.code || "").toUpperCase();
+        const errorMsg = String(entity.error_message || entity.last_error?.message || "").toUpperCase();
+        
+        let bodyMsg = "La transaction a été annulée par l'opérateur. Veuillez réessayer ou contacter votre réseau.";
+        if (errorCode.includes("INSUFFICIENT") || errorMsg.includes("INSUFFICIENT_FUND") || errorMsg.includes("INSUFFISANT")) {
+          bodyMsg = "Transaction échouée : Solde Mobile Money insuffisant sur votre compte. Veuillez recharger votre compte et réessayer.";
+        }
+
         // Notify tenant
         if (tenant_id) {
           await supabase.from("notifications").insert({
@@ -178,7 +188,7 @@ Deno.serve(async (req: Request) => {
             type: "retard",
             related_id: payment_id,
             title: "Versement échoué",
-            body: `Votre versement de ${amount} FCFA a échoué. Veuillez réessayer.`,
+            body: bodyMsg,
           });
         }
       }

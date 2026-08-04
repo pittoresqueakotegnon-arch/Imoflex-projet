@@ -235,6 +235,10 @@ export default function Payer() {
             <p className="text-red-400 text-[13px] font-space-grotesk font-bold">
               ⚠️ Montant supérieur au solde dû ({new Intl.NumberFormat('fr-FR').format(remaining)} FCFA max)
             </p>
+          ) : amount > 300000 ? (
+            <p className="text-red-400 text-[13px] font-space-grotesk font-bold text-center mt-2 max-w-[280px]">
+              ⚠️ Le plafond maximal par transaction est de 300 000 FCFA. Pour régler un montant supérieur, veuillez effectuer votre versement en plusieurs fois.
+            </p>
           ) : (
             <p className="text-[#645A8A] text-[13px] font-space-grotesk">
               {amount > 0
@@ -352,7 +356,7 @@ export default function Payer() {
 
           <button
             onClick={() => { haptics.medium(); handlePay(); }}
-            disabled={processing || amount < 100 || amount > remaining || !selectedOperator}
+            disabled={processing || amount < 100 || amount > remaining || amount > 300000 || !selectedOperator}
             className="w-full text-white font-nunito font-900 text-[17px] rounded-3xl py-5 flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
             style={{ background: '#A855F7' }}
           >

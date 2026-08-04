@@ -75,6 +75,24 @@ export default function Historique() {
     };
 
     fetchPayments();
+
+    // Polling / Realtime Webhook Listeners : Écouteur sur les notifications pour le feedback instantané
+    const channel = supabase.channel('historique-notifications')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${profile?.id}` }, (payload) => {
+        const notif = payload.new;
+        if (notif.type === 'retard') {
+          showToast(notif.body, 'error');
+          fetchPayments(); // Refresh list after status update
+        } else if (notif.type === 'confirmation') {
+          showToast(notif.body, 'success');
+          fetchPayments();
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [profile?.id, filter, selectedLeaseId]);
 
   const groupedPayments = payments.reduce(

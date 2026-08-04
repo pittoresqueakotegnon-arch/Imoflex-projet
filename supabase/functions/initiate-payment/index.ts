@@ -242,6 +242,13 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    if (amount > 300000) {
+      return new Response(
+        JSON.stringify({ error: "Le plafond maximal par transaction est de 300 000 FCFA." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { data: rentPeriod, error: rpError } = await supabase
       .from("rent_periods")
       .select("*, leases!inner(tenant_id)")
