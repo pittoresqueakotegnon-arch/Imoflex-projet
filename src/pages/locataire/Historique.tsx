@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowDownLeft, Calendar, FileText, Download, X, Printer } from 'lucide-react';
+import { Clock, ArrowUpRight, CheckCircle2, XCircle, Search, Download, X, Printer } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, Payment } from '../../lib/supabase';
 
@@ -14,7 +13,6 @@ import { BackButton } from '../../components/BackButton';
 type FilterStatus = 'all' | 'valide' | 'echoue';
 
 export default function Historique() {
-  const navigate = useNavigate();
   const { profile } = useAuth();
   const { showToast } = useToast();
 

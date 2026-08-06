@@ -1,6 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod";
 import { maskPhone, ServiceUnavailableError, fetchWithRetry } from "../_shared/security.ts";
+
+const withdrawalSchema = z.object({
+  wallet_id: z.string().uuid("ID de wallet invalide"),
+  amount: z.number().int().positive("Le montant doit être supérieur à 0"),
+  operator: z.enum(["mtn", "moov", "celtiis"], { errorMap: () => ({ message: "Opérateur non supporté" }) }),
+  destination_phone: z.string().length(10, "Le numéro doit comporter 10 chiffres"),
+});
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -70,29 +78,17 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json();
-    const { wallet_id, amount, operator, destination_phone } = body;
+    const parseResult = withdrawalSchema.safeParse(body);
 
-    if (!wallet_id || !amount || !operator || !destination_phone) {
+    if (!parseResult.success) {
+      const errorMsg = parseResult.error.errors.map(e => e.message).join(", ");
       return new Response(
-        JSON.stringify({ error: "Paramètres manquants" }),
+        JSON.stringify({ error: "Données invalides", details: errorMsg }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (amount <= 0) {
-      return new Response(
-        JSON.stringify({ error: "Montant invalide" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Le payout Fedapay est confirmé pour MTN, Moov et Celtiis
-    if (operator !== "mtn" && operator !== "moov" && operator !== "celtiis") {
-      return new Response(
-        JSON.stringify({ error: "Opérateur de retrait non supporté (MTN, Moov ou Celtiis uniquement)" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const { wallet_id, amount, operator, destination_phone } = parseResult.data;
 
     // Fetch and verify wallet ownership (contre le user authentifié, pas un id du body)
     const { data: wallet, error: walletError } = await supabase
@@ -116,30 +112,18 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Déduction atomique : la clause .gte() empêche un double-retrait simultané
-    // de faire passer le solde en négatif (race condition sur deux requêtes concurrentes).
-    const { data: updatedWallets, error: walletUpdateError } = await supabase
-      .from("wallets")
-      .update({
-        available_balance: wallet.available_balance - amount,
-        total_withdrawn: wallet.total_withdrawn + amount,
-      })
-      .eq("id", wallet_id)
-      .gte("available_balance", amount)
-      .select();
+    // Déduction atomique : appel à la fonction RPC pour éviter les conditions de concurrence (race condition)
+    // Cette fonction verrouille la ligne (FOR UPDATE) et déduit le montant si le solde est suffisant.
+    const { data: deductionResult, error: deductionError } = await supabase
+      .rpc('atomic_wallet_deduction', {
+        p_wallet_id: wallet_id,
+        p_amount: amount
+      });
 
-    if (walletUpdateError) {
+    if (deductionError) {
       return new Response(
-        JSON.stringify({ error: walletUpdateError.message }),
+        JSON.stringify({ error: deductionError.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (!updatedWallets || updatedWallets.length === 0) {
-      // Le solde a changé entre la lecture et l'écriture (autre retrait concurrent)
-      return new Response(
-        JSON.stringify({ error: "Solde insuffisant (déjà utilisé par une autre opération)" }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -187,14 +171,11 @@ Deno.serve(async (req: Request) => {
       if (!payout?.id) throw new Error("Réponse Fedapay inattendue (pas d'id de payout)");
       payoutId = String(payout.id);
     } catch (payoutErr: unknown) {
-      // Rollback : le retrait n'a pas pu être envoyé, on remet le solde initial
-      await supabase
-        .from("wallets")
-        .update({
-          available_balance: wallet.available_balance,
-          total_withdrawn: wallet.total_withdrawn,
-        })
-        .eq("id", wallet_id);
+      // Rollback : le retrait n'a pas pu être envoyé, on remet le solde initial via l'RPC
+      await supabase.rpc('atomic_wallet_refund', {
+        p_wallet_id: wallet_id,
+        p_amount: amount
+      });
 
       const isUnavailable = payoutErr instanceof ServiceUnavailableError;
       const isTimeout = payoutErr instanceof Error && payoutErr.name === "TimeoutError";
@@ -232,13 +213,10 @@ Deno.serve(async (req: Request) => {
       // NB: à ce stade, le payout a déjà été envoyé côté Fedapay. Ce cas (échec DB
       // après succès Fedapay) doit être surveillé manuellement — l'argent est parti
       // mais l'enregistrement local a échoué. Log à surveiller en prod.
-      await supabase
-        .from("wallets")
-        .update({
-          available_balance: wallet.available_balance,
-          total_withdrawn: wallet.total_withdrawn,
-        })
-        .eq("id", wallet_id);
+      await supabase.rpc('atomic_wallet_refund', {
+        p_wallet_id: wallet_id,
+        p_amount: amount
+      });
 
       return new Response(
         JSON.stringify({ error: withdrawalError.message }),

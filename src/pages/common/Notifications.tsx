@@ -128,7 +128,7 @@ function groupByDate(notifs: any[]): { label: string; items: any[] }[] {
   for (const n of notifs) {
     const d = new Date(n.created_at);
     const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
-    let key = diffDays === 0 ? "Aujourd'hui"
+    const key = diffDays === 0 ? "Aujourd'hui"
             : diffDays === 1 ? 'Hier'
             : diffDays < 7  ? `Il y a ${diffDays} jours`
             : new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' }).format(d);

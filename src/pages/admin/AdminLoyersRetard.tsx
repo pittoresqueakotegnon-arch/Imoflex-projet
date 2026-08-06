@@ -53,7 +53,7 @@ const AdminLoyersRetard: React.FC = () => {
           if ((rp.leases as any)?.properties?.owner_id) userIds.add((rp.leases as any).properties.owner_id);
         });
 
-        let usersMap: Record<string, { full_name: string, phone: string }> = {};
+        const usersMap: Record<string, { full_name: string, phone: string }> = {};
         if (userIds.size > 0) {
           const { data: users, error: usersError } = await supabase
             .from('users')

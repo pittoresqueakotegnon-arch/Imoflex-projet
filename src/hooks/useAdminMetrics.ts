@@ -160,7 +160,7 @@ export function useAdminMetrics(): AdminMetricsState {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);  
 
   return {
     period, setPeriod,

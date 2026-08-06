@@ -244,13 +244,10 @@ Deno.serve(async (req: Request) => {
             .update({ status: "echoue" })
             .eq("id", withdrawal.id);
 
-          await supabase
-            .from("wallets")
-            .update({
-              available_balance: wallet.available_balance + withdrawal.amount,
-              total_withdrawn: wallet.total_withdrawn - withdrawal.amount,
-            })
-            .eq("id", wallet.id);
+          await supabase.rpc('atomic_wallet_refund', {
+            p_wallet_id: wallet.id,
+            p_amount: withdrawal.amount
+          });
 
           await supabase.from("notifications").insert({
             user_id: ownerId,

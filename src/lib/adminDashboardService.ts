@@ -282,7 +282,7 @@ export async function fetchPendingListings(): Promise<PendingListing[]> {
 
   type ListRow = { id: string; title: string; property_type: string; monthly_rent: number; created_at: string; owner_id: string };
   const ownerIds = [...new Set((data as ListRow[]).map(l => l.owner_id).filter(Boolean))];
-  let ownerMap: Record<string, string> = {};
+  const ownerMap: Record<string, string> = {};
 
   if (ownerIds.length > 0) {
     const { data: owners } = await supabase.from('users').select('id, full_name').in('id', ownerIds);
@@ -314,7 +314,7 @@ export async function fetchPendingWithdrawals(): Promise<PendingWithdrawal[]> {
 
   type WRow = { id: string; amount: number; created_at: string; operator: string; wallets?: { owner_id: string } };
   const wOwnerIds = [...new Set((data as WRow[]).map(w => w.wallets?.owner_id).filter(Boolean) as string[])];
-  let wOwnerMap: Record<string, string> = {};
+  const wOwnerMap: Record<string, string> = {};
 
   if (wOwnerIds.length > 0) {
     const { data: owners } = await supabase.from('users').select('id, full_name').in('id', wOwnerIds);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, RentPeriod, Operator } from '../../lib/supabase';
 import { initiatePayment, normalizeBjPhone } from '../../lib/fedapay';
@@ -99,7 +99,7 @@ export default function Payer() {
     };
 
     fetchData();
-  }, [profile?.id, leaseId]);
+  }, [profile?.id, leaseId, navigate, showToast]);
 
   const handleQuickAmount = (value: number | 'all') => {
     if (!currentRentPeriod) return;
@@ -114,7 +114,7 @@ export default function Payer() {
 
   // Nouveau state pour le polling
   const [pollingPaymentId, setPollingPaymentId] = useState<string | null>(null);
-  const [pollingMessage, setPollingMessage] = useState('');
+
 
   // Polling Realtime : écoute les changements de statut du paiement en DB
   useEffect(() => {
@@ -161,7 +161,7 @@ export default function Payer() {
       clearTimeout(timeoutId);
       supabase.removeChannel(channel);
     };
-  }, [pollingPaymentId]);
+  }, [pollingPaymentId, navigate, showToast]);
 
   const handlePay = async () => {
     setError('');
@@ -205,7 +205,6 @@ export default function Payer() {
         navigate('/historique');
       } else {
         // MTN / Moov : démarrer le polling Realtime sur payment_id
-        setPollingMessage('Confirmez sur votre téléphone — en attente de réponse...');
         setPollingPaymentId(result.payment_id);
         // setProcessing reste true jusqu'à la réponse du webhook ou timeout
       }

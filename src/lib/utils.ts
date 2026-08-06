@@ -88,7 +88,7 @@ export function calculateProrataAmount(monthlyRent: number, joinDateStr: string,
   }
 
   // Find the previous deadline to determine the full period length
-  let previousDeadlineDate = new Date(deadlineDate);
+  const previousDeadlineDate = new Date(deadlineDate);
   previousDeadlineDate.setMonth(previousDeadlineDate.getMonth() - 1);
 
   // Total days in this rent period

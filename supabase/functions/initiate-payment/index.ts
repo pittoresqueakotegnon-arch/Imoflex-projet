@@ -1,6 +1,15 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod";
 import { maskPhone, ServiceUnavailableError, fetchWithRetry } from "../_shared/security.ts";
+
+const paymentSchema = z.object({
+  amount: z.number().int().min(100, "Montant minimum: 100 FCFA").max(300000, "Le plafond maximal par transaction est de 300 000 FCFA."),
+  operator: z.enum(["mtn", "moov", "celtiis"]),
+  rent_period_id: z.string().uuid("ID de période de loyer invalide"),
+  phone_number: z.string().length(10, "Le numéro de téléphone doit contenir 10 chiffres"),
+  idempotency_key: z.string().uuid("Clé d'idempotence invalide").optional(),
+});
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -207,7 +216,17 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json();
-    const { amount, operator, rent_period_id, phone_number, idempotency_key } = body;
+    const parseResult = paymentSchema.safeParse(body);
+
+    if (!parseResult.success) {
+      const errorMsg = parseResult.error.errors.map(e => e.message).join(", ");
+      return new Response(
+        JSON.stringify({ error: "Données invalides", details: errorMsg }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { amount, operator, rent_period_id, phone_number, idempotency_key } = parseResult.data;
 
     if (idempotency_key) {
       const { data: existingPayment } = await supabase
@@ -226,27 +245,6 @@ Deno.serve(async (req: Request) => {
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-    }
-
-    if (!amount || !operator || !rent_period_id || !phone_number) {
-      return new Response(
-        JSON.stringify({ error: "Paramètres manquants" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (amount < 100) {
-      return new Response(
-        JSON.stringify({ error: "Montant minimum: 100 FCFA" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (amount > 300000) {
-      return new Response(
-        JSON.stringify({ error: "Le plafond maximal par transaction est de 300 000 FCFA." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
     const { data: rentPeriod, error: rpError } = await supabase

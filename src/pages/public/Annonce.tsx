@@ -5,6 +5,7 @@ import { useListing } from '../../hooks/useListings';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
 import EmptyState from '../../components/EmptyState';
+import ImageGalleryModal from '../../components/ImageGalleryModal';
 import { formatMontant } from '../../lib/utils';
 import { haptics } from '../../lib/haptics';
 
@@ -35,6 +36,7 @@ const Annonce: React.FC = () => {
 
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -104,16 +106,16 @@ const Annonce: React.FC = () => {
   const currentPhoto = photos[currentPhotoIndex];
 
   const statusConfig = {
-    disponible: { label: 'DISPONIBLE', className: 'badge-solid-green' },
-    reserve:    { label: 'RÉSERVÉ',    className: 'badge-solid-amber' },
-    occupe:     { label: 'OCCUPÉ',     className: 'badge-solid-amber' },
-  }[listing.availability_status] ?? { label: 'N/A', className: 'badge-dim' };
+    disponible: { label: 'DISPONIBLE', className: 'px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 backdrop-blur-sm' },
+    reserve:    { label: 'RÉSERVÉ',    className: 'px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide bg-amber-500/20 text-amber-400 border border-amber-500/30 backdrop-blur-sm' },
+    occupe:     { label: 'OCCUPÉ',     className: 'px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide bg-amber-500/20 text-amber-400 border border-amber-500/30 backdrop-blur-sm' },
+  }[listing.availability_status] ?? { label: 'N/A', className: 'px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide bg-white/10 text-white/70 border border-white/20 backdrop-blur-sm' };
 
   return (
     <div className="page-container pb-24">
       {/* ── Photo & Boutons flottants ─────────────────────── */}
       <div
-        className="w-full bg-[#261C55] relative overflow-hidden"
+        className="w-full bg-[#261C55] relative overflow-hidden rounded-b-[28px] shadow-sm"
         style={{ height: '280px' }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -142,16 +144,13 @@ const Annonce: React.FC = () => {
           <>
             <img
               src={`${currentPhoto.photo_url}?width=800&format=webp`}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-40"
-              loading="lazy"
-            />
-            <img
-              src={`${currentPhoto.photo_url}?width=800&format=webp`}
               alt={`Photo ${currentPhotoIndex + 1}`}
-              className="relative w-full h-full object-cover"
+              className="relative w-full h-full object-cover cursor-pointer"
               loading="lazy"
+              onClick={() => {
+                haptics.light();
+                setIsGalleryOpen(true);
+              }}
             />
             {/* Flèches de navigation carrousel image (gauche & droite) */}
             {photos.length > 1 && (
@@ -203,10 +202,11 @@ const Annonce: React.FC = () => {
             <button
               key={photo.id}
               onClick={() => setCurrentPhotoIndex(idx)}
-              className="flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden transition-all"
-              style={{
-                border: `2px solid ${idx === currentPhotoIndex ? '#A855F7' : 'rgba(255,255,255,0.1)'}`,
-              }}
+              className={`flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden transition-all ${
+                idx === currentPhotoIndex
+                  ? 'ring-2 ring-[#A855F7] ring-offset-2 ring-offset-[#120D2A] shadow-[0_0_12px_rgba(168,85,247,0.5)]'
+                  : 'opacity-50 hover:opacity-100 border border-white/10'
+              }`}
             >
               <img src={`${photo.photo_url}?width=200&format=webp`} alt="" className="w-full h-full object-cover" loading="lazy" />
             </button>
@@ -237,22 +237,22 @@ const Annonce: React.FC = () => {
       {/* ── Stats ─────────────────────────────────────────── */}
       <div className="px-4 py-4 grid grid-cols-3 gap-2.5" style={{ borderBottom: '1px solid rgba(123,63,228,0.1)' }}>
         {listing.bedrooms && (
-          <div className="stat-box items-center text-center">
-            <Bed size={18} className="text-[#A855F7] mb-1" />
+          <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-lg">
+            <Bed size={18} className="text-[#A855F7] mb-1 drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]" />
             <span className="font-nunito font-800 text-white text-base">{listing.bedrooms}</span>
             <span className="text-[#8B7BB5] text-[11px]">Chambre{listing.bedrooms > 1 ? 's' : ''}</span>
           </div>
         )}
         {listing.deposit_amount && (
-          <div className="stat-box items-center text-center">
-            <Wallet size={18} className="text-[#A855F7] mb-1" />
+          <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-lg">
+            <Wallet size={18} className="text-[#A855F7] mb-1 drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]" />
             <span className="font-nunito font-800 text-white text-sm">{formatMontant(listing.deposit_amount)}</span>
             <span className="text-[#8B7BB5] text-[11px]">Caution</span>
           </div>
         )}
         {listing.advance_amount && (
-          <div className="stat-box items-center text-center">
-            <Coins size={18} className="text-[#A855F7] mb-1" />
+          <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-lg">
+            <Coins size={18} className="text-[#A855F7] mb-1 drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]" />
             <span className="font-nunito font-800 text-white text-sm">{formatMontant(listing.advance_amount)}</span>
             <span className="text-[#8B7BB5] text-[11px]">Avance</span>
           </div>
@@ -347,12 +347,20 @@ const Annonce: React.FC = () => {
         </button>
         <button
           onClick={handleContactClick}
-          className="btn-primary flex-1 min-w-0"
+          className="flex-1 min-w-0 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all active:scale-95"
           style={{ height: '48px', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
         >
           Demander une visite
         </button>
       </div>
+
+      {/* Image Gallery Modal */}
+      <ImageGalleryModal
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        photos={photos}
+        initialIndex={currentPhotoIndex}
+      />
     </div>
   );
 };
