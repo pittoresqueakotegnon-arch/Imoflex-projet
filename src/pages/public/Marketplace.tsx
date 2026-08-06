@@ -3,12 +3,29 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useListings } from '../../hooks/useListings';
 import { useToast } from '../../components/Toast';
+import { useAuthGate } from '../../hooks/useAuthGate';
+import { AuthGateModal } from '../../components/AuthGateModal';
 import ListingCard from '../../components/ListingCard';
 import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
 import { SplashScreen } from '../../components/SplashScreen';
 import { supabase, PropertyType } from '../../lib/supabase';
 import { propertyTypeLabel } from '../../lib/utils';
+import { Search, Shield, Wallet, Building2, Sparkles } from 'lucide-react';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Accueil (Marketplace) — ImoFlex
+//
+// Accessible en mode Visiteur, Locataire et Propriétaire.
+// Les favoris déclenchent l'AuthGateModal pour les visiteurs.
+//
+// Futures extensions prévues :
+//   - Section « Logements populaires »
+//   - Section « Nouveautés de la semaine »
+//   - Section « Quartiers populaires »
+//   - Notifications push (Web Push API)
+//   - Multi-ville / Multi-pays
+// ─────────────────────────────────────────────────────────────────────────────
 
 const PROPERTY_TYPES: { type: PropertyType; label: string }[] = [
   { type: 'studio', label: 'Studio' },
@@ -22,6 +39,7 @@ const Marketplace: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { requireAuth, isModalOpen, closeModal, modalReason } = useAuthGate();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<PropertyType | null>(null);
@@ -80,40 +98,28 @@ const Marketplace: React.FC = () => {
   const handleToggleFavorite = async (listingId: string) => {
     const isFavorited = favorites.includes(listingId);
 
-    // Optimistic UI update immediately
+    // Visiteur non connecté → ouvrir AuthGateModal
+    if (!user?.id) {
+      requireAuth(() => {}, 'favorites');
+      return;
+    }
+
+    // Optimistic UI update
     setFavorites(prev =>
       isFavorited ? prev.filter((id) => id !== listingId) : [...prev, listingId]
     );
 
-    // If not authenticated, just use localStorage
-    if (!user?.id) {
-      const stored = localStorage.getItem('favorites');
-      const current: string[] = stored ? JSON.parse(stored) : [];
-      const updated = isFavorited
-        ? current.filter((id) => id !== listingId)
-        : [...current, listingId];
-      localStorage.setItem('favorites', JSON.stringify(updated));
-      return;
-    }
-
-    // Authenticated user → sync with Supabase silently
+    // Utilisateur connecté → sync Supabase
     try {
       if (isFavorited) {
-        await supabase
-          .from('favorites')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('listing_id', listingId);
+        await supabase.from('favorites').delete().eq('user_id', user.id).eq('listing_id', listingId);
       } else {
-        await supabase
-          .from('favorites')
-          .upsert(
-            { user_id: user.id, listing_id: listingId },
-            { onConflict: 'user_id,listing_id', ignoreDuplicates: true }
-          );
+        await supabase.from('favorites').upsert(
+          { user_id: user.id, listing_id: listingId },
+          { onConflict: 'user_id,listing_id', ignoreDuplicates: true }
+        );
       }
     } catch (err) {
-      // Silent fail – optimistic update stays, Supabase will sync next reload
       console.warn('Favorite sync error (non-blocking):', err);
     }
   };
@@ -275,7 +281,48 @@ const Marketplace: React.FC = () => {
         )}
       </div>
 
+      {/* ── Section Pourquoi ImoFlex (visiteurs uniquement) ────── */}
+      {!user && (
+        <div className="px-4 mt-6 mb-4">
+          <div
+            className="rounded-3xl p-5"
+            style={{ background: 'rgba(123,63,228,0.06)', border: '1px solid rgba(123,63,228,0.15)' }}
+          >
+            <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ fontFamily: 'Space Grotesk', color: '#6B5F8F' }}>
+              Pourquoi ImoFlex ?
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { icon: <Search size={18} />, title: 'Trouver un logement', desc: 'Recherche intelligente en Afrique' },
+                { icon: <Wallet size={18} />, title: 'Payer progressivement', desc: 'Loyer en plusieurs fois via Mobile Money' },
+                { icon: <Building2 size={18} />, title: 'Gérer ses locations', desc: 'Tableau de bord propriétaire complet' },
+                { icon: <Shield size={18} />, title: 'Plateforme sécurisée', desc: 'Paiements protégés et vérifiés' },
+              ].map((item, i) => (
+                <div key={i} className="p-3 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="mb-2" style={{ color: '#A855F7' }}>{item.icon}</div>
+                  <p className="text-xs font-bold mb-0.5" style={{ fontFamily: 'Nunito', color: '#E8E0FF' }}>{item.title}</p>
+                  <p className="text-xs leading-relaxed" style={{ fontFamily: 'Space Grotesk', color: '#6B5F8F' }}>{item.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* CTA conversion */}
+            <div className="flex gap-2 mt-4">
+              <Link to="/register" className="btn-primary flex-1 text-center" style={{ fontSize: '13px', height: '44px' }}>
+                Créer un compte
+              </Link>
+              <Link to="/login" className="btn-ghost-violet flex-1 text-center" style={{ fontSize: '13px', height: '44px' }}>
+                Se connecter
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       <BottomNav />
+
+      {/* AuthGateModal — déclenchée quand un visiteur tente une action protégée */}
+      <AuthGateModal isOpen={isModalOpen} onClose={closeModal} reason={modalReason} />
     </div>
   );
 };

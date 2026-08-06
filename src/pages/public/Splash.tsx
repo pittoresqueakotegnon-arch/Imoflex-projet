@@ -9,7 +9,7 @@ export default function Splash() {
 
   useEffect(() => {
     if (loading) return; // Attend que l'auth soit chargée
-    
+
     const timer = setTimeout(() => {
       if (role === 'admin') {
         navigate('/admin', { replace: true });
@@ -18,7 +18,14 @@ export default function Splash() {
       } else if (role === 'locataire') {
         navigate('/dashboard', { replace: true });
       } else {
-        navigate('/', { replace: true });
+        // Visiteur non connecté :
+        // → Onboarding si première visite, sinon Accueil directement
+        const hasSeenOnboarding = sessionStorage.getItem('hasSeenOnboarding');
+        if (hasSeenOnboarding) {
+          navigate('/', { replace: true });
+        } else {
+          navigate('/onboarding', { replace: true });
+        }
       }
     }, 2500);
     return () => clearTimeout(timer);

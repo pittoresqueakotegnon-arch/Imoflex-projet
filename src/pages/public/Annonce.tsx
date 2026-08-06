@@ -4,6 +4,8 @@ import { Heart, MapPin, Building2, Bed, Wallet, Coins, Zap, Droplets, Car, Wifi,
 import { useListing } from '../../hooks/useListings';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
+import { useAuthGate } from '../../hooks/useAuthGate';
+import { AuthGateModal } from '../../components/AuthGateModal';
 import EmptyState from '../../components/EmptyState';
 import ImageGalleryModal from '../../components/ImageGalleryModal';
 import { formatMontant } from '../../lib/utils';
@@ -31,6 +33,7 @@ const Annonce: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { requireAuth, isModalOpen, closeModal, modalReason } = useAuthGate();
 
   const { listing, loading, error } = useListing(id!);
 
@@ -61,22 +64,16 @@ const Annonce: React.FC = () => {
   );
 
   const handleToggleFavorite = () => {
-    if (!user) {
-      showToast('Connectez-vous pour ajouter à vos favoris', 'info');
-      navigate('/login');
-      return;
-    }
-    setIsFavorite(!isFavorite);
-    showToast(isFavorite ? 'Retiré des favoris' : 'Ajouté aux favoris', 'success');
+    requireAuth(() => {
+      setIsFavorite(!isFavorite);
+      showToast(isFavorite ? 'Retiré des favoris' : 'Ajouté aux favoris', 'success');
+    }, 'favorites');
   };
 
   const handleContactClick = () => {
-    if (!user) {
-      showToast('Connectez-vous pour contacter le propriétaire', 'info');
-      navigate('/login');
-      return;
-    }
-    navigate(`/contact/${listing?.id}`);
+    requireAuth(() => {
+      navigate(`/contact/${listing?.id}`);
+    }, 'contact');
   };
 
   if (loading) {
@@ -361,6 +358,9 @@ const Annonce: React.FC = () => {
         photos={photos}
         initialIndex={currentPhotoIndex}
       />
+
+      {/* AuthGateModal — déclenchée pour favoris et contact en mode visiteur */}
+      <AuthGateModal isOpen={isModalOpen} onClose={closeModal} reason={modalReason} />
     </div>
   );
 };

@@ -21,6 +21,7 @@ const MesDemandes   = lazy(() => import('./pages/public/MesDemandes'));
 // Auth
 const Login           = lazy(() => import('./pages/auth/Login'));
 const Register        = lazy(() => import('./pages/auth/Register'));
+const Onboarding      = lazy(() => import('./pages/auth/Onboarding'));
 const ForgotPassword  = lazy(() => import('./pages/auth/ForgotPassword'));
 
 // Locataire
@@ -150,7 +151,10 @@ export default function App() {
                 }
               />
 
-              {/* ── AUTH ───────────────────────────────────────────── */}
+              {/* ── ONBOARDING ───────────────────────────────────── */}
+              <Route path="/onboarding" element={<MobileFrame><Onboarding /></MobileFrame>} />
+
+              {/* ── AUTH ─────────────────────────────────────────── */}
               <Route path="/login" element={<MobileFrame><Login /></MobileFrame>} />
               <Route path="/register" element={<MobileFrame><Register /></MobileFrame>} />
               <Route path="/forgot-password" element={<MobileFrame><ForgotPassword /></MobileFrame>} />

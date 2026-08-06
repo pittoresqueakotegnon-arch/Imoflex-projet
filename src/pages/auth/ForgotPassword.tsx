@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Mail, KeyRound, Check } from 'lucide-react';
+import { Mail, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/Toast';
-import { BackButton } from '../../components/BackButton';
 import { diagnoseAndShowError } from '../../utils/errorDiagnostics';
 
 export default function ForgotPassword() {
@@ -37,87 +36,87 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-[#120D2A] text-[#E8E0FF] flex flex-col p-6">
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: 'linear-gradient(160deg, #0D0720 0%, #1E1545 40%, #120D2A 100%)' }}
+    >
       {/* Header */}
-      <div className="mb-6">
-        <BackButton />
+      <div className="px-5 pt-safe" style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}>
+        <button
+          onClick={() => navigate(-1)}
+          className="w-10 h-10 rounded-2xl flex items-center justify-center transition-colors"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          <ArrowLeft size={18} style={{ color: '#8B7BB5' }} />
+        </button>
       </div>
 
-      {/* Content */}
-      {!sent ? (
-        <>
-          <h1 className="font-nunito font-900 text-3xl mb-2">Réinitialiser le mot de passe</h1>
-          <p className="text-[#8B7BB5] mb-12">
-            Entrez votre email et nous vous enverrons un lien pour réinitialiser votre mot de passe.
-          </p>
+      <div className="flex-1 flex flex-col px-5 pt-8 pb-safe" style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))' }}>
+        {!sent ? (
+          <>
+            <h1 className="text-3xl mb-2" style={{ fontFamily: 'Nunito', fontWeight: 900, color: '#E8E0FF' }}>
+              Réinitialiser le mot de passe
+            </h1>
+            <p className="text-sm mb-10 leading-relaxed" style={{ fontFamily: 'Space Grotesk', color: '#8B7BB5' }}>
+              Entrez votre email et nous vous enverrons un lien pour réinitialiser votre mot de passe.
+            </p>
 
-          <form onSubmit={handleSubmit} className="flex-1">
-            {/* Email Input */}
-            <div className="mb-8">
-              <label className="block text-[#E8E0FF] font-space-grotesk font-500 mb-3">
-                EMAIL
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-                required
-                className="input-field w-full"
-                placeholder="vous@exemple.com"
-              />
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#6B5F8F' }}>
+                  <Mail size={18} />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  required
+                  className="input-field w-full pl-11"
+                  placeholder="vous@exemple.com"
+                  autoComplete="email"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !email}
+                className="btn-primary w-full"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  'Envoyer le lien'
+                )}
+              </button>
+            </form>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center flex-1">
+            <div
+              className="w-20 h-20 rounded-3xl flex items-center justify-center mb-8"
+              style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 0 40px rgba(168,85,247,0.2)' }}
+            >
+              <Mail size={36} style={{ color: '#A855F7' }} />
             </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="bg-[#EF4444] bg-opacity-10 border border-[#EF4444] text-[#EF4444] p-3 rounded-lg mb-6 text-sm">
-                {error}
-              </div>
-            )}
+            <h2 className="text-2xl mb-3 text-center" style={{ fontFamily: 'Nunito', fontWeight: 900, color: '#E8E0FF' }}>
+              Email envoyé !
+            </h2>
+            <p className="text-sm text-center mb-12 max-w-sm leading-relaxed" style={{ fontFamily: 'Space Grotesk', color: '#8B7BB5' }}>
+              Vérifiez votre boîte mail. Nous vous avons envoyé un lien pour réinitialiser votre mot de passe.
+            </p>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading || !email}
-              className="btn-primary w-full"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Envoi en cours...
-                </span>
-              ) : (
-                'Envoyer le lien'
-              )}
+            <button onClick={() => navigate('/login')} className="btn-primary w-full mb-3">
+              Retour à la connexion
             </button>
-          </form>
-        </>
-      ) : (
-        <div className="flex flex-col items-center justify-center flex-1">
-          <div className="w-20 h-20 rounded-full bg-[#7B3FE4] bg-opacity-20 flex items-center justify-center mb-8">
-            <Mail size={40} className="text-[#A855F7]" />
+
+            <button onClick={() => setSent(false)} className="btn-ghost w-full">
+              Renvoyer l'émail
+            </button>
           </div>
-
-          <h2 className="font-nunito font-900 text-2xl mb-3 text-center">Email envoyé !</h2>
-          <p className="text-[#8B7BB5] text-center mb-12 max-w-sm">
-            Vérifiez votre boîte mail. Nous vous avons envoyé un lien pour réinitialiser votre mot de passe.
-          </p>
-
-          <button
-            onClick={() => navigate('/login')}
-            className="btn-primary w-full"
-          >
-            Retour à la connexion
-          </button>
-
-          <button
-            onClick={() => setSent(false)}
-            className="btn-ghost w-full mt-3"
-          >
-            Renvoyer l'email
-          </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

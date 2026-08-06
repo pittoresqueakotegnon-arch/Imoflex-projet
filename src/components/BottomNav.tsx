@@ -7,6 +7,17 @@ import { useUnreadRequests } from '../hooks/useUnreadRequests';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { haptics } from '../lib/haptics';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BottomNav — Navigation inférieure ImoFlex
+//
+// 3 états : Visiteur (null) | Locataire | Propriétaire
+//
+// Futures extensions prévues :
+//   - Onglet « Messagerie » (Messages temps réel)
+//   - Onglet « Notifications » (Alertes push)
+//   - Badge sur Favoris pour les visiteurs (nombre en localStorage)
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const BottomNav: React.FC = () => {
   const location = useLocation();
   const { role, profile } = useAuth();
@@ -27,19 +38,26 @@ export const BottomNav: React.FC = () => {
       case 'proprietaire':
         return [
           { icon: LayoutDashboard, label: 'Dashboard', path: '/pro/dashboard' },
-          { icon: List, label: 'Annonces', path: '/pro/annonces' },
-          { icon: ClipboardList, label: 'Demandes', path: '/pro/demandes', badge: unreadRequestsCount },
-          { icon: Wallet, label: 'Wallet', path: '/pro/wallet' },
-          { icon: User, label: 'Profil', path: '/profil' },
+          { icon: List,            label: 'Annonces',  path: '/pro/annonces' },
+          { icon: ClipboardList,  label: 'Demandes',  path: '/pro/demandes', badge: unreadRequestsCount },
+          { icon: Wallet,         label: 'Wallet',    path: '/pro/wallet' },
+          { icon: User,           label: 'Profil',    path: '/profil' },
         ];
       case 'locataire':
-      default:
         return [
-          { icon: Store, label: 'Marché', path: '/' },
-          { icon: Heart, label: 'Favoris', path: '/favoris' },
-          { icon: ClipboardList, label: 'Demandes', path: '/mes-demandes' },
-          { icon: Receipt, label: 'Mon loyer', path: '/dashboard' },
-          { icon: User, label: 'Profil', path: '/profil' },
+          { icon: Store,        label: 'Accueil',   path: '/' },
+          { icon: Heart,        label: 'Favoris',   path: '/favoris' },
+          { icon: ClipboardList,label: 'Demandes',  path: '/mes-demandes' },
+          { icon: Receipt,      label: 'Mon loyer', path: '/dashboard' },
+          { icon: User,         label: 'Profil',    path: '/profil' },
+        ];
+      default:
+        // Visiteur non connecté — nav simplifiée
+        // « Compte » amène à /login où l'utilisateur peut Se connecter ou Créer un compte
+        return [
+          { icon: Store, label: 'Accueil',  path: '/' },
+          { icon: Heart, label: 'Favoris',  path: '/favoris' },
+          { icon: User,  label: 'Compte',   path: '/login' },
         ];
     }
   })();
