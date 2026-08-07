@@ -57,11 +57,9 @@ export default function Login() {
     return () => clearTimeout(t);
   }, []);
 
-  // Vérifier disponibilité Google OAuth (masquer si non configuré)
+  // Bouton Google gelé temporairement à la demande de l'utilisateur (en attente de config Supabase / Google Cloud)
   useEffect(() => {
-    // On ne fait pas le check au montage pour ne pas bloquer l'affichage
-    // Le bouton Google sera affiché par défaut et masqué si erreur
-    setGoogleVisible(true);
+    setGoogleVisible(false);
   }, []);
 
   // Redirection automatique si déjà connecté

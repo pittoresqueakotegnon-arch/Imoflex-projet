@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, X, Plus } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, PropertyType } from '../../lib/supabase';
 import { propertyTypeLabel } from '../../lib/utils';
 import { logAction } from '../../lib/audit';
 import { useToast } from '../../components/Toast';
 import { diagnoseAndShowError } from '../../utils/errorDiagnostics';
+import { processImage } from '../../lib/imageOptimization';
 
 const PROPERTY_TYPES: PropertyType[] = ['chambre', 'studio', 'appartement', 'maison', 'bureau', 'parcelle'];
 const AMENITIES = ['Électricité', 'Eau courante', 'Parking', 'Climatisation', 'WiFi', 'Sécurité', 'Balcon', 'Meublé'];
@@ -18,10 +20,18 @@ const Publier: React.FC = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Image Upload State
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Generate listing ID upfront for storage naming convention
+  const [listingId] = useState(() => uuidv4());
 
   // Step 1: Photos & basic info
-  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  // We store the photoId and the thumbUrl for preview, plus the publicBaseUrl to save in DB
+  const [uploadedPhotos, setUploadedPhotos] = useState<{ id: string, thumbUrl: string, publicBaseUrl: string }[]>([]);
   const [title, setTitle] = useState('');
   const [propertyType, setPropertyType] = useState<PropertyType>('appartement');
   const [monthlyRent, setMonthlyRent] = useState('');
@@ -42,26 +52,50 @@ const Publier: React.FC = () => {
     if (!profile?.id) return;
 
     setUploadingImage(true);
+    setUploadStatus('Optimisation...');
+    setUploadProgress(10);
     try {
-      const timestamp = Date.now();
-      const filename = `${timestamp}_${file.name}`;
-      const path = `listings/${profile.id}/${filename}`;
+      const photoId = uuidv4();
+      
+      // 1. Process & Compress Images
+      const { hd, medium, thumb } = await processImage(file);
+      setUploadProgress(30);
 
-      const { data, error: uploadError } = await supabase.storage
-        .from('listing-photos')
-        .upload(path, file, { upsert: false });
+      const storageParams = { upsert: false, cacheControl: '31536000' };
+      const bucket = supabase.storage.from('listing-photos');
 
-      if (uploadError) throw uploadError;
+      // 2. Upload versions
+      setUploadStatus('Envoi HD...');
+      const { error: hdError } = await bucket.upload(`${listingId}/photo_${photoId}_hd.webp`, hd, storageParams);
+      if (hdError) throw hdError;
+      setUploadProgress(50);
 
-      const { data: publicUrl } = supabase.storage
-        .from('listing-photos')
-        .getPublicUrl(data.path);
+      setUploadStatus('Envoi Medium...');
+      const { error: medError } = await bucket.upload(`${listingId}/photo_${photoId}_medium.webp`, medium, storageParams);
+      if (medError) throw medError;
+      setUploadProgress(70);
+
+      setUploadStatus('Envoi Thumbnail...');
+      const { error: thumbError } = await bucket.upload(`${listingId}/photo_${photoId}_thumb.webp`, thumb, storageParams);
+      if (thumbError) throw thumbError;
+      setUploadProgress(90);
+
+      // 3. URLs
+      const basePath = `${listingId}/photo_${photoId}`;
+      const publicBaseUrl = bucket.getPublicUrl(basePath).data.publicUrl;
+      const thumbUrl = bucket.getPublicUrl(`${basePath}_thumb.webp`).data.publicUrl;
 
       const newPhotos = [...uploadedPhotos];
-      newPhotos[index] = publicUrl.publicUrl;
+      newPhotos[index] = { id: photoId, thumbUrl, publicBaseUrl };
       setUploadedPhotos(newPhotos);
+
+      setUploadStatus('Image optimisée avec succès !');
+      setUploadProgress(100);
+      setTimeout(() => { setUploadStatus(''); setUploadProgress(0); }, 1500);
     } catch (err) {
       diagnoseAndShowError(err, 'Gestion Logement/Contrat');
+      setUploadStatus('');
+      setUploadProgress(0);
     } finally {
       setUploadingImage(false);
     }
@@ -106,6 +140,7 @@ const Publier: React.FC = () => {
       const { data: listingData, error: listingError } = await supabase
         .from('listings')
         .insert({
+          id: listingId,
           owner_id: profile.id,
           title,
           city,
@@ -135,7 +170,7 @@ const Publier: React.FC = () => {
           .from('listing_photos')
           .insert({
             listing_id: listingData.id,
-            photo_url: uploadedPhotos[i],
+            photo_url: uploadedPhotos[i].publicBaseUrl, // Contains base url, consumers will append _thumb.webp, etc.
             display_order: i,
             is_cover: i === 0,
           });
@@ -189,7 +224,7 @@ const Publier: React.FC = () => {
                 <div key={index} className="relative aspect-square">
                   <div className="w-full h-full rounded-2xl border border-[rgba(255,255,255,0.1)] overflow-hidden bg-[#261C55]">
                     <img
-                      src={photo}
+                      src={photo.thumbUrl}
                       alt={`Photo ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -233,6 +268,23 @@ const Publier: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* Upload Progress Bar */}
+            {uploadingImage && uploadStatus && (
+              <div className="mt-4">
+                <div className="flex justify-between text-xs text-[#8B7BB5] font-grotesk mb-1.5">
+                  <span>{uploadStatus}</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-[#1A1240] rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-purple-500 to-[#A855F7] transition-all duration-300 ease-out"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-between items-center mt-2">
               <span className="text-[10px] text-[#8B7BB5]" style={{ fontFamily: 'Space Grotesk' }}>
                 * La 1ère photo sera la couverture

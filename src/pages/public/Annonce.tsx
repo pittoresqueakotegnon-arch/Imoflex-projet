@@ -8,7 +8,8 @@ import { useAuthGate } from '../../hooks/useAuthGate';
 import { AuthGateModal } from '../../components/AuthGateModal';
 import EmptyState from '../../components/EmptyState';
 import ImageGalleryModal from '../../components/ImageGalleryModal';
-import { formatMontant } from '../../lib/utils';
+import { OptimizedImage } from '../../components/OptimizedImage';
+import { formatMontant, getOptimizedUrl } from '../../lib/utils';
 import { haptics } from '../../lib/haptics';
 
 const AMENITY_ICONS: Record<string, React.ReactNode> = {
@@ -99,8 +100,25 @@ const Annonce: React.FC = () => {
     );
   }
 
-  const photos = listing.listing_photos || [];
+  const photos = listing?.listing_photos || [];
   const currentPhoto = photos[currentPhotoIndex];
+
+  // Preload primary image for instant above-the-fold render
+  React.useEffect(() => {
+    if (photos.length > 0 && photos[0].photo_url) {
+      const primaryHdUrl = getOptimizedUrl(photos[0].photo_url, 'hd');
+      if (primaryHdUrl) {
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = primaryHdUrl;
+        document.head.appendChild(link);
+        return () => {
+          document.head.removeChild(link);
+        };
+      }
+    }
+  }, [photos]);
 
   const statusConfig = {
     disponible: { label: 'DISPONIBLE', className: 'px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 backdrop-blur-sm' },
@@ -139,11 +157,11 @@ const Annonce: React.FC = () => {
 
         {photos.length > 0 ? (
           <>
-            <img
-              src={`${currentPhoto.photo_url}?width=800&format=webp`}
+            <OptimizedImage
+              src={getOptimizedUrl(currentPhoto.photo_url, 'hd') || ''}
               alt={`Photo ${currentPhotoIndex + 1}`}
               className="relative w-full h-full object-cover cursor-pointer"
-              loading="lazy"
+              loading="eager"
               onClick={() => {
                 haptics.light();
                 setIsGalleryOpen(true);
@@ -205,7 +223,7 @@ const Annonce: React.FC = () => {
                   : 'opacity-50 hover:opacity-100 border border-white/10'
               }`}
             >
-              <img src={`${photo.photo_url}?width=200&format=webp`} alt="" className="w-full h-full object-cover" loading="lazy" />
+              <OptimizedImage src={getOptimizedUrl(photo.photo_url, 'thumb') || ''} alt="" className="w-full h-full object-cover" />
             </button>
           ))}
         </div>

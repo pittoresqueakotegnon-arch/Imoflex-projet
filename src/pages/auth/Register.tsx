@@ -71,7 +71,8 @@ export default function Register() {
   const [selectedCountry, setSelectedCountry] = useState(COUNTRY_CODES[0]);
   const [mounted, setMounted] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [googleVisible] = useState(true);
+  // Bouton Google gelé temporairement à la demande de l'utilisateur (en attente de config Supabase / Google Cloud)
+  const [googleVisible] = useState(false);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -129,7 +130,14 @@ export default function Register() {
         phone: `${selectedCountry.code}${formData.phone}`,
         role: selectedRole,
       };
-      await signUp(params);
+      const res = await signUp(params);
+      
+      // Si la confirmation d'email est désactivée dans Supabase Dashboard, Supabase crée une session active immédiatement
+      if (res?.session) {
+        showToast('Compte créé avec succès !', 'success');
+        navigate(selectedRole === 'proprietaire' ? '/pro/dashboard' : '/dashboard', { replace: true });
+        return;
+      }
       setStep('waiting');
     } catch (err) {
       diagnoseAndShowError(err, 'Authentification');

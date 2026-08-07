@@ -4,6 +4,7 @@ import { Heart, MapPin, Building2 } from 'lucide-react';
 import { Listing } from '../lib/supabase';
 import { formatMontant } from '../lib/utils';
 import StatusBadge from './StatusBadge';
+import { OptimizedImage } from './OptimizedImage';
 
 interface ListingCardProps {
   listing: Listing;
@@ -21,6 +22,18 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   const coverPhoto = listing.listing_photos?.find(p => p.is_cover) || listing.listing_photos?.[0];
   const isNew = listing.created_at && new Date(listing.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
 
+  // Derive thumb URL
+  const getThumbUrl = (url?: string) => {
+    if (!url) return null;
+    // New format (base URL without extension) -> we append _thumb.webp
+    if (!url.match(/\.[a-zA-Z0-9]+(\?.*)?$/)) {
+      return `${url}_thumb.webp`;
+    }
+    // Old format fallback
+    return `${url}?width=600&format=webp`;
+  };
+  const thumbUrl = getThumbUrl(coverPhoto?.photo_url);
+
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     onToggleFavorite?.();
@@ -33,8 +46,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({
         <div className="listing-card-h">
           {/* Image */}
           <div className="listing-card-h-img">
-            {coverPhoto?.photo_url ? (
-              <img src={`${coverPhoto.photo_url}?width=600&format=webp`} alt={listing.title} className="w-full h-full object-cover" loading="lazy" />
+            {thumbUrl ? (
+              <OptimizedImage src={thumbUrl} alt={listing.title} />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-[#4A3D7A]">
                 <Building2 size={32} />
@@ -97,8 +110,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({
       <div className="card overflow-hidden" style={{ borderRadius: '20px' }}>
         {/* Image fixe 160px */}
         <div className="relative overflow-hidden bg-[#261C55]" style={{ height: '160px' }}>
-          {coverPhoto?.photo_url ? (
-            <img src={`${coverPhoto.photo_url}?width=600&format=webp`} alt={listing.title} className="w-full h-full object-cover" loading="lazy" />
+          {thumbUrl ? (
+            <OptimizedImage src={thumbUrl} alt={listing.title} />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-[#4A3D7A]">
               <Building2 size={48} />

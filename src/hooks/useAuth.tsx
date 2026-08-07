@@ -16,7 +16,7 @@ interface AuthContextValue {
   role: UserRole | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (params: SignUpParams) => Promise<void>;
+  signUp: (params: SignUpParams) => Promise<any>;
   verifySignupOtp: (email: string, token: string) => Promise<void>;
   resendSignupOtp: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -124,6 +124,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Profile will be created by trigger; ignore client-side upsert errors
     }
+
+    return data;
   };
 
   const verifySignupOtp = async (email: string, token: string) => {

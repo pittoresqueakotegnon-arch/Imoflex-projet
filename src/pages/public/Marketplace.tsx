@@ -10,7 +10,7 @@ import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
 import { SplashScreen } from '../../components/SplashScreen';
 import { supabase, PropertyType } from '../../lib/supabase';
-import { propertyTypeLabel } from '../../lib/utils';
+import { propertyTypeLabel, getOptimizedUrl } from '../../lib/utils';
 import { Search, Shield, Wallet, Building2, Sparkles } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -125,15 +125,33 @@ const Marketplace: React.FC = () => {
   };
 
   const sortedListings = useMemo(() => {
-    const copy = [...listings];
-    if (sortMode === 'price_asc') return copy.sort((a, b) => a.monthly_rent - b.monthly_rent);
-    if (sortMode === 'price_desc') return copy.sort((a, b) => b.monthly_rent - a.monthly_rent);
-    return copy;
+    const arr = [...listings];
+    if (sortMode === 'price_asc') arr.sort((a, b) => a.monthly_rent - b.monthly_rent);
+    if (sortMode === 'price_desc') arr.sort((a, b) => b.monthly_rent - a.monthly_rent);
+    if (sortMode === 'recent') arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return arr;
   }, [listings, sortMode]);
 
-  const sortLabel = sortMode === 'recent' ? 'Aléatoire' : sortMode === 'price_asc' ? 'Prix ↑' : 'Prix ↓';
+  // Preload first 4 images above the fold for marketplace fast render
+  useEffect(() => {
+    if (sortedListings.length > 0) {
+      const top4 = sortedListings.slice(0, 4);
+      top4.forEach((listing) => {
+        const coverPhoto = listing.listing_photos?.find((p) => p.is_cover) || listing.listing_photos?.[0];
+        if (coverPhoto?.photo_url) {
+          const thumbUrl = getOptimizedUrl(coverPhoto.photo_url, 'thumb');
+          if (thumbUrl) {
+            const img = new Image();
+            img.src = thumbUrl;
+          }
+        }
+      });
+    }
+  }, [sortedListings]);
 
-  const hasActiveFilter = filterParams.types?.length || filterParams.city || filterParams.minRent || filterParams.maxRent;
+  const hasActiveFilter = Boolean(
+    searchQuery || selectedType || filterParams.city || filterParams.minRent || filterParams.maxRent || filterParams.bedrooms || filterParams.available || filterParams.progressive
+  );
 
   return (
     <div className="page-container">

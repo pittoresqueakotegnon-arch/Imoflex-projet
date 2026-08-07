@@ -19,6 +19,19 @@ export default {
         'imoflex-red': '#EF4444',
         'imoflex-gold': '#FBBF24',
       },
+      keyframes: {
+        slideUp: {
+          '0%': { transform: 'translateY(100%)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
+        }
+      },
+      animation: {
+        slideUp: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        shimmer: 'shimmer 1.5s infinite',
+      },
       fontFamily: {
         nunito: ['Nunito', 'sans-serif'],
         grotesk: ['Space Grotesk', 'sans-serif'],
