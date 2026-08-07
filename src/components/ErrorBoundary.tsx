@@ -6,6 +6,8 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  errorMessage: string;
+  errorStack: string;
 }
 
 /**
@@ -17,24 +19,36 @@ interface State {
 export class ErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, errorMessage: '', errorStack: '' };
   }
 
-  static getDerivedStateFromError(): State {
-    return { hasError: true };
+  static getDerivedStateFromError(error: unknown): State {
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? (error.stack || '') : '';
+    return { hasError: true, errorMessage: message, errorStack: stack };
   }
 
   componentDidCatch(error: unknown, info: React.ErrorInfo) {
-    // On garde une trace en console pour le débogage (pas d'envoi externe ici).
-    console.error('ErrorBoundary a intercepté une erreur:', error, info);
+    // Log complet pour débogage (console browser + Sentry si intégré)
+    console.error('═══════════════════════════════════════');
+    console.error('ErrorBoundary — Crash intercepté :');
+    console.error('Erreur :', error);
+    console.error('Stack component :', info.componentStack);
+    console.error('═══════════════════════════════════════');
   }
 
   handleReload = () => {
-    this.setState({ hasError: false });
+    this.setState({ hasError: false, errorMessage: '', errorStack: '' });
     window.location.href = '/';
   };
 
+  handleRetry = () => {
+    this.setState({ hasError: false, errorMessage: '', errorStack: '' });
+  };
+
   render() {
+    const isDev = import.meta.env.DEV;
+
     if (this.state.hasError) {
       return (
         <div
@@ -47,13 +61,38 @@ export class ErrorBoundary extends React.Component<Props, State> {
           <p className="text-sm opacity-70">
             Quelque chose s'est mal passé. Réessayez, ou revenez à l'accueil.
           </p>
-          <button
-            onClick={this.handleReload}
-            className="px-6 py-3 rounded-xl font-semibold"
-            style={{ background: '#7B3FE4', color: 'white' }}
-          >
-            Retour à l'accueil
-          </button>
+
+          {/* Détails en mode développement uniquement */}
+          {isDev && this.state.errorMessage && (
+            <div
+              className="w-full max-w-sm text-left rounded-xl p-4 mt-2 text-xs overflow-auto max-h-48"
+              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#FCA5A5', fontFamily: 'monospace' }}
+            >
+              <p className="font-bold mb-1">⚠ {this.state.errorMessage}</p>
+              {this.state.errorStack && (
+                <pre className="whitespace-pre-wrap opacity-70 text-[10px]">
+                  {this.state.errorStack.slice(0, 600)}
+                </pre>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-3 mt-2">
+            <button
+              onClick={this.handleRetry}
+              className="px-5 py-3 rounded-xl font-semibold text-sm"
+              style={{ background: 'rgba(123,63,228,0.2)', color: '#A855F7', border: '1px solid rgba(123,63,228,0.4)' }}
+            >
+              Réessayer
+            </button>
+            <button
+              onClick={this.handleReload}
+              className="px-5 py-3 rounded-xl font-semibold text-sm"
+              style={{ background: '#7B3FE4', color: 'white' }}
+            >
+              Retour à l'accueil
+            </button>
+          </div>
         </div>
       );
     }
@@ -61,3 +100,4 @@ export class ErrorBoundary extends React.Component<Props, State> {
     return this.props.children;
   }
 }
+
