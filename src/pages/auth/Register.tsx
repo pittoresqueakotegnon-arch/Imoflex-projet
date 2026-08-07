@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Eye, EyeOff, Lock, Mail, Phone, User, ShieldCheck,
@@ -21,7 +21,7 @@ import { supabase } from '../../lib/supabase';
 //   - Multi-pays / multi-langue
 // ─────────────────────────────────────────────────────────────────────────────
 
-type Step = 'form' | 'role' | 'waiting' | 'success';
+type Step = 'form' | 'role' | 'otp' | 'success';
 type UserRole = 'locataire' | 'proprietaire';
 
 // Indicatifs pays africains (+ France) pour le sélecteur téléphone
@@ -57,7 +57,7 @@ function getPasswordStrength(password: string): { level: number; label: string; 
 
 export default function Register() {
   const navigate = useNavigate();
-  const { signUp, resendSignupOtp, user } = useAuth();
+  const { signUp, verifySignupOtp, resendSignupOtp, user } = useAuth();
   const { showToast } = useToast();
 
   const [step, setStep] = useState<Step>('form');
@@ -65,6 +65,10 @@ export default function Register() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [resending, setResending] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+  const OTP_LENGTH = 7;
+  const [otpDigits, setOtpDigits] = useState<string[]>(new Array(OTP_LENGTH).fill(''));
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
@@ -91,7 +95,7 @@ export default function Register() {
 
   // Détection confirmation email
   useEffect(() => {
-    if (step === 'waiting' && user) setStep('success');
+    if (step === 'otp' && user) setStep('success');
   }, [user, step]);
 
   const strength = getPasswordStrength(formData.password);
@@ -138,7 +142,7 @@ export default function Register() {
         navigate(selectedRole === 'proprietaire' ? '/pro/dashboard' : '/dashboard', { replace: true });
         return;
       }
-      setStep('waiting');
+      setStep('otp');
     } catch (err) {
       diagnoseAndShowError(err, 'Authentification');
     } finally {
@@ -150,11 +154,60 @@ export default function Register() {
     setResending(true);
     try {
       await resendSignupOtp(formData.email);
-      showToast('Email de confirmation renvoyé', 'success');
+      showToast('Nouveau code envoyé !', 'success');
+      setOtpDigits(new Array(OTP_LENGTH).fill(''));
+      setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (err) {
       diagnoseAndShowError(err, 'Authentification');
     } finally {
       setResending(false);
+    }
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^\d?$/.test(value)) return;
+    const newDigits = [...otpDigits];
+    newDigits[index] = value;
+    setOtpDigits(newDigits);
+    if (value && index < OTP_LENGTH - 1) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
+    if (!pasteData) return;
+    const newDigits = new Array(OTP_LENGTH).fill('');
+    pasteData.split('').forEach((char, i) => { newDigits[i] = char; });
+    setOtpDigits(newDigits);
+    const nextEmpty = newDigits.findIndex(d => !d);
+    const focusIdx = nextEmpty === -1 ? OTP_LENGTH - 1 : nextEmpty;
+    setTimeout(() => otpRefs.current[focusIdx]?.focus(), 0);
+  };
+
+  const handleOtpVerify = async () => {
+    const token = otpDigits.join('');
+    if (token.length < OTP_LENGTH) {
+      showToast(`Entrez les ${OTP_LENGTH} chiffres du code`, 'error');
+      return;
+    }
+    setOtpVerifying(true);
+    try {
+      await verifySignupOtp(formData.email, token);
+      setStep('success');
+    } catch (err) {
+      diagnoseAndShowError(err, 'Authentification');
+      setOtpDigits(new Array(OTP_LENGTH).fill(''));
+      setTimeout(() => otpRefs.current[0]?.focus(), 0);
+    } finally {
+      setOtpVerifying(false);
     }
   };
 
@@ -182,34 +235,87 @@ export default function Register() {
     transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`,
   });
 
-  // ── ÉCRAN WAITING ──────────────────────────────────────────────────────────
-  if (step === 'waiting') {
+  // ── ÉCRAN OTP ─────────────────────────────────────────────────────────────
+  if (step === 'otp') {
+    const otpComplete = otpDigits.every(d => d !== '');
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-8"
-        style={{ background: 'linear-gradient(160deg, #0D0720 0%, #1E1545 40%, #120D2A 100%)' }}>
-        <div className="w-20 h-20 rounded-3xl flex items-center justify-center mb-8"
-          style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 0 40px rgba(168,85,247,0.2)' }}>
+      <div
+        className="min-h-screen flex flex-col items-center justify-center px-6 py-8"
+        style={{ background: 'linear-gradient(160deg, #0D0720 0%, #1E1545 40%, #120D2A 100%)' }}
+      >
+        {/* Icône */}
+        <div
+          className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6"
+          style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)', boxShadow: '0 0 40px rgba(168,85,247,0.2)' }}
+        >
           <Mail size={32} style={{ color: '#A855F7' }} />
         </div>
-        <h1 className="text-2xl mb-3 text-center" style={{ fontFamily: 'Nunito', fontWeight: 900, color: '#E8E0FF' }}>
-          Vérifiez votre boîte mail
+
+        <h1
+          className="text-2xl mb-2 text-center"
+          style={{ fontFamily: 'Nunito', fontWeight: 900, color: '#E8E0FF' }}
+        >
+          Code de confirmation
         </h1>
-        <p className="text-sm text-center mb-2 max-w-xs" style={{ fontFamily: 'Space Grotesk', color: '#8B7BB5' }}>
-          Un lien de confirmation a été envoyé à
+        <p className="text-sm text-center mb-1 max-w-xs" style={{ fontFamily: 'Space Grotesk', color: '#8B7BB5' }}>
+          Nous avons envoyé un code à
         </p>
-        <p className="text-base font-semibold mb-8" style={{ fontFamily: 'Space Grotesk', color: '#E8E0FF' }}>
+        <p className="text-sm font-semibold mb-1" style={{ fontFamily: 'Space Grotesk', color: '#E8E0FF' }}>
           {formData.email}
         </p>
-        <p className="text-sm text-center mb-10 max-w-xs leading-relaxed" style={{ fontFamily: 'Space Grotesk', color: '#6B5F8F' }}>
-          Cliquez sur le lien dans l'email pour activer votre compte. Vous serez connecté automatiquement.
+        <p className="text-xs text-center mb-8 max-w-xs" style={{ fontFamily: 'Space Grotesk', color: '#6B5F8F' }}>
+          Si vous ne le trouvez pas, vérifiez votre dossier{' '}
+          <strong style={{ color: '#A855F7' }}>Spam / Courrier indésirable</strong>.
         </p>
-        <div className="flex items-center gap-2 mb-8" style={{ color: '#6B5F8F' }}>
-          <div className="w-4 h-4 border-2 border-[#A855F7] border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm" style={{ fontFamily: 'Space Grotesk' }}>En attente de confirmation…</span>
+
+        {/* Cases OTP */}
+        <div className="flex gap-2 mb-6 w-full max-w-xs justify-center" onPaste={handleOtpPaste}>
+          {otpDigits.map((digit, i) => (
+            <input
+              key={i}
+              ref={el => { otpRefs.current[i] = el; }}
+              type="text"
+              inputMode="numeric"
+              pattern="\d"
+              maxLength={1}
+              value={digit}
+              onChange={e => handleOtpChange(i, e.target.value)}
+              onKeyDown={e => handleOtpKeyDown(i, e)}
+              autoFocus={i === 0}
+              className="w-10 h-14 text-center text-xl font-bold rounded-xl border-2 outline-none transition-all"
+              style={{
+                background: 'rgba(168,85,247,0.08)',
+                borderColor: digit ? '#A855F7' : 'rgba(168,85,247,0.3)',
+                color: '#E8E0FF',
+                fontFamily: 'Space Grotesk',
+                boxShadow: digit ? '0 0 12px rgba(168,85,247,0.3)' : 'none',
+              }}
+            />
+          ))}
         </div>
-        <button onClick={handleResend} disabled={resending}
-          className="btn-ghost w-full max-w-xs">
-          {resending ? 'Envoi…' : "Je n'ai rien reçu — Renvoyer"}
+
+        {/* Bouton confirmer */}
+        <button
+          onClick={handleOtpVerify}
+          disabled={!otpComplete || otpVerifying}
+          className="btn-primary w-full max-w-xs mb-4"
+          style={{ opacity: otpComplete ? 1 : 0.5 }}
+        >
+          {otpVerifying ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Vérification...
+            </span>
+          ) : 'Confirmer mon compte'}
+        </button>
+
+        {/* Renvoyer */}
+        <button
+          onClick={handleResend}
+          disabled={resending}
+          className="btn-ghost w-full max-w-xs text-sm"
+        >
+          {resending ? 'Envoi...' : "Je n'ai pas reçu de code — Renvoyer"}
         </button>
       </div>
     );
