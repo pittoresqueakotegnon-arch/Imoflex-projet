@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 
-export function getOptimizedUrl(url?: string, size: 'thumb' | 'medium' | 'hd' = 'medium') {
-  if (!url) return null;
+export function getOptimizedUrl(url?: string, size: 'thumb' | 'medium' | 'hd' = 'medium'): string | null {
+  if (!url || typeof url !== 'string') return null;
   // Nouvelle convention (URLs sans extension) -> on append _taille.webp
   if (!url.match(/\.[a-zA-Z0-9]+(\?.*)?$/)) {
     return `${url}_${size}.webp`;
@@ -9,7 +9,7 @@ export function getOptimizedUrl(url?: string, size: 'thumb' | 'medium' | 'hd' = 
   // Fallback ancienne convention
   const widths = { thumb: 300, medium: 800, hd: 1600 };
   return `${url}?width=${widths[size]}&format=webp`;
-};
+}
 
 export function formatMontant(centimes: number): string {
   return new Intl.NumberFormat('fr-FR').format(centimes) + ' FCFA';

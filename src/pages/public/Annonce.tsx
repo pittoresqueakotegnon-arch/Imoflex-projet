@@ -105,7 +105,7 @@ const Annonce: React.FC = () => {
 
   // Preload primary image for instant above-the-fold render
   React.useEffect(() => {
-    if (photos.length > 0 && photos[0].photo_url) {
+    if (photos.length > 0 && photos[0]?.photo_url) {
       const primaryHdUrl = getOptimizedUrl(photos[0].photo_url, 'hd');
       if (primaryHdUrl) {
         const link = document.createElement('link');
@@ -114,7 +114,9 @@ const Annonce: React.FC = () => {
         link.href = primaryHdUrl;
         document.head.appendChild(link);
         return () => {
-          document.head.removeChild(link);
+          if (document.head.contains(link)) {
+            document.head.removeChild(link);
+          }
         };
       }
     }
@@ -155,10 +157,10 @@ const Annonce: React.FC = () => {
           </button>
         </div>
 
-        {photos.length > 0 ? (
+        {photos.length > 0 && currentPhoto ? (
           <>
             <OptimizedImage
-              src={getOptimizedUrl(currentPhoto.photo_url, 'hd') || ''}
+              src={getOptimizedUrl(currentPhoto?.photo_url, 'hd') || ''}
               alt={`Photo ${currentPhotoIndex + 1}`}
               className="relative w-full h-full object-cover cursor-pointer"
               loading="eager"
