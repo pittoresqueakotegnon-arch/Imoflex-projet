@@ -76,3 +76,5 @@ L'ensemble des objectifs fixés (Zod, RLS, Contraintes d'intégrité, Performanc
 
 ### Points non vérifiables sans environnement Live :
 - L'activation stricte du CSP (Content Security Policy) ajouté dans `vercel.json` peut parfois bloquer certains scripts inattendus (ex: un pixel de tracking, Google Analytics). Il sera nécessaire d'ouvrir la console du navigateur au premier lancement en prod (sur le domaine Vercel) pour vérifier qu'aucune ressource légitime (ex: Font Awesome ou Google Fonts externe) n'est bloquée par erreur. Des règles génériques sûres ont été appliquées.
+
+npm run dev

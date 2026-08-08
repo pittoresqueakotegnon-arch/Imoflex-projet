@@ -251,60 +251,64 @@ export default function Profil() {
   return (
     <div className="page-container bg-[#0B0714] min-h-screen pb-24 overflow-y-auto overflow-x-hidden">
       {/* HEADER PROFIL */}
-      <div className="flex flex-col items-center pt-10 pb-8 px-4 relative">
+      <div className="pt-8 pb-6 px-4 relative">
         {/* Ambient background glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-md h-40 bg-[#7B3FE4] opacity-20 blur-[80px] pointer-events-none"></div>
+        <div className="absolute top-0 left-0 w-full h-40 bg-[#7B3FE4] opacity-10 blur-[80px] pointer-events-none"></div>
         
-        <div className="relative mb-5">
-          {/* Profile completion ring */}
-          <div className="absolute -inset-1.5 rounded-full border-[2px] border-white/10"></div>
-          <div className="absolute -inset-1.5 rounded-full border-[2px] border-[#7B3FE4] border-t-transparent border-l-transparent rotate-45"></div>
-          
-          <div className="w-24 h-24 rounded-full overflow-hidden border-[3px] border-[#0B0714] bg-[#261C55] relative flex items-center justify-center z-10 shadow-xl">
-            {profile.avatar_url ? (
-              <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
-            ) : (
-              <span className="font-nunito font-900 text-3xl text-[#C084FC] tracking-wider">{initials}</span>
-            )}
+        <div className="flex items-center gap-5 relative z-10">
+          <div className="relative flex-shrink-0">
+            {/* Profile completion ring */}
+            <div className="absolute -inset-1.5 rounded-full border-[2px] border-white/10"></div>
+            <div className="absolute -inset-1.5 rounded-full border-[2px] border-[#7B3FE4] border-t-transparent border-l-transparent rotate-45"></div>
+            
+            <div className="w-20 h-20 rounded-full overflow-hidden border-[3px] border-[#0B0714] bg-[#261C55] relative flex items-center justify-center shadow-xl">
+              {profile.avatar_url ? (
+                <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="font-nunito font-900 text-2xl text-[#C084FC] tracking-wider">{initials}</span>
+              )}
+            </div>
+            
+            <label 
+              className="absolute bottom-0 -right-1 w-7 h-7 bg-[#7B3FE4] rounded-full flex items-center justify-center cursor-pointer border-[2px] border-[#0B0714] hover:bg-[#A855F7] transition-all shadow-lg"
+              title="Modifier la photo"
+            >
+              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
+              {uploadingAvatar ? (
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Camera size={12} className="text-white" />
+              )}
+            </label>
           </div>
           
-          <label 
-            className="absolute bottom-0 -right-1 w-8 h-8 bg-[#7B3FE4] rounded-full flex items-center justify-center cursor-pointer border-[3px] border-[#0B0714] hover:bg-[#A855F7] transition-all z-20 shadow-lg"
-            title="Modifier la photo"
-          >
-            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
-            {uploadingAvatar ? (
-              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Camera size={14} className="text-white" />
-            )}
-          </label>
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <h2 className="font-nunito font-900 text-xl text-white mb-1 truncate">{profile.full_name}</h2>
+            
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                style={{
+                  background: profile.role === 'proprietaire' ? 'rgba(168, 85, 247, 0.15)' : profile.role === 'admin' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                  color: profile.role === 'proprietaire' ? '#C084FC' : profile.role === 'admin' ? '#FBBF24' : '#60A5FA',
+                  border: profile.role === 'proprietaire' ? '1px solid rgba(168, 85, 247, 0.3)' : profile.role === 'admin' ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(59, 130, 246, 0.3)'
+                }}
+              >
+                {profile.role === 'proprietaire' ? 'Propriétaire' : profile.role === 'locataire' ? 'Locataire' : 'Admin'}
+              </span>
+              {(profile as any).kyc_status === 'verifie' && (
+                 <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/30">
+                   <ShieldCheck size={9} /> Vérifié
+                 </span>
+              )}
+            </div>
+            
+            <p className="text-xs text-[#8B7BB5] font-space-grotesk truncate">{profile.phone || profile.email}</p>
+          </div>
         </div>
-        
-        <h2 className="font-nunito font-900 text-2xl text-white mb-1.5">{profile.full_name}</h2>
-        
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full"
-            style={{
-              background: profile.role === 'proprietaire' ? 'rgba(168, 85, 247, 0.15)' : profile.role === 'admin' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-              color: profile.role === 'proprietaire' ? '#C084FC' : profile.role === 'admin' ? '#FBBF24' : '#60A5FA',
-              border: profile.role === 'proprietaire' ? '1px solid rgba(168, 85, 247, 0.3)' : profile.role === 'admin' ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(59, 130, 246, 0.3)'
-            }}
-          >
-            {profile.role === 'proprietaire' ? 'Propriétaire' : profile.role === 'locataire' ? 'Locataire' : 'Administrateur'}
-          </span>
-          {(profile as any).kyc_status === 'verifie' && (
-             <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/30">
-               <ShieldCheck size={10} /> Vérifié
-             </span>
-          )}
-        </div>
-        
-        <p className="text-sm text-[#8B7BB5] mb-5 font-space-grotesk">{profile.phone || profile.email}</p>
         
         <button 
           onClick={() => showToast('Modification du profil bientôt disponible', 'success')}
-          className="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-white text-xs font-semibold hover:bg-white/10 transition-all flex items-center gap-2"
+          className="mt-5 w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold hover:bg-white/10 transition-all flex items-center justify-center gap-2"
         >
           <Settings size={14} /> Modifier le profil
         </button>
