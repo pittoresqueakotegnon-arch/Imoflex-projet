@@ -65,7 +65,7 @@ export default function Register() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [resending, setResending] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
-  const OTP_LENGTH = 7;
+  const OTP_LENGTH = 8;
   const [otpDigits, setOtpDigits] = useState<string[]>(new Array(OTP_LENGTH).fill(''));
   const [otpVerifying, setOtpVerifying] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);

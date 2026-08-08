@@ -137,7 +137,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       token,
       type: 'signup',
     });
-    if (error) throw new Error('Code incorrect ou expiré');
+    if (error) {
+      console.error('[verifySignupOtp] Erreur brute Supabase:', error);
+      throw error;
+    }
     
     if (data?.user) {
       logAction({

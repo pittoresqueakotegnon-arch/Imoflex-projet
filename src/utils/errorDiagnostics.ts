@@ -10,8 +10,20 @@ export function diagnoseAndShowError(error: any, context?: string) {
   const rawMessage = String(error?.message || error?.error || error?.reason || error || '').toUpperCase();
   const statusCode = error?.status || error?.statusCode || 0;
 
+  // ─── 0. CODE DE CONFIRMATION (OTP) INVALIDE OU EXPIRÉ ───────────────────────
+  // Doit être vérifié EN PREMIER : Supabase Auth renvoie souvent des messages
+  // contenant "EXPIR" (ex. "Token has expired or is invalid") pour un code OTP
+  // de confirmation de compte — sans ce garde-fou, ces erreurs tombaient dans
+  // la règle n°7 (timeout USSD) et affichaient un message de paiement complètement
+  // hors sujet sur l'écran d'inscription.
+  if (context === 'Authentification' && (rawMessage.includes('OTP') || rawMessage.includes('TOKEN') || rawMessage.includes('EXPIR') || rawMessage.includes('INVALID') || rawMessage.includes('CODE'))) {
+    title = '⏳ Code invalide ou expiré';
+    description = "Le code de confirmation est incorrect ou a expiré. Cliquez sur \"Je n'ai pas reçu de code — Renvoyer\" pour en recevoir un nouveau.";
+    type = 'warning';
+  }
+
   // ─── 1. CONNEXION / RÉSEAU ───────────────────────────────────────────────────
-  if (!navigator.onLine || rawMessage.includes('FAILED TO FETCH') || rawMessage.includes('NETWORKERROR') || rawMessage.includes('NETWORK REQUEST FAILED')) {
+  else if (!navigator.onLine || rawMessage.includes('FAILED TO FETCH') || rawMessage.includes('NETWORKERROR') || rawMessage.includes('NETWORK REQUEST FAILED')) {
     title = '📡 Connexion Internet perdue';
     description = 'Impossible de joindre le serveur. Vérifiez votre connexion Wi-Fi ou vos données mobiles et réessayez.';
     type = 'warning';
