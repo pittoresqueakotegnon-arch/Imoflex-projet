@@ -271,7 +271,12 @@ export default function Dashboard() {
                 // Hero Card "Prochain Loyer" pour le bail le plus urgent (index 0) si non soldé
                 if (index === 0 && (status === 'retard' || status === 'a_venir')) {
                   return (
-                    <div key={lease.leaseId} className="rounded-[24px] p-5 mb-2 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #261C55 0%, #1A1240 100%)', border: `1px solid ${status === 'retard' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(168, 85, 247, 0.3)'}` }}>
+                    <div 
+                      key={lease.leaseId} 
+                      onClick={() => navigate(`/logement/${lease.leaseId}`)}
+                      className="rounded-[24px] p-5 mb-2 relative overflow-hidden cursor-pointer hover:opacity-95 transition-opacity" 
+                      style={{ background: 'linear-gradient(135deg, #261C55 0%, #1A1240 100%)', border: `1px solid ${status === 'retard' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(168, 85, 247, 0.3)'}` }}
+                    >
                       <div className="flex justify-between items-start mb-3">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-[#B89FD8] font-space-grotesk">Prochain Loyer</span>
                         <div className={`px-2.5 py-1 rounded-lg text-[10px] font-bold font-space-grotesk flex items-center gap-1 ${status === 'retard' ? 'bg-red-500/15 text-[#EF4444]' : 'bg-[#A855F7]/15 text-[#A855F7]'}`}>
@@ -284,8 +289,11 @@ export default function Dashboard() {
                       <p className="text-[13px] text-[#E8E0FF] font-nunito font-bold mb-4">{lease.propertyName}</p>
                       
                       <button
-                        onClick={() => navigate(`/payer/${lease.leaseId}`)}
-                        className="w-full flex items-center justify-center gap-2 font-bold text-[14px] text-white rounded-2xl py-3.5 transition-transform active:scale-[0.98]"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/payer/${lease.leaseId}`);
+                        }}
+                        className="w-full flex items-center justify-center gap-2 font-bold text-[14px] text-white rounded-2xl py-3.5 transition-transform hover:scale-[1.02] active:scale-[0.98]"
                         style={{ background: status === 'retard' ? '#EF4444' : '#A855F7', fontFamily: 'Nunito' }}
                       >
                         Payer maintenant
