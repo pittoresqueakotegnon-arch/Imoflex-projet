@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { formatMontant, formatDateShort } from '../../lib/utils';
+import { formatDateShort } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
 import { useWallet } from '../../hooks/useWallet';
 import BottomNav from '../../components/BottomNav';

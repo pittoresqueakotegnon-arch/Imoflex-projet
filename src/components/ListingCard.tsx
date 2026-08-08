@@ -1,13 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, MapPin, Building2 } from 'lucide-react';
-import { Listing } from '../lib/supabase';
+import { ListingSummary } from '../lib/supabase';
 import { formatMontant } from '../lib/utils';
 import StatusBadge from './StatusBadge';
 import { OptimizedImage } from './OptimizedImage';
 
 interface ListingCardProps {
-  listing: Listing;
+  listing: ListingSummary;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
   horizontal?: boolean; // mode carte horizontale (favoris)

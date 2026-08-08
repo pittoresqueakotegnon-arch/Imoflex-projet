@@ -114,7 +114,7 @@ Deno.serve(async (req: Request) => {
 
     // Déduction atomique : appel à la fonction RPC pour éviter les conditions de concurrence (race condition)
     // Cette fonction verrouille la ligne (FOR UPDATE) et déduit le montant si le solde est suffisant.
-    const { data: deductionResult, error: deductionError } = await supabase
+    const { error: deductionError } = await supabase
       .rpc('atomic_wallet_deduction', {
         p_wallet_id: wallet_id,
         p_amount: amount

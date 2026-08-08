@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Building2, ArrowRight, Home } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
-import { formatMontant, getCurrentMonth, getMonthName } from '../../lib/utils';
+import { getCurrentMonth, getMonthName } from '../../lib/utils';
 import BottomNav from '../../components/BottomNav';
 import { HeaderBell } from '../../components/HeaderBell';
 import { useToast } from '../../components/Toast';

@@ -1,14 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Shield, MoreVertical, X, Check, Eye } from 'lucide-react';
-import { supabase, UserProfile } from '../../lib/supabase';
+import { supabase, UserRole } from '../../lib/supabase';
 import { useToast } from '../../components/Toast';
 import { useAuth } from '../../hooks/useAuth';
 import { logAction } from '../../lib/audit';
 
+// Vue admin de la liste des utilisateurs : sous-ensemble de UserProfile
+// (le select ne remonte pas phone/phone_verified) + agrégats propres à
+// cet écran (account_status, compteurs properties/leases).
+interface AdminUserRow {
+  id: string;
+  full_name: string;
+  email?: string;
+  role: UserRole;
+  account_status?: string;
+  is_active: boolean;
+  created_at: string;
+  properties?: { count: number }[];
+  leases?: { count: number }[];
+}
+
 const AdminUtilisateurs: React.FC = () => {
   const { showToast } = useToast();
   const { profile } = useAuth();
-  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [toggling, setToggling] = useState<string | null>(null);
@@ -38,7 +52,7 @@ const AdminUtilisateurs: React.FC = () => {
 
       if (error) throw error;
 
-      setUsers((data || []) as UserProfile[]);
+      setUsers((data || []) as AdminUserRow[]);
     } catch (error) {
       console.error('Error fetching users:', error);
       showToast('Erreur lors du chargement des utilisateurs', 'error');
@@ -137,15 +151,6 @@ const AdminUtilisateurs: React.FC = () => {
       default:
         return 'bg-text-dim/10 text-text-dim';
     }
-  };
-
-  const getRoleLabel = (role: string) => {
-    const labels: Record<string, string> = {
-      locataire: 'Locataire',
-      proprietaire: 'Propriétaire',
-      admin: 'Admin',
-    };
-    return labels[role] || role;
   };
 
   const getInitials = (name: string) => {

@@ -2,7 +2,6 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Store, Heart, Receipt, User, LayoutDashboard, List, ClipboardList, Wallet } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { useNotifications } from '../hooks/useNotifications';
 import { useUnreadRequests } from '../hooks/useUnreadRequests';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { haptics } from '../lib/haptics';
@@ -21,7 +20,7 @@ import { haptics } from '../lib/haptics';
 export const BottomNav: React.FC = () => {
   const location = useLocation();
   const { role, profile } = useAuth();
-  const { unreadRequestsCount } = useUnreadRequests(profile?.id, role);
+  const { unreadRequestsCount } = useUnreadRequests(profile?.id, role ?? undefined);
   const { isKeyboardOpen } = useKeyboard();
 
   const isActive = (path: string) => location.pathname === path;

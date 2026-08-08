@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, Listing, PropertyType } from '../lib/supabase';
+import { supabase, Listing, ListingSummary, PropertyType } from '../lib/supabase';
 
 export interface ListingFilters {
   search?: string;
@@ -13,7 +13,7 @@ export interface ListingFilters {
 }
 
 export function useListings(filters: ListingFilters = {}) {
-  const [listings, setListings] = useState<Listing[]>([]);
+  const [listings, setListings] = useState<ListingSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +58,7 @@ export function useListings(filters: ListingFilters = {}) {
     if (err) {
       setError(err.message);
     } else {
-      const fetchedListings = [...(data || [])] as Listing[];
+      const fetchedListings = [...(data || [])] as ListingSummary[];
       // Fisher-Yates shuffle pour un ordre aléatoire
       for (let i = fetchedListings.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));

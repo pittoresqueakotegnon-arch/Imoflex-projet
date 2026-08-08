@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Filter, AlertTriangle, CheckCircle, XCircle, Eye, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { supabase, Listing } from '../../lib/supabase';
 import { propertyTypeLabel } from '../../lib/utils';
 import EmptyState from '../../components/EmptyState';
@@ -79,7 +79,7 @@ const AdminAnnonces: React.FC = () => {
   const handleApprove = async (listingId: string) => {
     setActionLoading(listingId);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('listings')
         .update({
           status: 'publiee',
@@ -122,7 +122,7 @@ const AdminAnnonces: React.FC = () => {
 
     setActionLoading(rejectModal.listingId);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('listings')
         .update({
           status: 'rejetee',
@@ -162,7 +162,7 @@ const AdminAnnonces: React.FC = () => {
   const handleUnpublish = async (listingId: string) => {
     setActionLoading(listingId);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('listings')
         .update({
           status: 'en_attente',

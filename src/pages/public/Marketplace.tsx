@@ -10,8 +10,8 @@ import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
 import { SplashScreen } from '../../components/SplashScreen';
 import { supabase, PropertyType } from '../../lib/supabase';
-import { propertyTypeLabel, getOptimizedUrl } from '../../lib/utils';
-import { Search, Shield, Wallet, Building2, Sparkles } from 'lucide-react';
+import { getOptimizedUrl } from '../../lib/utils';
+import { Search, Shield, Wallet, Building2 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Accueil (Marketplace) — ImoFlex
@@ -48,6 +48,7 @@ const Marketplace: React.FC = () => {
   });
   const [favorites, setFavorites] = useState<string[]>([]);
   const [sortMode, setSortMode] = useState<'recent' | 'price_asc' | 'price_desc'>('recent');
+  const sortLabel = sortMode === 'price_asc' ? 'Prix ↑' : sortMode === 'price_desc' ? 'Prix ↓' : 'Récent';
 
   const filterParams = useMemo(() => {
     const types = searchParams.get('types')?.split(',').filter(t => t) as PropertyType[] | undefined;

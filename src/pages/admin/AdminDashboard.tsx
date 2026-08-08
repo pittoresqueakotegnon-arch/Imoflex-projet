@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Users, Home, CreditCard, TrendingUp, ArrowUpRight, ArrowDownRight,
+  Users, Home, CreditCard, ArrowUpRight, ArrowDownRight,
   Clock, CheckCircle, AlertCircle, Wallet, Activity,
   Eye, ChevronRight, RefreshCw, Calendar, FileText,
   Zap, AlertTriangle, BarChart2, Minus,

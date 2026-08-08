@@ -151,6 +151,9 @@ const Filtres: React.FC = () => {
           <X size={22} />
         </button>
         <h1 className="section-title text-lg flex-1 text-center pr-6">Filtres</h1>
+        <button onClick={handleReset} className="text-sm text-[#A855F7] hover:text-[#E8E0FF] transition-colors whitespace-nowrap">
+          Réinitialiser
+        </button>
       </header>
 
       {/* Content */}

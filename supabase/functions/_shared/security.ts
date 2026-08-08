@@ -31,7 +31,7 @@ export function sanitizeForLog(obj: unknown, depth = 0): unknown {
     // Tokens JWT (eyJ...)
     if (obj.startsWith("eyJ")) return maskToken(obj);
     // Numéros de téléphone (contient au moins 8 chiffres)
-    if (/^\+?\d[\d\s\-]{7,}$/.test(obj)) return maskPhone(obj);
+    if (/^\+?\d[\d\s-]{7,}$/.test(obj)) return maskPhone(obj);
     return obj;
   }
   if (Array.isArray(obj)) return obj.map((v) => sanitizeForLog(v, depth + 1));

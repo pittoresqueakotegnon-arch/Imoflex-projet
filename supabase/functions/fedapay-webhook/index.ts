@@ -170,7 +170,7 @@ Deno.serve(async (req: Request) => {
           });
         }
       } else if (rpcResult?.status === "declined") {
-        const { tenant_id, amount, payment_id } = rpcResult;
+        const { tenant_id, payment_id } = rpcResult;
         
         // Inspecter la raison de l'échec depuis l'entité FedaPay
         const errorCode = String(entity.error_code || entity.sub_status || entity.last_error?.code || "").toUpperCase();

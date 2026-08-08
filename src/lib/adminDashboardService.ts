@@ -312,8 +312,10 @@ export async function fetchPendingWithdrawals(): Promise<PendingWithdrawal[]> {
 
   if (!data || data.length === 0) return [];
 
-  type WRow = { id: string; amount: number; created_at: string; operator: string; wallets?: { owner_id: string } };
-  const wOwnerIds = [...new Set((data as WRow[]).map(w => w.wallets?.owner_id).filter(Boolean) as string[])];
+  type WRow = { id: string; amount: number; created_at: string; operator: string; wallets?: { owner_id: string } | { owner_id: string }[] };
+  const getWalletOwnerId = (w: WRow): string | undefined =>
+    Array.isArray(w.wallets) ? w.wallets[0]?.owner_id : w.wallets?.owner_id;
+  const wOwnerIds = [...new Set((data as WRow[]).map(getWalletOwnerId).filter(Boolean) as string[])];
   const wOwnerMap: Record<string, string> = {};
 
   if (wOwnerIds.length > 0) {
@@ -321,13 +323,16 @@ export async function fetchPendingWithdrawals(): Promise<PendingWithdrawal[]> {
     (owners ?? []).forEach((u: { id: string; full_name: string }) => { wOwnerMap[u.id] = u.full_name; });
   }
 
-  return (data as WRow[]).map(w => ({
-    id: w.id,
-    amount: w.amount,
-    created_at: w.created_at,
-    operator: w.operator ?? 'N/A',
-    ownerName: (w.wallets?.owner_id && wOwnerMap[w.wallets.owner_id]) ? wOwnerMap[w.wallets.owner_id] : 'Propriétaire',
-  }));
+  return (data as WRow[]).map(w => {
+    const ownerId = getWalletOwnerId(w);
+    return {
+      id: w.id,
+      amount: w.amount,
+      created_at: w.created_at,
+      operator: w.operator ?? 'N/A',
+      ownerName: (ownerId && wOwnerMap[ownerId]) ? wOwnerMap[ownerId] : 'Propriétaire',
+    };
+  });
 }
 
 // ─── Activités récentes (audit_logs) ─────────────────────────────────────────

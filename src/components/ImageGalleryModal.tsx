@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, Grid } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { haptics } from '../lib/haptics';
 
 interface Photo {

@@ -69,6 +69,30 @@ export interface Listing {
   listing_photos?: ListingPhoto[];
 }
 
+/**
+ * Sous-ensemble de Listing utilisé partout où on affiche une carte/liste
+ * (Marketplace, Favoris, mes annonces) : ces écrans ne sélectionnent jamais
+ * toutes les colonnes de Listing (owner_id, address, amenities, is_published
+ * ne sont pas nécessaires à l'affichage). Évite de forcer un cast vers
+ * Listing complet alors que les données réelles n'ont pas cette forme.
+ */
+export interface ListingSummary {
+  id: string;
+  title: string;
+  city: string;
+  neighborhood?: string;
+  monthly_rent: number;
+  bedrooms?: number;
+  property_type?: PropertyType;
+  availability_status: AvailabilityStatus;
+  status?: string;
+  rejection_reason?: string | null;
+  owner_id?: string;
+  accepts_progressive_payment?: boolean;
+  created_at: string;
+  listing_photos?: ListingPhoto[];
+}
+
 export interface ListingPhoto {
   id: string;
   listing_id: string;

@@ -1,16 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { supabase, ContactRequest, Listing } from '../../lib/supabase';
+import { supabase, ContactStatus, ListingSummary } from '../../lib/supabase';
 import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
 import { MessageSquare, Clock, CheckCircle, ChevronRight, MapPin } from 'lucide-react';
 
-interface ContactRequestWithListing extends ContactRequest {
-  listings?: Listing & {
+interface ContactRequestWithListing {
+  id: string;
+  message: string;
+  status: ContactStatus;
+  created_at: string;
+  listings?: ListingSummary & {
     listing_photos?: { id: string; photo_url: string; is_cover: boolean }[];
   };
 }
+
+const normalizeContactRequest = (raw: Record<string, unknown>): ContactRequestWithListing => ({
+  id: raw.id as string,
+  message: raw.message as string,
+  status: raw.status as ContactStatus,
+  created_at: raw.created_at as string,
+  listings: Array.isArray(raw.listings)
+    ? raw.listings[0]
+    : (raw.listings as ContactRequestWithListing['listings']),
+});
 
 type FilterStatus = 'all' | 'nouvelle' | 'traitee';
 
@@ -77,7 +91,7 @@ const MesDemandes: React.FC = () => {
           .order('created_at', { ascending: false });
 
         if (err) setError(err.message);
-        else setRequests((data || []) as ContactRequestWithListing[]);
+        else setRequests(((data || []) as Record<string, unknown>[]).map(normalizeContactRequest));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erreur de chargement');
       } finally {

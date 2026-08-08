@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Heart, MapPin, Building2, Bed, Wallet, Coins, Zap, Droplets, Car, Wifi, ChevronLeft, ChevronRight, Snowflake, Armchair, ShieldCheck, Sparkles } from 'lucide-react';
 import { useListing } from '../../hooks/useListings';
-import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
 import { useAuthGate } from '../../hooks/useAuthGate';
 import { AuthGateModal } from '../../components/AuthGateModal';
@@ -32,7 +31,6 @@ const AMENITY_ICONS: Record<string, React.ReactNode> = {
 const Annonce: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { showToast } = useToast();
   const { requireAuth, isModalOpen, closeModal, modalReason } = useAuthGate();
 
@@ -77,6 +75,29 @@ const Annonce: React.FC = () => {
     }, 'contact');
   };
 
+  const photosForPreload = listing?.listing_photos || [];
+
+  // Preload primary image for instant above-the-fold render
+  // (déplacé avant les early returns : les Hooks doivent toujours s'exécuter
+  // dans le même ordre à chaque rendu, jamais après un return conditionnel)
+  React.useEffect(() => {
+    if (photosForPreload.length > 0 && photosForPreload[0]?.photo_url) {
+      const primaryHdUrl = getOptimizedUrl(photosForPreload[0].photo_url, 'hd');
+      if (primaryHdUrl) {
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = primaryHdUrl;
+        document.head.appendChild(link);
+        return () => {
+          if (document.head.contains(link)) {
+            document.head.removeChild(link);
+          }
+        };
+      }
+    }
+  }, [photosForPreload]);
+
   if (loading) {
     return (
       <div className="page-container">
@@ -100,27 +121,8 @@ const Annonce: React.FC = () => {
     );
   }
 
-  const photos = listing?.listing_photos || [];
+  const photos = photosForPreload;
   const currentPhoto = photos[currentPhotoIndex];
-
-  // Preload primary image for instant above-the-fold render
-  React.useEffect(() => {
-    if (photos.length > 0 && photos[0]?.photo_url) {
-      const primaryHdUrl = getOptimizedUrl(photos[0].photo_url, 'hd');
-      if (primaryHdUrl) {
-        const link = document.createElement('link');
-        link.rel = 'preload';
-        link.as = 'image';
-        link.href = primaryHdUrl;
-        document.head.appendChild(link);
-        return () => {
-          if (document.head.contains(link)) {
-            document.head.removeChild(link);
-          }
-        };
-      }
-    }
-  }, [photos]);
 
   const statusConfig = {
     disponible: { label: 'DISPONIBLE', className: 'px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 backdrop-blur-sm' },

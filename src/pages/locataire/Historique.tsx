@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, ArrowUpRight, CheckCircle2, XCircle, Search, Download, X, Printer } from 'lucide-react';
+import { Download, X, Printer } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, Payment } from '../../lib/supabase';
 

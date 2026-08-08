@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Home, Eye } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { supabase, Listing } from '../../lib/supabase';
+import { supabase, ListingSummary } from '../../lib/supabase';
 import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
 import StatusBadge from '../../components/StatusBadge';
 import { useToast } from '../../components/Toast';
 
-interface AnnounceListItem extends Listing {
+interface AnnounceListItem extends ListingSummary {
   contactRequestsCount: number;
 }
 
@@ -41,7 +41,7 @@ const Annonces: React.FC = () => {
 
           if (!countError) {
             listingsWithCounts.push({
-              ...(listing as Listing),
+              ...(listing as ListingSummary),
               contactRequestsCount: count || 0,
             });
           }

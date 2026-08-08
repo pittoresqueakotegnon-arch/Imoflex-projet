@@ -2,13 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import { KeyRound } from 'lucide-react';
-import { supabase, Property } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
 import { BackButton } from '../../components/BackButton';
 import { getCurrentMonth, getInitialDeadlineDate, calculateProrataAmount } from '../../lib/utils';
 
 type Step = 'input' | 'confirmation' | 'complete';
+
+// Sous-ensemble de Property remonté par le select access_code (id, name,
+// address, monthly_rent, payment_deadline_day, listing_id uniquement —
+// owner_id/access_code/is_active/created_at servent aux filtres de la
+// requête mais ne sont jamais lus sur l'objet une fois récupéré).
+interface JoinedProperty {
+  id: string;
+  name: string;
+  address: string;
+  monthly_rent: number;
+  payment_deadline_day: number;
+  listing_id?: string;
+}
 
 export default function Rejoindre() {
   const navigate = useNavigate();
@@ -19,7 +32,7 @@ export default function Rejoindre() {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [property, setProperty] = useState<Property | null>(null);
+  const [property, setProperty] = useState<JoinedProperty | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCode(e.target.value.toUpperCase());

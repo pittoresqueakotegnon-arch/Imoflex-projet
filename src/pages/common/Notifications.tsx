@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  X, ArrowRight, Phone, Home, Wallet, Clock,
+  ArrowRight, Phone, Home, Wallet, Clock,
   AlertTriangle, CheckCircle, Bell, MessageSquare,
   TrendingUp, ChevronRight,
 } from 'lucide-react';

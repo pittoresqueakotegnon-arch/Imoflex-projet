@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { supabase, Listing } from '../../lib/supabase';
+import { supabase, ListingSummary } from '../../lib/supabase';
 import ListingCard from '../../components/ListingCard';
 import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
-import { Heart } from 'lucide-react';
 
 const Favoris: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [favorites, setFavorites] = useState<Listing[]>([]);
+  const [favorites, setFavorites] = useState<ListingSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
@@ -34,8 +33,8 @@ const Favoris: React.FC = () => {
             const ids = (data || []).map((fav) => fav.listing_id);
             setFavoriteIds(ids);
             const favoriteListings = (data || [])
-              .map((fav) => fav.listings as Listing | null)
-              .filter((l): l is Listing => l !== null);
+              .map((fav) => (Array.isArray(fav.listings) ? fav.listings[0] : fav.listings) as ListingSummary | null | undefined)
+              .filter((l): l is ListingSummary => !!l);
             setFavorites(favoriteListings);
           }
         } catch (err) {
@@ -55,7 +54,7 @@ const Favoris: React.FC = () => {
               .eq('status', 'publiee');
 
             if (err) setError(err.message);
-            else setFavorites((data || []) as Listing[]);
+            else setFavorites((data || []) as ListingSummary[]);
           } catch (err) {
             setError(err instanceof Error ? err.message : 'Erreur de chargement');
           }

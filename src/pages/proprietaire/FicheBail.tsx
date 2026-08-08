@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Phone, Calendar, MapPin, CreditCard } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+import { Phone, Calendar, MapPin, CreditCard } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/Toast';
 import { getCurrentMonth, getMonthName } from '../../lib/utils';

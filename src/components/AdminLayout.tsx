@@ -1,4 +1,3 @@
-import React from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -8,7 +7,6 @@ import {
   FileText,
   Settings,
   LogOut,
-  Zap,
   Sun,
   Moon
 } from 'lucide-react';

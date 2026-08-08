@@ -148,14 +148,6 @@ const Demandes: React.FC = () => {
     );
   }
 
-  // Group requests by listing
-  const groupedRequests = requests.reduce((acc, req) => {
-    const title = req.listing_title || 'Non spécifié';
-    if (!acc[title]) acc[title] = [];
-    acc[title].push(req);
-    return acc;
-  }, {} as Record<string, RequestWithDetails[]>);
-
   return (
     <div className="page-container">
       {/* Header */}
