@@ -106,11 +106,7 @@ export default function Login() {
     }
   };
 
-  const fadeStyle = (delay = 0) => ({
-    opacity: mounted ? 1 : 0,
-    transform: mounted ? 'translateY(0)' : 'translateY(20px)',
-    transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`,
-  });
+  const fadeStyle = (delay = 0) => ({});
 
   return (
     <div
@@ -152,9 +148,9 @@ export default function Login() {
         </div>
 
         {/* Formulaire */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4" style={fadeStyle(100)}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Email */}
-          <div className="relative">
+          <div className="relative" style={fadeStyle(100)}>
             <div
               className="absolute left-4 top-1/2 -translate-y-1/2"
               style={{ color: '#6B5F8F' }}
@@ -174,7 +170,7 @@ export default function Login() {
           </div>
 
           {/* Mot de passe */}
-          <div className="relative">
+          <div className="relative" style={fadeStyle(150)}>
             <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#6B5F8F' }}>
               <Lock size={18} />
             </div>
@@ -200,13 +196,13 @@ export default function Login() {
           </div>
 
           {/* Se souvenir + Mot de passe oublié */}
-          <div className="flex items-center justify-between px-1">
+          <div className="flex items-center justify-between px-1" style={fadeStyle(200)}>
             <label className="flex items-center gap-2 cursor-pointer" onClick={() => setRememberMe(!rememberMe)}>
               <div
                 className="w-5 h-5 rounded-md flex items-center justify-center transition-all flex-shrink-0"
                 style={{
                   background: rememberMe ? 'var(--imx-accent)' : 'transparent',
-                  border: `1.5px solid ${rememberMe ? 'var(--imx-accent)' : 'rgba(255,255,255,0.15)'}`,
+                  border: `1.5px solid ${rememberMe ? 'var(--imx-accent)' : 'var(--imx-border)'}`,
                 }}
               >
                 {rememberMe && <Check size={12} className="text-white" />}
@@ -229,6 +225,7 @@ export default function Login() {
             type="submit"
             disabled={loading || !email || !password}
             className="btn-primary w-full mt-2"
+            style={fadeStyle(250)}
           >
             {loading ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -240,7 +237,7 @@ export default function Login() {
 
         {/* Séparateur */}
         {googleVisible && (
-          <div className="flex items-center gap-3 my-5" style={fadeStyle(200)}>
+          <div className="flex items-center gap-3 my-5" style={fadeStyle(300)}>
             <div className="flex-1 h-px" style={{ background: 'var(--imx-border)' }} />
             <span className="text-xs" style={{ fontFamily: 'Space Grotesk', color: 'var(--imx-text-muted)' }}>ou</span>
             <div className="flex-1 h-px" style={{ background: 'var(--imx-border)' }} />
@@ -254,6 +251,7 @@ export default function Login() {
             disabled={googleLoading}
             className="w-full h-14 rounded-2xl flex items-center justify-center gap-3 transition-all"
             style={{
+              ...fadeStyle(350),
               background: 'rgba(255,255,255,0.92)',
               border: '1px solid rgba(255,255,255,0.15)',
               boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
@@ -281,7 +279,7 @@ export default function Login() {
         )}
 
         {/* Lien inscription */}
-        <div className="text-center mt-auto pt-8" style={fadeStyle(300)}>
+        <div className="text-center mt-auto pt-8" style={fadeStyle(400)}>
           <span className="text-sm" style={{ fontFamily: 'Space Grotesk', color: '#6B5F8F' }}>
             Pas encore de compte ?{' '}
           </span>

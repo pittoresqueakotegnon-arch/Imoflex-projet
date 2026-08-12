@@ -240,18 +240,23 @@ export default function Payer() {
 
   return (
     <div className="min-h-screen bg-[var(--imx-bg-app)] text-[var(--imx-text-primary)] flex flex-col p-6">
-      <div className="flex items-center gap-4 mb-2">
+      <div className="mb-5">
         <BackButton />
-        <h1 className="font-nunito font-900 text-[22px] text-[var(--imx-text-primary)]">Effectuer un versement</h1>
       </div>
-      {propertyName && (
-        <p className="text-[var(--imx-text-secondary)] text-[12px] ml-[60px] mb-8" style={{ fontFamily: 'Space Grotesk' }}>
+      <h1 className="font-nunito font-900 text-[22px] text-[var(--imx-text-primary)] mb-1">Effectuer un versement</h1>
+      {propertyName ? (
+        <p className="text-[var(--imx-text-secondary)] text-[12px] mb-8" style={{ fontFamily: 'Space Grotesk' }}>
           Pour : {propertyName}
         </p>
+      ) : (
+        <div className="mb-8" />
       )}
 
       <div className="flex-1 flex flex-col">
-        <div className="mb-10 flex flex-col items-center">
+        <div
+          className="mb-6 flex flex-col items-center rounded-3xl py-8 px-4"
+          style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}
+        >
           <p className="text-[var(--imx-text-secondary)] text-[10px] font-space-grotesk font-bold uppercase tracking-widest mb-3">
             MONTANT À VERSER
           </p>
@@ -310,9 +315,10 @@ export default function Payer() {
                 disabled={processing}
                 className={`py-4 px-1 rounded-2xl font-space-grotesk font-600 text-[11px] sm:text-[13px] transition-all disabled:opacity-50 ${
                   amount === val
-                    ? 'bg-transparent text-[var(--imx-accent-light)] border border-[var(--imx-accent-light)]'
-                    : 'bg-[var(--imx-surface)] text-[var(--imx-text-secondary)] border border-transparent hover:bg-[var(--imx-surface-2)]'
+                    ? 'text-white border border-transparent'
+                    : 'bg-transparent text-[var(--imx-text-secondary)] border border-[var(--imx-border)] hover:border-[var(--imx-accent-light)]'
                 }`}
+                style={amount === val ? { background: 'var(--imx-accent)' } : undefined}
               >
                 {new Intl.NumberFormat('fr-FR').format(val)}
               </button>
@@ -322,9 +328,10 @@ export default function Payer() {
               disabled={processing}
               className={`py-4 px-1 rounded-2xl font-space-grotesk font-600 text-[11px] sm:text-[13px] transition-all disabled:opacity-50 ${
                 amount === remaining
-                  ? 'bg-transparent text-[var(--imx-accent-light)] border border-[var(--imx-accent-light)]'
-                  : 'bg-[var(--imx-surface)] text-[var(--imx-text-secondary)] border border-transparent hover:bg-[var(--imx-surface-2)]'
+                  ? 'text-white border border-transparent'
+                  : 'bg-transparent text-[var(--imx-text-secondary)] border border-[var(--imx-border)] hover:border-[var(--imx-accent-light)]'
               }`}
+              style={amount === remaining ? { background: 'var(--imx-accent)' } : undefined}
             >
               Tout
             </button>
@@ -337,10 +344,10 @@ export default function Payer() {
           </label>
           <div className="grid grid-cols-3 gap-3">
             {(['mtn', 'moov', 'celtiis'] as Operator[]).map((op) => {
-              const opColors: Record<Operator, { bg: string; text: string }> = {
-                mtn: { bg: '#FBBF24', text: '#412402' },
-                moov: { bg: '#3B82F6', text: '#042C53' },
-                celtiis: { bg: '#10B981', text: '#04342C' },
+              const opDot: Record<Operator, string> = {
+                mtn: '#FBBF24',
+                moov: '#3B82F6',
+                celtiis: '#10B981',
               };
               const isSelected = selectedOperator === op;
               return (
@@ -348,14 +355,14 @@ export default function Payer() {
                   key={op}
                   onClick={() => { haptics.light(); setSelectedOperator(op); }}
                   disabled={processing}
-                  className="py-6 rounded-[24px] flex items-center justify-center font-nunito font-800 text-[14px] transition-all"
+                  className="py-4 rounded-2xl flex flex-col items-center justify-center gap-2 font-space-grotesk font-700 text-[13px] transition-all disabled:opacity-50"
                   style={{
-                    backgroundColor: opColors[op].bg,
-                    color: opColors[op].text,
-                    boxShadow: isSelected ? '0 0 0 2px #A855F7, 0 0 0 5px rgba(168,85,247,0.25)' : 'none',
-                    opacity: processing && !isSelected ? 0.6 : 1,
+                    background: 'var(--imx-surface)',
+                    color: isSelected ? 'var(--imx-text-primary)' : 'var(--imx-text-secondary)',
+                    border: isSelected ? '1.5px solid var(--imx-accent)' : '1.5px solid transparent',
                   }}
                 >
+                  <span className="w-2 h-2 rounded-full" style={{ background: opDot[op] }} />
                   {op === 'mtn' ? 'MTN' : op === 'moov' ? 'Moov' : 'Celtiis'}
                 </button>
               );
@@ -378,25 +385,20 @@ export default function Payer() {
         </div>
 
         <div className="mt-auto">
-          <div className="bg-[var(--imx-surface-2)] rounded-3xl p-6 mb-6 border border-[var(--imx-border)]">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-[var(--imx-text-muted)] font-space-grotesk font-600 text-[13px]">Versement</span>
-              <span className="text-[var(--imx-text-primary)] font-nunito font-900 text-[15px]">{new Intl.NumberFormat('fr-FR').format(amount)} FCFA</span>
-            </div>
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-[var(--imx-text-muted)] font-space-grotesk font-600 text-[13px]">Frais de transaction</span>
-              <span className="text-[#22C55E] font-nunito font-900 text-[15px]">0 FCFA (Gratuit)</span>
-            </div>
-            <div className="h-[1px] bg-[var(--imx-border)] w-full my-4"></div>
+          <div className="rounded-3xl p-5 mb-6" style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}>
             <div className="flex justify-between items-center mb-3">
-              <span className="text-[var(--imx-text-muted)] font-space-grotesk font-600 text-[13px]">Total débité</span>
-              <span className="text-[var(--imx-accent-light)] font-nunito font-900 text-[15px]">{new Intl.NumberFormat('fr-FR').format(amount)} FCFA</span>
+              <span className="text-[var(--imx-text-muted)] font-space-grotesk font-500 text-[12px]">Versement</span>
+              <span className="text-[var(--imx-text-primary)] font-nunito font-700 text-[14px]">{new Intl.NumberFormat('fr-FR').format(amount)} FCFA</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[var(--imx-text-muted)] font-space-grotesk font-600 text-[13px]">Solde après versement</span>
-              <span className={`font-nunito font-900 text-[15px] ${remaining - amount === 0 ? 'text-[#22C55E]' : 'text-[var(--imx-text-primary)]'}`}>
+              <span className="text-[var(--imx-text-muted)] font-space-grotesk font-500 text-[12px]">Frais</span>
+              <span className="text-[#5FD9A4] font-space-grotesk font-600 text-[12px]">Gratuit</span>
+            </div>
+            <div className="h-[1px] bg-[var(--imx-border)] w-full my-3.5"></div>
+            <div className="flex justify-between items-center">
+              <span className="text-[var(--imx-text-secondary)] font-space-grotesk font-600 text-[13px]">Solde après versement</span>
+              <span className={`font-nunito font-900 text-[16px] ${remaining - amount === 0 ? 'text-[#5FD9A4]' : 'text-[var(--imx-accent-light)]'}`}>
                 {new Intl.NumberFormat('fr-FR').format(Math.max(remaining - amount, 0))} FCFA
-                {remaining - amount === 0 && ' ✓'}
               </span>
             </div>
           </div>

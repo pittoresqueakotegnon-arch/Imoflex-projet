@@ -92,14 +92,14 @@ export const BottomNav: React.FC = () => {
               to={item.path}
               onClick={() => haptics.light()}
               className={`flex flex-col items-center justify-center gap-1 flex-1 h-14 relative rounded-xl transition-all duration-200 ${
-                active ? 'bg-purple-500/15' : 'hover:bg-white/5'
+                active ? 'bg-purple-500/15' : 'hover:bg-[var(--imx-surface-2)]'
               }`}
               style={{ margin: '0 4px' }}
             >
               <div className="relative">
                 <IconComponent 
                   size={22} 
-                  color={active ? 'var(--imx-accent-glow)' : '#94a3b8'} 
+                color={active ? 'var(--imx-accent-glow)' : 'var(--imx-text-muted)'} 
                   strokeWidth={active ? 2.5 : 2} 
                 />
                 {item.badge && item.badge > 0 ? (
@@ -127,7 +127,7 @@ export const BottomNav: React.FC = () => {
               </div>
               <span
                 className="text-[10.5px] font-space-grotesk font-600 transition-colors"
-                style={{ color: active ? 'var(--imx-accent-glow)' : '#94a3b8' }}
+                style={{ color: active ? 'var(--imx-accent-glow)' : 'var(--imx-text-muted)' }}
               >
                 {item.label}
               </span>

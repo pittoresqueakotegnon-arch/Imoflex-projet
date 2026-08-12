@@ -172,14 +172,14 @@ const Filtres: React.FC = () => {
             <div
               onMouseDown={() => setDragging('min')}
               onTouchStart={() => setDragging('min')}
-              className="absolute top-1/2 w-5 h-5 bg-white border-2 border-[var(--imx-accent)] rounded-full -translate-y-1/2 -translate-x-1/2 cursor-pointer touch-none"
-              style={{ left: `${percentFor(minBudget)}%` }}
+              className="absolute top-1/2 w-5 h-5 border-2 border-[var(--imx-accent)] rounded-full -translate-y-1/2 -translate-x-1/2 cursor-pointer touch-none"
+              style={{ left: `${percentFor(minBudget)}%`, background: 'var(--imx-bg-app)' }}
             />
             <div
               onMouseDown={() => setDragging('max')}
               onTouchStart={() => setDragging('max')}
-              className="absolute top-1/2 w-5 h-5 bg-white border-2 border-[var(--imx-accent)] rounded-full -translate-y-1/2 -translate-x-1/2 cursor-pointer touch-none"
-              style={{ left: `${percentFor(maxBudget)}%` }}
+              className="absolute top-1/2 w-5 h-5 border-2 border-[var(--imx-accent)] rounded-full -translate-y-1/2 -translate-x-1/2 cursor-pointer touch-none"
+              style={{ left: `${percentFor(maxBudget)}%`, background: 'var(--imx-bg-app)' }}
             />
           </div>
           <div className="flex justify-between text-xs text-[var(--imx-text-secondary)]">

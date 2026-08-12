@@ -4,6 +4,7 @@ import { Bell, ChevronRight, AlertCircle, Clock, CheckCircle2, KeyRound } from '
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, Payment } from '../../lib/supabase';
 import { daysUntilDeadline, getDeadlineDateForMonth } from '../../lib/utils';
+import { getGreeting } from '../../utils/greeting';
 import BottomNav from '../../components/BottomNav';
 
 interface LeaseWithPeriod {
@@ -199,7 +200,7 @@ export default function Dashboard() {
 
       <div className="flex justify-between items-center px-4 pt-3 pb-4">
         <div>
-          <span className="text-[var(--imx-text-secondary)] text-xs font-space-grotesk">Bonjour ☀️</span>
+          <span style={{ color: 'var(--imx-accent-light)', fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: '0.85rem' }}>{getGreeting()}</span>
           <h1 className="font-nunito font-900 text-xl text-[var(--imx-text-primary)]">{firstName} {lastName}</h1>
         </div>
         <Link to="/notifications" className="relative btn-icon">

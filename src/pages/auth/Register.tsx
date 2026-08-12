@@ -229,11 +229,7 @@ export default function Register() {
   const update = (field: string, value: string | boolean) =>
     setFormData(prev => ({ ...prev, [field]: value }));
 
-  const fadeStyle = (delay = 0) => ({
-    opacity: mounted ? 1 : 0,
-    transform: mounted ? 'translateY(0)' : 'translateY(20px)',
-    transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`,
-  });
+  const fadeStyle = (delay = 0) => ({});
 
   // ── ÉCRAN OTP ─────────────────────────────────────────────────────────────
   if (step === 'otp') {
@@ -474,9 +470,9 @@ export default function Register() {
           </p>
         </div>
 
-        <form onSubmit={handleContinue} className="flex flex-col gap-4" style={fadeStyle(80)}>
+        <form onSubmit={handleContinue} className="flex flex-col gap-4">
           {/* Nom complet */}
-          <div>
+          <div style={fadeStyle(80)}>
             <div className="relative">
               <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#6B5F8F' }}>
                 <User size={18} />
@@ -491,7 +487,7 @@ export default function Register() {
           </div>
 
           {/* Téléphone avec sélecteur pays */}
-          <div>
+          <div style={fadeStyle(130)}>
             <div className="flex gap-2">
               {/* Sélecteur pays */}
               <div className="relative">
@@ -546,7 +542,7 @@ export default function Register() {
           </div>
 
           {/* Email */}
-          <div>
+          <div style={fadeStyle(180)}>
             <div className="relative">
               <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#6B5F8F' }}>
                 <Mail size={18} />
@@ -561,7 +557,7 @@ export default function Register() {
           </div>
 
           {/* Mot de passe + robustesse */}
-          <div>
+          <div style={fadeStyle(230)}>
             <div className="relative">
               <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#6B5F8F' }}>
                 <Lock size={18} />
@@ -596,7 +592,7 @@ export default function Register() {
           </div>
 
           {/* Confirmation mot de passe */}
-          <div>
+          <div style={fadeStyle(280)}>
             <div className="relative">
               <div className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#6B5F8F' }}>
                 <ShieldCheck size={18} />
@@ -616,14 +612,14 @@ export default function Register() {
           </div>
 
           {/* Acceptations légales */}
-          <div className="flex flex-col gap-3 mt-2" style={fadeStyle(160)}>
+          <div className="flex flex-col gap-3 mt-2" style={fadeStyle(330)}>
             {/* CGU */}
             <label className="flex items-start gap-3 cursor-pointer"
               onClick={() => update('acceptTerms', !formData.acceptTerms)}>
               <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
                 style={{
                   background: formData.acceptTerms ? 'var(--imx-accent)' : 'transparent',
-                  border: `1.5px solid ${formData.acceptTerms ? 'var(--imx-accent)' : 'rgba(255,255,255,0.15)'}`,
+                  border: `1.5px solid ${formData.acceptTerms ? 'var(--imx-accent)' : 'var(--imx-border)'}`,
                 }}>
                 {formData.acceptTerms && <Check size={11} className="text-white" />}
               </div>
@@ -643,7 +639,7 @@ export default function Register() {
               <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
                 style={{
                   background: formData.acceptPrivacy ? 'var(--imx-accent)' : 'transparent',
-                  border: `1.5px solid ${formData.acceptPrivacy ? 'var(--imx-accent)' : 'rgba(255,255,255,0.15)'}`,
+                  border: `1.5px solid ${formData.acceptPrivacy ? 'var(--imx-accent)' : 'var(--imx-border)'}`,
                 }}>
                 {formData.acceptPrivacy && <Check size={11} className="text-white" />}
               </div>
@@ -659,7 +655,7 @@ export default function Register() {
           </div>
 
           {/* Bouton continuer */}
-          <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
+          <button type="submit" disabled={loading} className="btn-primary w-full mt-2" style={fadeStyle(380)}>
             Continuer
           </button>
         </form>

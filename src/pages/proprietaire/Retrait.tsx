@@ -5,6 +5,7 @@ import { useWallet } from '../../hooks/useWallet';
 import { requestWithdrawal } from '../../lib/fedapay';
 import { formatMontant } from '../../lib/utils';
 import { useToast } from '../../components/Toast';
+import { BackButton } from '../../components/BackButton';
 import { Operator } from '../../lib/supabase';
 import { logAction } from '../../lib/audit';
 
@@ -14,7 +15,7 @@ const Retrait: React.FC = () => {
   const { wallet, ensureWallet } = useWallet(profile?.id);
   const { showToast } = useToast();
 
-  const [amount, setAmount] = useState('30000');
+  const [amount, setAmount] = useState('');
   const [selectedOperator, setSelectedOperator] = useState<Operator>('mtn');
   const [phoneNumber, setPhoneNumber] = useState(profile?.mobile_money_number || '');
   const [loading, setLoading] = useState(false);
@@ -116,26 +117,20 @@ const Retrait: React.FC = () => {
   const parsedAmt = parseInt(amount) || 0;
 
   return (
-    <div className="min-h-screen bg-[var(--imx-bg-app)] text-[var(--imx-text-primary)] flex flex-col px-5 pt-12 pb-8">
+    <div className="min-h-screen bg-[var(--imx-bg-app)] text-[var(--imx-text-primary)] flex flex-col px-5 pt-6 pb-8">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-10 w-full">
-        <button
-          onClick={() => navigate(-1)}
-          className="w-11 h-11 rounded-2xl flex items-center justify-center transition"
-          style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-        </button>
-        <h1 className="text-[var(--imx-text-primary)] font-nunito font-black text-[22px]">Retirer des fonds</h1>
+      <div className="mb-5">
+        <BackButton />
       </div>
+      <h1 className="text-[var(--imx-text-primary)] font-nunito font-black text-[22px] mb-8">Retirer des fonds</h1>
 
       <div className="flex-1 flex flex-col justify-between">
         <div className="space-y-6">
           {/* Amount Display */}
-          <div className="text-center">
+          <div
+            className="text-center rounded-3xl py-8 px-4"
+            style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}
+          >
             <p className="text-[var(--imx-text-secondary)] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-2">MONTANT À RETIRER</p>
             <div className="flex items-baseline justify-center gap-1.5">
               <span className="text-[var(--imx-accent-light)] text-xl font-bold font-space-grotesk">FCFA</span>
@@ -154,6 +149,32 @@ const Retrait: React.FC = () => {
             </p>
           </div>
 
+          {/* Montants rapides — pourcentages du solde disponible */}
+          {availableBalance > 0 && (
+            <div className="grid grid-cols-4 gap-2">
+              {[0.25, 0.5, 0.75, 1].map((ratio) => {
+                const quickValue = Math.floor(availableBalance * ratio);
+                const isSelected = parsedAmt === quickValue && amount !== '';
+                return (
+                  <button
+                    key={ratio}
+                    type="button"
+                    onClick={() => setAmount(String(quickValue))}
+                    disabled={loading}
+                    className={`py-4 px-1 rounded-2xl font-space-grotesk font-600 text-[11px] sm:text-[13px] transition-all disabled:opacity-50 ${
+                      isSelected
+                        ? 'text-white border border-transparent'
+                        : 'bg-transparent text-[var(--imx-text-secondary)] border border-[var(--imx-border)] hover:border-[var(--imx-accent-light)]'
+                    }`}
+                    style={isSelected ? { background: 'var(--imx-accent)' } : undefined}
+                  >
+                    {ratio === 1 ? 'Tout' : `${ratio * 100}%`}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Operator Selection matching mockup exactly */}
           <div>
             <label className="block text-[var(--imx-text-secondary)] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-3">
@@ -161,9 +182,9 @@ const Retrait: React.FC = () => {
             </label>
             <div className="grid grid-cols-3 gap-3">
               {([
-                { id: 'mtn', title: 'MTN', bg: '#FBBF24', text: '#412402' },
-                { id: 'moov', title: 'Moov', bg: '#3B82F6', text: '#042C53' },
-                { id: 'celtiis', title: 'Celtiis', bg: '#10B981', text: '#04342C' },
+                { id: 'mtn', title: 'MTN', dot: '#FBBF24' },
+                { id: 'moov', title: 'Moov', dot: '#3B82F6' },
+                { id: 'celtiis', title: 'Celtiis', dot: '#10B981' },
               ] as const).map((op) => {
                 const isSelected = selectedOperator === op.id;
                 return (
@@ -172,13 +193,14 @@ const Retrait: React.FC = () => {
                     type="button"
                     onClick={() => !loading && setSelectedOperator(op.id)}
                     disabled={loading}
-                    className="rounded-[24px] flex items-center justify-center transition-all cursor-pointer min-h-[80px] font-nunito font-800 text-[14px] disabled:opacity-50"
+                    className="rounded-2xl flex flex-col items-center justify-center gap-2 transition-all cursor-pointer py-4 font-space-grotesk font-700 text-[13px] disabled:opacity-50"
                     style={{
-                      backgroundColor: op.bg,
-                      color: op.text,
-                      boxShadow: isSelected ? '0 0 0 2px #A855F7, 0 0 0 5px rgba(168,85,247,0.25)' : 'none',
+                      background: 'var(--imx-surface)',
+                      color: isSelected ? 'var(--imx-text-primary)' : 'var(--imx-text-secondary)',
+                      border: isSelected ? '1.5px solid var(--imx-accent)' : '1.5px solid transparent',
                     }}
                   >
+                    <span className="w-2 h-2 rounded-full" style={{ background: op.dot }} />
                     {op.title}
                   </button>
                 );

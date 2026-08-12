@@ -7,6 +7,7 @@ import { getCurrentMonth, getMonthName } from '../../lib/utils';
 import BottomNav from '../../components/BottomNav';
 import { HeaderBell } from '../../components/HeaderBell';
 import { useToast } from '../../components/Toast';
+import { getGreeting } from '../../utils/greeting';
 
 interface DashboardData {
   totalEncaisse: number;
@@ -349,10 +350,9 @@ const Dashboard: React.FC = () => {
       <div className="px-4 pt-3 pb-4 flex items-center justify-between">
         <div>
           <span
-            className="text-[11px] font-semibold"
-            style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}
+            style={{ color: 'var(--imx-accent-light)', fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: '0.85rem' }}
           >
-            Tableau de bord
+            {getGreeting()}
           </span>
           <h1 className="text-[22px] font-nunito font-black text-[var(--imx-text-primary)] mt-0.5 leading-tight">
             {profile?.full_name || 'Ama Adjovi'}

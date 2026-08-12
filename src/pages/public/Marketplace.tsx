@@ -11,7 +11,6 @@ import EmptyState from '../../components/EmptyState';
 import { SplashScreen } from '../../components/SplashScreen';
 import { supabase, PropertyType } from '../../lib/supabase';
 import { getOptimizedUrl } from '../../lib/utils';
-import { Search, Shield, Wallet, Building2 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Accueil (Marketplace) — ImoFlex

@@ -296,47 +296,53 @@ export default function Historique() {
       {/* ── Modale Reçu de Paiement (PDF Print) ── */}
       {selectedReceipt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-white rounded-[24px] w-full max-w-sm overflow-hidden flex flex-col relative printable-receipt">
+          <div
+            className="rounded-[24px] w-full max-w-sm overflow-hidden flex flex-col relative printable-receipt"
+            style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}
+          >
             <button
               onClick={() => setSelectedReceipt(null)}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 z-10 no-print"
+              className="absolute top-4 right-4 p-2 z-10 no-print transition-colors"
+              style={{ color: 'var(--imx-text-muted)' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--imx-text-primary)'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--imx-text-muted)'}
             >
               <X size={20} />
             </button>
-            <div className="p-6 text-center border-b border-gray-100 bg-gray-50">
-              <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+            <div className="p-6 text-center border-b" style={{ borderColor: 'var(--imx-border)', background: 'var(--imx-surface-2)' }}>
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(34,197,94,0.12)', color: '#22C55E' }}>
                 <Printer size={20} />
               </div>
-              <h2 className="font-nunito font-black text-xl text-gray-900">Reçu Officiel</h2>
-              <p className="text-sm text-gray-500 font-space-grotesk mt-1">ImoFlex Paiments</p>
+              <h2 className="font-nunito font-black text-xl" style={{ color: 'var(--imx-text-primary)' }}>Reçu Officiel</h2>
+              <p className="text-sm mt-1" style={{ fontFamily: 'Space Grotesk', color: 'var(--imx-text-secondary)' }}>ImoFlex Paiements</p>
             </div>
-            <div className="p-6 space-y-4 font-space-grotesk">
+            <div className="p-6 space-y-4" style={{ fontFamily: 'Space Grotesk' }}>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Date</span>
-                <span className="font-medium text-gray-900">{new Date(selectedReceipt.created_at).toLocaleString('fr-FR')}</span>
+                <span style={{ color: 'var(--imx-text-secondary)' }}>Date</span>
+                <span className="font-medium" style={{ color: 'var(--imx-text-primary)' }}>{new Date(selectedReceipt.created_at).toLocaleString('fr-FR')}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Montant</span>
-                <span className="font-bold text-gray-900 text-base">{formatMontant(selectedReceipt.amount)}</span>
+                <span style={{ color: 'var(--imx-text-secondary)' }}>Montant</span>
+                <span className="font-bold text-base" style={{ color: 'var(--imx-text-primary)' }}>{formatMontant(selectedReceipt.amount)}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Logement</span>
-                <span className="font-medium text-gray-900">{selectedReceipt.propertyName || 'N/A'}</span>
+                <span style={{ color: 'var(--imx-text-secondary)' }}>Logement</span>
+                <span className="font-medium" style={{ color: 'var(--imx-text-primary)' }}>{selectedReceipt.propertyName || 'N/A'}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Référence</span>
-                <span className="font-mono text-gray-900 text-xs bg-gray-100 px-2 py-1 rounded">{selectedReceipt.fedapay_transaction_id}</span>
+                <span style={{ color: 'var(--imx-text-secondary)' }}>Référence</span>
+                <span className="font-mono text-xs px-2 py-1 rounded" style={{ color: 'var(--imx-text-primary)', background: 'var(--imx-surface-2)', border: '1px solid var(--imx-border)' }}>{selectedReceipt.fedapay_transaction_id}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Opérateur</span>
-                <span className="font-medium text-gray-900 capitalize">{selectedReceipt.operator}</span>
+                <span style={{ color: 'var(--imx-text-secondary)' }}>Opérateur</span>
+                <span className="font-medium capitalize" style={{ color: 'var(--imx-text-primary)' }}>{selectedReceipt.operator}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Statut</span>
-                <span className="font-bold text-emerald-600 uppercase tracking-wide text-xs">PAYÉ</span>
+                <span style={{ color: 'var(--imx-text-secondary)' }}>Statut</span>
+                <span className="font-bold uppercase tracking-wide text-xs" style={{ color: '#22C55E' }}>PAYÉ</span>
               </div>
             </div>
-            <div className="p-6 bg-gray-50 border-t border-gray-100 no-print">
+            <div className="p-6 border-t no-print" style={{ borderColor: 'var(--imx-border)', background: 'var(--imx-surface-2)' }}>
               <button
                 onClick={() => window.print()}
                 className="w-full bg-[var(--imx-accent)] hover:opacity-90 text-white font-bold py-3.5 rounded-xl transition-colors font-nunito flex items-center justify-center gap-2"
