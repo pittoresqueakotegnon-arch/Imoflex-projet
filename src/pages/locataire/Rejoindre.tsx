@@ -1,0 +1,370 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import confetti from 'canvas-confetti';
+import { KeyRound, Home } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../components/Toast';
+import { BackButton } from '../../components/BackButton';
+import { getCurrentMonth, getInitialDeadlineDate, calculateProrataAmount } from '../../lib/utils';
+
+type Step = 'input' | 'confirmation' | 'complete';
+
+// Sous-ensemble de Property remonté par le select access_code (id, name,
+// address, monthly_rent, payment_deadline_day, listing_id uniquement —
+// owner_id/access_code/is_active/created_at servent aux filtres de la
+// requête mais ne sont jamais lus sur l'objet une fois récupéré).
+interface JoinedProperty {
+  id: string;
+  name: string;
+  address: string;
+  monthly_rent: number;
+  payment_deadline_day: number;
+  listing_id?: string;
+}
+
+export default function Rejoindre() {
+  const navigate = useNavigate();
+  const { profile } = useAuth();
+  const { showToast } = useToast();
+
+  const [step, setStep] = useState<Step>('input');
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [property, setProperty] = useState<JoinedProperty | null>(null);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCode(e.target.value.toUpperCase());
+  };
+
+  const handleInputSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (!code.trim()) {
+        throw new Error('Veuillez entrer un code');
+      }
+
+      // Check if property exists with this code
+      const { data: propData, error: propError } = await supabase
+        .from('properties')
+        .select('id, name, address, monthly_rent, payment_deadline_day, listing_id')
+        .eq('access_code', code)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (propError) throw propError;
+      if (!propData) {
+        throw new Error('Code invalide ou inexistant');
+      }
+
+      // Check if property already has active lease
+      const { data: existingLease, error: leaseCheckError } = await supabase
+        .from('leases')
+        .select('id')
+        .eq('property_id', propData.id)
+        .eq('status', 'actif')
+        .maybeSingle();
+
+      if (leaseCheckError && leaseCheckError.code !== 'PGRST116') throw leaseCheckError;
+      if (existingLease) {
+        throw new Error('Ce logement est déjà occupé');
+      }
+
+      // Un locataire peut désormais avoir plusieurs baux actifs simultanément
+      // (chambre + boutique + appartement, etc.) : on ne bloque plus ici.
+      // On empêche seulement de rejoindre deux fois le même logement précis.
+      const { data: sameLeaseTwice, error: sameLeaseError } = await supabase
+        .from('leases')
+        .select('id')
+        .eq('tenant_id', profile?.id)
+        .eq('property_id', propData.id)
+        .eq('status', 'actif')
+        .maybeSingle();
+
+      if (sameLeaseError && sameLeaseError.code !== 'PGRST116') throw sameLeaseError;
+      if (sameLeaseTwice) {
+        throw new Error('Vous êtes déjà locataire de ce logement');
+      }
+
+      setProperty(propData);
+      setStep('confirmation');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de la vérification du code';
+      setError(message);
+      showToast(message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmation = async () => {
+    if (!property || !profile?.id) return;
+
+    setError('');
+    setLoading(true);
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { month, year } = getCurrentMonth();
+
+      // Create lease
+      const { data: leaseData, error: leaseInsertError } = await supabase
+        .from('leases')
+        .insert({
+          tenant_id: profile.id,
+          property_id: property.id,
+          start_date: today,
+          status: 'actif',
+        })
+        .select('id')
+        .single();
+
+      if (leaseInsertError) throw leaseInsertError;
+
+      // Create rent period
+      const deadlineDate = getInitialDeadlineDate(property.payment_deadline_day, today);
+      const prorataAmount = calculateProrataAmount(property.monthly_rent, today, property.payment_deadline_day);
+
+      const { error: periodInsertError } = await supabase
+        .from('rent_periods')
+        .insert({
+          lease_id: leaseData.id,
+          period_month: month,
+          period_year: year,
+          amount_due: prorataAmount,
+          amount_paid: 0,
+          deadline_date: deadlineDate,
+          status: 'en_cours',
+        });
+
+      if (periodInsertError) throw periodInsertError;
+
+      // Update listing availability
+      if (property.listing_id) {
+        const { error: updateError } = await supabase
+          .from('listings')
+          .update({ availability_status: 'occupe' })
+          .eq('id', property.listing_id);
+          
+        if (updateError) {
+          console.error('Error updating listing status:', updateError);
+        }
+      }
+
+      setStep('complete');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de la création du bail';
+      setError(message);
+      showToast(message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Déclencher les confettis au passage à l'étape 'complete'
+  useEffect(() => {
+    if (step === 'complete') {
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['var(--imx-accent-light)', 'var(--imx-accent)', 'var(--imx-text-primary)', '#4ADE80', '#FBBF24']
+      });
+    }
+  }, [step]);
+
+  return (
+    <div className="min-h-screen bg-[var(--imx-bg-app)] text-[var(--imx-text-primary)] flex flex-col px-5 pt-12 pb-8">
+      {/* Header / Back */}
+      <div className="flex items-center mb-10 w-full">
+        <BackButton />
+      </div>
+
+      <div className="flex items-center justify-center mb-8 w-full">
+        <h1 className="text-[var(--imx-text-primary)] font-nunito font-black text-[22px]">Rejoindre un logement</h1>
+      </div>
+
+      {step === 'input' && (
+        <div className="flex flex-col flex-1">
+          <div className="text-center mb-10 flex flex-col items-center">
+            {/* Key Icon */}
+            <KeyRound size={56} className="text-[#FBBF24] mb-6" style={{ transform: 'rotate(45deg)', fill: '#FBBF24' }} />
+            <p className="text-[var(--imx-text-secondary)] text-[13px] max-w-[280px] leading-relaxed" style={{ fontFamily: 'Space Grotesk' }}>
+              Le code vous a été communiqué par le propriétaire après votre accord de location.
+            </p>
+          </div>
+
+          <form onSubmit={handleInputSubmit} className="flex flex-col gap-4 pb-4">
+            <div>
+              <label className="text-[10px] font-space-grotesk font-semibold text-[var(--imx-text-secondary)] uppercase tracking-wider block mb-2 px-1">
+                CODE D'ACCÈS
+              </label>
+              <input
+                type="text"
+                value={code}
+                onChange={handleInputChange}
+                disabled={loading}
+                placeholder="IMO-4728"
+                maxLength={8}
+                className="w-full h-16 rounded-2xl text-center text-[22px] font-nunito font-black tracking-widest uppercase mb-4 focus:outline-none"
+                style={{ 
+                  background: 'var(--imx-surface-2)', 
+                  border: '1px solid rgba(168,85,247,0.3)',
+                  color: 'var(--imx-accent-glow)'
+                }}
+              />
+
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-xl text-sm mb-4" style={{ fontFamily: 'Space Grotesk' }}>
+                  {error}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || code.length < 5}
+              className="w-full text-white font-bold rounded-2xl py-[18px]"
+              style={{ background: 'var(--imx-accent-light)', fontFamily: 'Sora', fontSize: '15px' }}
+            >
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Vérification...</span>
+                </div>
+              ) : (
+                'Rejoindre'
+              )}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {step === 'confirmation' && property && (
+        <>
+          <h1 className="font-nunito font-900 text-2xl mb-1.5 text-[var(--imx-text-primary)]">Confirmer le logement</h1>
+          <p className="text-[var(--imx-text-secondary)] text-xs mb-6" style={{ fontFamily: 'Space Grotesk' }}>Vérifiez les informations avant de confirmer</p>
+
+          <div className="flex-1">
+            {/* Confirmation Card */}
+            <div className="card p-5 space-y-4 mb-6">
+              <div>
+                <p className="text-[var(--imx-text-secondary)] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-0.5">Nom du logement</p>
+                <p className="font-nunito font-700 text-[var(--imx-text-primary)] text-base">{property.name}</p>
+              </div>
+
+              <div>
+                <p className="text-[var(--imx-text-secondary)] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-0.5">Adresse</p>
+                <p className="font-nunito font-700 text-[var(--imx-text-primary)] text-base">{property.address}</p>
+              </div>
+
+              <div>
+                <p className="text-[var(--imx-text-secondary)] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-0.5">Loyer mensuel</p>
+                <p className="font-nunito font-900 text-2xl amount text-[var(--imx-accent-light)]">{property.monthly_rent.toLocaleString('fr-FR')} <span className="text-sm font-normal text-[var(--imx-text-secondary)]">FCFA</span></p>
+              </div>
+
+              <div>
+                <p className="text-[var(--imx-text-secondary)] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-0.5">Échéance de paiement</p>
+                <p className="font-nunito font-700 text-[var(--imx-text-primary)] text-base">Le {property.payment_deadline_day} de chaque mois</p>
+              </div>
+              
+              {(() => {
+                const todayStr = new Date().toISOString().split('T')[0];
+                const prorata = calculateProrataAmount(property.monthly_rent, todayStr, property.payment_deadline_day);
+                if (prorata < property.monthly_rent) {
+                  return (
+                    <div className="bg-[var(--imx-accent-light)]/10 border border-[var(--imx-accent-light)]/30 rounded-xl p-3 mt-4">
+                      <p className="text-[var(--imx-text-secondary)] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-1">Premier mois (Prorata)</p>
+                      <p className="font-nunito font-700 text-[var(--imx-text-primary)] text-sm">
+                        Vous ne payez que <span className="text-[var(--imx-accent-light)] font-black">{prorata.toLocaleString('fr-FR')} FCFA</span> pour ce premier mois, calculé au prorata de votre date d'arrivée.
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+            </div>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-xl text-sm mb-4" style={{ fontFamily: 'Space Grotesk' }}>
+                {error}
+              </div>
+            )}
+          </div>
+
+          {/* Buttons */}
+          <div className="space-y-2.5">
+            <button
+              onClick={handleConfirmation}
+              disabled={loading}
+              className="btn-primary w-full"
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Création...
+                </>
+              ) : (
+                'Confirmer et rejoindre'
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setStep('input');
+                setCode('');
+                setProperty(null);
+              }}
+              className="btn-ghost w-full"
+            >
+              Annuler
+            </button>
+          </div>
+        </>
+      )}
+
+      {step === 'complete' && (
+        <div className="flex flex-col items-center justify-center flex-1 py-8">
+          <div
+            className="w-24 h-24 rounded-[32px] flex items-center justify-center mb-8 relative"
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(168,85,247,0.25), rgba(168,85,247,0.05))', 
+              border: '2px solid rgba(168,85,247,0.4)',
+              boxShadow: '0 0 30px rgba(168,85,247,0.2)'
+            }}
+          >
+            <Home size={40} color="#A855F7" strokeWidth={2} />
+            <span className="text-2xl absolute -bottom-2 -right-2 bg-[var(--imx-bg-app)] rounded-full">✨</span>
+          </div>
+          
+          <h1 className="font-nunito font-black text-3xl text-center mb-4">
+            Félicitations 🎉
+          </h1>
+          
+          <p className="text-[var(--imx-text-secondary)] text-base text-center mb-10 max-w-[280px] leading-relaxed font-space-grotesk">
+            Vous venez de rejoindre <br/>
+            <strong className="text-[var(--imx-text-primary)] text-lg mt-1 block">{property?.name}</strong>
+          </p>
+
+          <div
+            className="w-full rounded-2xl p-4 mb-12"
+            style={{ background: 'rgba(168, 85, 247, 0.07)', border: '1px solid rgba(168, 85, 247, 0.15)' }}
+          >
+            <p className="text-[11px] font-space-grotesk font-bold uppercase tracking-wider text-[var(--imx-text-secondary)] mb-1.5 text-center">Adresse du logement</p>
+            <p className="font-nunito font-700 text-[var(--imx-text-primary)] text-[15px] text-center">{property?.address}</p>
+          </div>
+
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="btn-primary w-full py-4 text-base"
+          >
+            Continuer vers le Dashboard
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

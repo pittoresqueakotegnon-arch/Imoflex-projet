@@ -1,0 +1,253 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod";
+import { maskPhone, ServiceUnavailableError, fetchWithRetry } from "../_shared/security.ts";
+
+const withdrawalSchema = z.object({
+  wallet_id: z.string().uuid("ID de wallet invalide"),
+  amount: z.number().int().positive("Le montant doit être supérieur à 0"),
+  operator: z.enum(["mtn", "moov", "celtiis"], { errorMap: () => ({ message: "Opérateur non supporté" }) }),
+  destination_phone: z.string().length(10, "Le numéro doit comporter 10 chiffres"),
+});
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+};
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
+  try {
+    // ---- Auth: identifier le VRAI appelant depuis le JWT, jamais depuis le body ----
+    const authHeader = req.headers.get("Authorization") || "";
+    const jwt = authHeader.replace("Bearer ", "");
+
+    const anonClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!
+    );
+    const { data: authData, error: authError } = await anonClient.auth.getUser(jwt);
+
+    if (authError || !authData?.user) {
+      return new Response(
+        JSON.stringify({ error: "Non authentifié" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const owner_id = authData.user.id; // <-- source de vérité, jamais body.owner_id
+
+    // ---- Audit Trail : capture IP + User-Agent ----
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0].trim()
+      || req.headers.get("x-real-ip")
+      || "unknown";
+    const userAgent = req.headers.get("user-agent") || "unknown";
+    console.log(`[audit] request-withdrawal uid=${owner_id} ip=${clientIp} ua=${userAgent.slice(0, 80)}`);
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // ---- Rate Limiting : max 3 retraits par minute (seuil strict) ----
+    const { data: allowed, error: rlError } = await supabase.rpc("check_rate_limit", {
+      p_user_id: owner_id,
+      p_endpoint: "request-withdrawal",
+      p_max_requests: 3,
+      p_window_seconds: 60,
+    });
+    if (rlError) console.error("Rate limit RPC error:", rlError.message);
+    if (allowed === false) {
+      return new Response(
+        JSON.stringify({ error: "Trop de requêtes de retrait. Veuillez patienter avant de réessayer (max 3/min)." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" } }
+      );
+    }
+
+    const fedapayKey = Deno.env.get("FEDAPAY_SECRET_KEY");
+    const fedapayBaseUrl = Deno.env.get("FEDAPAY_BASE_URL") || "https://api.fedapay.com/v1";
+
+    if (!fedapayKey) {
+      return new Response(
+        JSON.stringify({ error: "Fedapay non configuré (FEDAPAY_SECRET_KEY manquante)" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const body = await req.json();
+    const parseResult = withdrawalSchema.safeParse(body);
+
+    if (!parseResult.success) {
+      const errorMsg = parseResult.error.errors.map(e => e.message).join(", ");
+      return new Response(
+        JSON.stringify({ error: "Données invalides", details: errorMsg }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { wallet_id, amount, operator, destination_phone } = parseResult.data;
+
+    // Fetch and verify wallet ownership (contre le user authentifié, pas un id du body)
+    const { data: wallet, error: walletError } = await supabase
+      .from("wallets")
+      .select("*")
+      .eq("id", wallet_id)
+      .eq("owner_id", owner_id)
+      .maybeSingle();
+
+    if (walletError || !wallet) {
+      return new Response(
+        JSON.stringify({ error: "Wallet introuvable ou accès refusé" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (amount > wallet.available_balance) {
+      return new Response(
+        JSON.stringify({ error: `Solde insuffisant. Disponible: ${wallet.available_balance} FCFA` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Déduction atomique : appel à la fonction RPC pour éviter les conditions de concurrence (race condition)
+    // Cette fonction verrouille la ligne (FOR UPDATE) et déduit le montant si le solde est suffisant.
+    const { error: deductionError } = await supabase
+      .rpc('atomic_wallet_deduction', {
+        p_wallet_id: wallet_id,
+        p_amount: amount
+      });
+
+    if (deductionError) {
+      return new Response(
+        JSON.stringify({ error: deductionError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ---- Envoyer réellement l'argent via l'API Payout Fedapay ----
+    // Le solde a déjà été débité ci-dessus : si cet appel échoue, on doit le restaurer.
+    const payoutMode =
+      operator === "mtn"
+        ? Deno.env.get("FEDAPAY_MODE_MTN") || "mtn_open"
+        : operator === "celtiis"
+        ? Deno.env.get("FEDAPAY_MODE_CELTIIS") || "sbin"
+        : Deno.env.get("FEDAPAY_MODE_MOOV") || "moov";
+
+    let payoutId: string;
+    try {
+      const payoutRes = await fetchWithRetry(
+        `${fedapayBaseUrl}/payouts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${fedapayKey}`,
+          },
+          body: JSON.stringify({
+            amount,
+            currency: { iso: "XOF" },
+            mode: payoutMode,
+            description: "Retrait ImoFlex",
+            customer: {
+              firstname: authData.user.user_metadata?.first_name || authData.user.user_metadata?.prenom || "Propriétaire",
+              lastname: authData.user.user_metadata?.last_name || authData.user.user_metadata?.nom || "ImoFlex",
+              email: authData.user.email || `${owner_id}@imoflex.app`,
+              phone_number: { number: destination_phone, country: "bj" },
+            },
+          }),
+        },
+        { maxRetries: 3, timeoutMs: 10000, retryDelayMs: 500 }
+      );
+
+      const payoutJson = await payoutRes.json();
+      if (!payoutRes.ok) {
+        throw new Error(payoutJson?.message || `Erreur Fedapay payout: HTTP ${payoutRes.status}`);
+      }
+
+      const payout = payoutJson?.["v1/payout"] ?? payoutJson?.payout ?? payoutJson;
+      if (!payout?.id) throw new Error("Réponse Fedapay inattendue (pas d'id de payout)");
+      payoutId = String(payout.id);
+    } catch (payoutErr: unknown) {
+      // Rollback : le retrait n'a pas pu être envoyé, on remet le solde initial via l'RPC
+      await supabase.rpc('atomic_wallet_refund', {
+        p_wallet_id: wallet_id,
+        p_amount: amount
+      });
+
+      const isUnavailable = payoutErr instanceof ServiceUnavailableError;
+      const isTimeout = payoutErr instanceof Error && payoutErr.name === "TimeoutError";
+      const msg = isUnavailable
+        ? payoutErr.message
+        : isTimeout
+          ? "La demande de retrait a échoué : délai d'attente Fedapay dépassé. Votre solde a été restitué."
+          : (payoutErr instanceof Error ? payoutErr.message : "Erreur Fedapay");
+
+      console.error(`[circuit-breaker] Payout failed (phone=${maskPhone(destination_phone)}):`, msg);
+      return new Response(
+        JSON.stringify({ error: msg }),
+        { status: isUnavailable ? 503 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create withdrawal record
+    const estimatedCompletion = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: withdrawal, error: withdrawalError } = await supabase
+      .from("withdrawals")
+      .insert({
+        wallet_id,
+        amount,
+        operator,
+        destination_phone,
+        status: "en_traitement",
+        fedapay_payout_id: payoutId,
+        estimated_completion: estimatedCompletion,
+      })
+      .select()
+      .single();
+
+    if (withdrawalError) {
+      // Rollback wallet deduction on failure
+      // NB: à ce stade, le payout a déjà été envoyé côté Fedapay. Ce cas (échec DB
+      // après succès Fedapay) doit être surveillé manuellement — l'argent est parti
+      // mais l'enregistrement local a échoué. Log à surveiller en prod.
+      await supabase.rpc('atomic_wallet_refund', {
+        p_wallet_id: wallet_id,
+        p_amount: amount
+      });
+
+      return new Response(
+        JSON.stringify({ error: withdrawalError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create notification for owner
+    await supabase.from("notifications").insert({
+      user_id: owner_id,
+      type: "retrait_complete",
+      related_id: withdrawal.id,
+      title: "Retrait en cours",
+      body: `Votre retrait de ${amount} FCFA vers ${destination_phone} est en traitement. Délai estimé: 3 jours ouvrés.`,
+    });
+
+    return new Response(
+      JSON.stringify({
+        withdrawal_id: withdrawal.id,
+        fedapay_payout_id: payoutId,
+        status: "en_traitement",
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (err: unknown) {
+    const isUnavailable = err instanceof ServiceUnavailableError;
+    const message = err instanceof Error ? err.message : "Erreur interne";
+    if (isUnavailable) console.error("[circuit-breaker] request-withdrawal PSP unavailable:", message);
+    return new Response(
+      JSON.stringify({ error: message }),
+      { status: isUnavailable ? 503 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
