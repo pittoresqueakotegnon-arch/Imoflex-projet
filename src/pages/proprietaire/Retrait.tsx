@@ -128,8 +128,8 @@ const Retrait: React.FC = () => {
         <div className="space-y-6">
           {/* Amount Display */}
           <div
-            className="text-center rounded-3xl py-8 px-4"
-            style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}
+            className="text-center rounded-3xl py-8 px-4 shadow-sm"
+            style={{ background: 'var(--imx-surface-2)', border: '1px solid var(--imx-border)' }}
           >
             <p className="text-[var(--imx-text-secondary)] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-2">MONTANT À RETIRER</p>
             <div className="flex items-baseline justify-center gap-1.5">
@@ -193,14 +193,15 @@ const Retrait: React.FC = () => {
                     type="button"
                     onClick={() => !loading && setSelectedOperator(op.id)}
                     disabled={loading}
-                    className="rounded-2xl flex flex-col items-center justify-center gap-2 transition-all cursor-pointer py-4 font-space-grotesk font-700 text-[13px] disabled:opacity-50"
+                    className="rounded-2xl flex flex-col items-center justify-center gap-2 transition-all cursor-pointer py-4 font-space-grotesk font-700 text-[13px] disabled:opacity-50 hover:shadow-sm"
                     style={{
-                      background: 'var(--imx-surface)',
+                      background: isSelected ? 'var(--imx-surface)' : 'var(--imx-surface-2)',
                       color: isSelected ? 'var(--imx-text-primary)' : 'var(--imx-text-secondary)',
-                      border: isSelected ? '1.5px solid var(--imx-accent)' : '1.5px solid transparent',
+                      border: isSelected ? '1.5px solid var(--imx-accent)' : '1.5px solid var(--imx-border)',
+                      boxShadow: isSelected ? '0 4px 12px rgba(123, 63, 228, 0.15)' : 'none'
                     }}
                   >
-                    <span className="w-2 h-2 rounded-full" style={{ background: op.dot }} />
+                    <span className="w-2 h-2 rounded-full shadow-sm" style={{ background: op.dot }} />
                     {op.title}
                   </button>
                 );

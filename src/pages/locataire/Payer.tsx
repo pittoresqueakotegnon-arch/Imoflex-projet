@@ -254,8 +254,8 @@ export default function Payer() {
 
       <div className="flex-1 flex flex-col">
         <div
-          className="mb-6 flex flex-col items-center rounded-3xl py-8 px-4"
-          style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}
+          className="mb-6 flex flex-col items-center rounded-3xl py-8 px-4 shadow-sm"
+          style={{ background: 'var(--imx-surface-2)', border: '1px solid var(--imx-border)' }}
         >
           <p className="text-[var(--imx-text-secondary)] text-[10px] font-space-grotesk font-bold uppercase tracking-widest mb-3">
             MONTANT À VERSER
@@ -355,14 +355,15 @@ export default function Payer() {
                   key={op}
                   onClick={() => { haptics.light(); setSelectedOperator(op); }}
                   disabled={processing}
-                  className="py-4 rounded-2xl flex flex-col items-center justify-center gap-2 font-space-grotesk font-700 text-[13px] transition-all disabled:opacity-50"
+                  className="py-4 rounded-2xl flex flex-col items-center justify-center gap-2 font-space-grotesk font-700 text-[13px] transition-all disabled:opacity-50 hover:shadow-sm"
                   style={{
-                    background: 'var(--imx-surface)',
+                    background: isSelected ? 'var(--imx-surface)' : 'var(--imx-surface-2)',
                     color: isSelected ? 'var(--imx-text-primary)' : 'var(--imx-text-secondary)',
-                    border: isSelected ? '1.5px solid var(--imx-accent)' : '1.5px solid transparent',
+                    border: isSelected ? '1.5px solid var(--imx-accent)' : '1.5px solid var(--imx-border)',
+                    boxShadow: isSelected ? '0 4px 12px rgba(123, 63, 228, 0.15)' : 'none'
                   }}
                 >
-                  <span className="w-2 h-2 rounded-full" style={{ background: opDot[op] }} />
+                  <span className="w-2 h-2 rounded-full shadow-sm" style={{ background: opDot[op] }} />
                   {op === 'mtn' ? 'MTN' : op === 'moov' ? 'Moov' : 'Celtiis'}
                 </button>
               );
@@ -411,7 +412,7 @@ export default function Payer() {
 
           <button
             onClick={() => { haptics.medium(); handlePay(); }}
-            disabled={processing || amount < 100 || amount > remaining || amount > 300000 || !selectedOperator}
+            disabled={processing || amount < 100 || amount > remaining || amount > 2500000 || !selectedOperator}
             className="w-full text-white font-nunito font-900 text-[17px] rounded-3xl py-5 flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
             style={{ background: 'var(--imx-accent-light)' }}
           >
