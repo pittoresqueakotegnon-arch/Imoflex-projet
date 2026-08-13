@@ -72,10 +72,7 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRY_CODES[0]);
-  const [mounted, setMounted] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  // Bouton Google gelé temporairement à la demande de l'utilisateur (en attente de config Supabase / Google Cloud)
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRY_CODES[0]);  const [googleLoading, setGoogleLoading] = useState(false);
   const [googleVisible] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -87,11 +84,6 @@ export default function Register() {
     acceptTerms: false,
     acceptPrivacy: false,
   });
-
-  useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 50);
-    return () => clearTimeout(t);
-  }, []);
 
   // Détection confirmation email
   useEffect(() => {
@@ -229,7 +221,7 @@ export default function Register() {
   const update = (field: string, value: string | boolean) =>
     setFormData(prev => ({ ...prev, [field]: value }));
 
-  const fadeStyle = (delay = 0) => ({});
+  const fadeStyle = (_delay = 0) => ({});
 
   // ── ÉCRAN OTP ─────────────────────────────────────────────────────────────
   if (step === 'otp') {

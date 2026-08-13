@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Phone, Calendar, MapPin, CreditCard } from 'lucide-react';
+import { Phone, Calendar, MapPin, CreditCard, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/Toast';
 import { getCurrentMonth, getMonthName } from '../../lib/utils';
@@ -187,7 +187,7 @@ const FicheBail: React.FC = () => {
         {isRetard && (
           <div className="rounded-[16px] px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
             <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239, 68, 68, 0.2)' }}>
-              <span className="text-lg">⚠️</span>
+              <AlertTriangle size={18} className="text-red-500" />
             </div>
             <div>
               <p className="font-nunito font-black text-red-500 text-[14px]">Loyer en retard</p>

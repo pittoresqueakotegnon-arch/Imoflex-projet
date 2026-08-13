@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Ban, AlertTriangle } from 'lucide-react';
 import { supabase, UserRole } from '../../lib/supabase';
 import { useToast } from '../../components/Toast';
 import { useAuth } from '../../hooks/useAuth';
@@ -299,7 +300,7 @@ const AdminUtilisateurs: React.FC = () => {
               className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center text-2xl"
               style={{ background: `${confirmModal.color}18`, border: `1px solid ${confirmModal.color}40` }}
             >
-              {confirmModal.newStatus === 'banni' ? '🚫' : '⚠️'}
+              {confirmModal.newStatus === 'banni' ? <Ban size={28} /> : <AlertTriangle size={28} />}
             </div>
             <h3 className="font-nunito font-900 text-lg text-center mb-4" style={{ color: 'var(--adm-text)' }}>
               {confirmModal.label}

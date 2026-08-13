@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, ListingSummary } from '../../lib/supabase';
+import { queueSyncAction } from '../../lib/offlineSyncManager';
+import { getCachedFavorites, setCachedFavorites } from '../../lib/offlineStorage';
 import ListingCard from '../../components/ListingCard';
 import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
@@ -22,20 +24,31 @@ const Favoris: React.FC = () => {
 
       if (user) {
         try {
+          const cachedFavs = await getCachedFavorites(user.id);
+          if (cachedFavs && cachedFavs.length > 0) {
+            setFavorites(cachedFavs);
+            setFavoriteIds(cachedFavs.map(f => f.id));
+            setLoading(false);
+          }
+
+          if (!navigator.onLine && cachedFavs) {
+            return;
+          }
+
           const { data, error: err } = await supabase
             .from('favorites')
             .select('listing_id, listings(id, title, city, neighborhood, monthly_rent, listing_photos(id, photo_url, is_cover))')
             .eq('user_id', user.id);
 
           if (err) {
-            setError(err.message);
+            if (!cachedFavs) setError(err.message);
           } else {
-            const ids = (data || []).map((fav) => fav.listing_id);
-            setFavoriteIds(ids);
             const favoriteListings = (data || [])
               .map((fav) => (Array.isArray(fav.listings) ? fav.listings[0] : fav.listings) as ListingSummary | null | undefined)
               .filter((l): l is ListingSummary => !!l);
             setFavorites(favoriteListings);
+            setFavoriteIds(favoriteListings.map(f => f.id));
+            await setCachedFavorites(user.id, favoriteListings);
           }
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Erreur de chargement');
@@ -74,15 +87,27 @@ const Favoris: React.FC = () => {
       localStorage.setItem('favorites', JSON.stringify(updated));
       setFavorites(favorites.filter((f) => f.id !== listingId));
     } else {
+      // Optimistic UI update
+      const newFavIds = favoriteIds.filter((id) => id !== listingId);
+      const newFavs = favorites.filter((f) => f.id !== listingId);
+      
+      setFavoriteIds(newFavIds);
+      setFavorites(newFavs);
+      setCachedFavorites(user.id, newFavs); // Update local cache
+
+      if (!navigator.onLine) {
+        queueSyncAction('TOGGLE_FAVORITE', { listingId, userId: user.id, isAdding: false });
+        return;
+      }
+
       try {
         await supabase
           .from('favorites')
           .delete()
           .eq('user_id', user.id)
           .eq('listing_id', listingId);
-        setFavoriteIds(favoriteIds.filter((id) => id !== listingId));
-        setFavorites(favorites.filter((f) => f.id !== listingId));
       } catch (err) {
+        // Rollback on error if needed
         setError(err instanceof Error ? err.message : 'Erreur de suppression');
       }
     }

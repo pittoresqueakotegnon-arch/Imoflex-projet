@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, Listing, ListingSummary, PropertyType } from '../lib/supabase';
+import { getCachedListings, setCachedListings, getCachedListingDetail, setCachedListingDetail } from '../lib/offlineStorage';
 
 export interface ListingFilters {
   search?: string;
@@ -54,9 +55,24 @@ export function useListings(filters: ListingFilters = {}) {
       query = query.eq('accepts_progressive_payment', true);
     }
 
+    // Clé de cache basée sur les filtres pour différencier les recherches
+    const cacheKey = JSON.stringify(filters);
+    
+    // Stale-While-Revalidate manuel : on affiche d'abord le cache si disponible
+    const cachedData = await getCachedListings(cacheKey);
+    if (cachedData && cachedData.length > 0) {
+      setListings(cachedData);
+      setLoading(false); // Le cache permet d'afficher rapidement
+    }
+
+    if (!navigator.onLine && cachedData) {
+      return; // On s'arrête là si hors ligne et qu'on a du cache
+    }
+
     const { data, error: err } = await query;
     if (err) {
-      setError(err.message);
+      // Ne pas afficher d'erreur si on a pu servir le cache hors-ligne
+      if (!cachedData) setError(err.message);
     } else {
       const fetchedListings = [...(data || [])] as ListingSummary[];
       // Fisher-Yates shuffle pour un ordre aléatoire
@@ -65,6 +81,8 @@ export function useListings(filters: ListingFilters = {}) {
         [fetchedListings[i], fetchedListings[j]] = [fetchedListings[j], fetchedListings[i]];
       }
       setListings(fetchedListings);
+      // On met à jour le cache
+      await setCachedListings(cacheKey, fetchedListings);
     }
     setLoading(false);
   }, [
@@ -116,17 +134,38 @@ export function useListing(id: string) {
 
   useEffect(() => {
     if (!id) return;
-    setLoading(true);
-    supabase
-      .from('listings')
-      .select('*, listing_photos(*)')
-      .eq('id', id)
-      .maybeSingle()
-      .then(({ data, error: err }) => {
-        if (err) setError(err.message);
-        else setListing(data as Listing | null);
+    
+    const fetchListing = async () => {
+      setLoading(true);
+      
+      // Essai cache d'abord
+      const cached = await getCachedListingDetail(id);
+      if (cached) {
+        setListing(cached);
         setLoading(false);
-      });
+      }
+      
+      if (!navigator.onLine && cached) {
+        return;
+      }
+
+      supabase
+        .from('listings')
+        .select('*, listing_photos(*)')
+        .eq('id', id)
+        .maybeSingle()
+        .then(async ({ data, error: err }) => {
+          if (err) {
+            if (!cached) setError(err.message);
+          } else if (data) {
+            setListing(data as Listing);
+            await setCachedListingDetail(id, data as Listing);
+          }
+          setLoading(false);
+        });
+    };
+    
+    fetchListing();
   }, [id]);
 
   return { listing, loading, error };

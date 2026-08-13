@@ -4,7 +4,7 @@ import {
   Users, Home, CreditCard, ArrowUpRight, ArrowDownRight,
   Clock, CheckCircle, AlertCircle, Wallet, Activity,
   Eye, ChevronRight, RefreshCw, Calendar, FileText,
-  Zap, AlertTriangle, BarChart2, Minus,
+  Zap, AlertTriangle, BarChart2, Minus, CheckCircle2, Lock, UserPlus, Megaphone, Banknote, XCircle, Ban, Trash2,
 } from 'lucide-react';
 import {
   Area, AreaChart, Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -23,17 +23,17 @@ const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
   { key: 'prev_month', label: 'Mois préc.'  },
 ];
 
-const ACTION_META: Record<string, { icon: string; label: string; color: string }> = {
-  connexion:            { icon: '🔐', label: 'Connexion',           color: '#6366f1' },
-  inscription:          { icon: '🆕', label: 'Nouvelle inscription', color: '#10b981' },
-  publication_annonce:  { icon: '📢', label: 'Annonce publiée',      color: 'var(--imx-accent-light)' },
-  paiement:             { icon: '💸', label: 'Paiement reçu',        color: '#14b8a6' },
-  retrait_demande:      { icon: '💰', label: 'Retrait demandé',      color: '#f59e0b' },
-  retrait_valide:       { icon: '✅', label: 'Retrait validé',       color: '#10b981' },
-  moderation_approuve:  { icon: '✅', label: 'Annonce approuvée',    color: '#10b981' },
-  moderation_rejete:    { icon: '❌', label: 'Annonce rejetée',      color: '#ef4444' },
-  suspension:           { icon: '🚫', label: 'Compte suspendu',      color: '#f59e0b' },
-  suppression_annonce:  { icon: '🗑️', label: 'Annonce supprimée',    color: '#ef4444' },
+const ACTION_META: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+  connexion:            { icon: <Lock size={16} />, label: 'Connexion',           color: '#6366f1' },
+  inscription:          { icon: <UserPlus size={16} />, label: 'Nouvelle inscription', color: '#10b981' },
+  publication_annonce:  { icon: <Megaphone size={16} />, label: 'Annonce publiée',      color: 'var(--imx-accent-light)' },
+  paiement:             { icon: <Banknote size={16} />, label: 'Paiement reçu',        color: '#14b8a6' },
+  retrait_demande:      { icon: <Wallet size={16} />, label: 'Retrait demandé',      color: '#f59e0b' },
+  retrait_valide:       { icon: <CheckCircle2 size={16} />, label: 'Retrait validé',       color: '#10b981' },
+  moderation_approuve:  { icon: <CheckCircle2 size={16} />, label: 'Annonce approuvée',    color: '#10b981' },
+  moderation_rejete:    { icon: <XCircle size={16} />, label: 'Annonce rejetée',      color: '#ef4444' },
+  suspension:           { icon: <Ban size={16} />, label: 'Compte suspendu',      color: '#f59e0b' },
+  suppression_annonce:  { icon: <Trash2 size={16} />, label: 'Annonce supprimée',    color: '#ef4444' },
 };
 
 function relativeTime(iso: string): string {
@@ -317,8 +317,8 @@ const AdminDashboard: React.FC = () => {
           style={{ background: 'radial-gradient(circle, #7C3AED, transparent)' }} />
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--adm-text-muted)' }}>
-              💰 Revenus ImoFlex (commissions)
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: 'var(--adm-text-muted)' }}>
+              <Wallet size={14} className="text-amber-500" /> Revenus ImoFlex (commissions)
             </p>
             <div className="flex items-end gap-3">
               <p className="text-4xl font-bold" style={{ color: 'var(--adm-text)', fontFamily: 'Space Grotesk' }}>
@@ -546,7 +546,7 @@ const AdminDashboard: React.FC = () => {
           ) : (
             <div className="space-y-0.5">
               {activity.map(log => {
-                const meta = ACTION_META[log.action] ?? { icon: '🔹', label: log.action, color: 'var(--imx-text-secondary)' };
+                const meta = ACTION_META[log.action] ?? { icon: <Activity size={16} />, label: log.action, color: 'var(--imx-text-secondary)' };
                 return (
                   <div key={log.id} className="flex items-center gap-3 px-2 py-2.5 rounded-lg transition-colors hover:bg-white/[0.02]">
                     <span className="w-7 h-7 rounded-lg flex items-center justify-center text-base flex-shrink-0" style={{ background: `${meta.color}15` }}>

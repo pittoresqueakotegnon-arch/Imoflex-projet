@@ -11,6 +11,17 @@ export function getOptimizedUrl(url?: string, size: 'thumb' | 'medium' | 'hd' = 
   return `${url}?width=${widths[size]}&format=webp`;
 }
 
+// Récupère l'URL originale à partir d'une URL optimisée (utilisé pour le fallback 404)
+export function getOriginalUrlFromOptimized(optimizedUrl: string): string {
+  if (optimizedUrl.match(/_(thumb|medium|hd)\.webp$/)) {
+    return optimizedUrl.replace(/_(thumb|medium|hd)\.webp$/, '');
+  }
+  if (optimizedUrl.includes('?width=')) {
+    return optimizedUrl.split('?')[0];
+  }
+  return optimizedUrl;
+}
+
 export function formatMontant(centimes: number): string {
   return new Intl.NumberFormat('fr-FR').format(centimes) + ' FCFA';
 }

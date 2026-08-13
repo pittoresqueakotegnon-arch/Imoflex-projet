@@ -14,6 +14,11 @@ export default function ProfilMotDePasse() {
   const [loading, setLoading] = useState(false);
 
   const handleChangePassword = async () => {
+    if (!navigator.onLine) {
+      showToast('Une connexion internet est requise pour modifier votre mot de passe.', 'error');
+      return;
+    }
+
     if (!newPassword || newPassword.length < 8) {
       showToast('Le mot de passe doit contenir au moins 8 caractères', 'error');
       return;

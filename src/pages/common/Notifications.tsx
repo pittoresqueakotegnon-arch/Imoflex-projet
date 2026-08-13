@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight, Phone, Home, Wallet, Clock,
   AlertTriangle, CheckCircle, Bell, MessageSquare,
-  TrendingUp, ChevronRight,
+  TrendingUp, ChevronRight, User, Smartphone,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotifications } from '../../hooks/useNotifications';
@@ -32,7 +32,6 @@ interface NotifDetails {
 ───────────────────────────────────────────────────────────── */
 type TypeCfg = {
   icon: React.ReactNode;
-  emoji: string;
   color: string;         // couleur principale
   bg: string;            // fond de l'icône
   border: string;        // bordure gauche accent
@@ -42,49 +41,49 @@ type TypeCfg = {
 
 const T: Record<string, TypeCfg> = {
   rappel: {
-    icon: <Clock size={16} />, emoji: '⏰',
+    icon: <Clock size={16} />,
     color: '#F59E0B', bg: 'rgba(245,158,11,0.15)', border: '#F59E0B',
     label: 'Rappel', category: 'finances',
   },
   confirmation: {
-    icon: <CheckCircle size={16} />, emoji: '✅',
+    icon: <CheckCircle size={16} />,
     color: '#22C55E', bg: 'rgba(34,197,94,0.15)', border: '#22C55E',
     label: 'Confirmé', category: 'finances',
   },
   retard: {
-    icon: <AlertTriangle size={16} />, emoji: '⚠️',
+    icon: <AlertTriangle size={16} />,
     color: '#EF4444', bg: 'rgba(239,68,68,0.15)', border: '#EF4444',
     label: 'Retard', category: 'finances',
   },
   nouveau_versement: {
-    icon: <TrendingUp size={16} />, emoji: '💸',
+    icon: <TrendingUp size={16} />,
     color: 'var(--imx-accent-light)', bg: 'rgba(168,85,247,0.15)', border: 'var(--imx-accent-light)',
     label: 'Versement', category: 'finances',
   },
   nouveau_locataire: {
-    icon: <MessageSquare size={16} />, emoji: '🤝',
+    icon: <MessageSquare size={16} />,
     color: '#22C55E', bg: 'rgba(34,197,94,0.15)', border: '#22C55E',
     label: 'Locataire', category: 'demandes',
   },
   nouvelle_demande_contact: {
-    icon: <MessageSquare size={16} />, emoji: '💬',
+    icon: <MessageSquare size={16} />,
     color: '#C4B5FD', bg: 'rgba(196,181,253,0.12)', border: '#C4B5FD',
     label: 'Demande', category: 'demandes',
   },
   retrait_complete: {
-    icon: <Wallet size={16} />, emoji: '🏦',
+    icon: <Wallet size={16} />,
     color: '#FBBF24', bg: 'rgba(251,191,36,0.15)', border: '#FBBF24',
     label: 'Retrait', category: 'finances',
   },
   retrait_echoue: {
-    icon: <AlertTriangle size={16} />, emoji: '❌',
+    icon: <AlertTriangle size={16} />,
     color: '#EF4444', bg: 'rgba(239,68,68,0.15)', border: '#EF4444',
     label: 'Échec', category: 'finances',
   },
 };
 
 const DEFAULT_T: TypeCfg = {
-  icon: <Bell size={16} />, emoji: '🔔',
+  icon: <Bell size={16} />,
   color: 'var(--imx-accent-light)', bg: 'rgba(168,85,247,0.12)', border: 'var(--imx-accent-light)',
   label: 'Info', category: 'system',
 };
@@ -238,7 +237,7 @@ function DetailSheet({ notif, cfg, details, loading, onClose, onNavigate }: Shee
             <>
               {/* Demandeur */}
               {details.senderName && (
-                <DetailRow icon="👤" label="Demandeur" value={details.senderName} />
+                <DetailRow icon={<User size={14} color={cfg.color} />} label="Demandeur" value={details.senderName} />
               )}
 
               {/* Téléphone cliquable */}
@@ -279,7 +278,7 @@ function DetailSheet({ notif, cfg, details, loading, onClose, onNavigate }: Shee
 
               {/* Opérateur */}
               {details.operator && (
-                <DetailRow icon="📱" label="Opérateur" value={`${operatorLabel(details.operator)}${details.destinationPhone ? ' · ' + details.destinationPhone : ''}`} />
+                <DetailRow icon={<Smartphone size={14} color={cfg.color} />} label="Opérateur" value={`${operatorLabel(details.operator)}${details.destinationPhone ? ' · ' + details.destinationPhone : ''}`} />
               )}
 
               {/* Période */}

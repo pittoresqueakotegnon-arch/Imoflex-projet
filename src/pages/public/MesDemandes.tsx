@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { supabase, ContactStatus, ListingSummary } from '../../lib/supabase';
 import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
-import { MessageSquare, Clock, CheckCircle, ChevronRight, MapPin } from 'lucide-react';
+import { MessageSquare, Clock, CheckCircle, ChevronRight, MapPin, CheckCircle2, Home } from 'lucide-react';
 
 interface ContactRequestWithListing {
   id: string;
@@ -177,7 +177,7 @@ const MesDemandes: React.FC = () => {
                 fontFamily: 'Space Grotesk',
               }}
             >
-              {s === 'all' ? 'Toutes' : s === 'nouvelle' ? '⏳ En attente' : '✅ Traitées'}
+              {s === 'all' ? 'Toutes' : s === 'nouvelle' ? <span className="flex items-center gap-1"><Clock size={14} /> En attente</span> : <span className="flex items-center gap-1"><CheckCircle2 size={14} /> Traitées</span>}
             </button>
           ))}
         </div>
@@ -233,7 +233,7 @@ const MesDemandes: React.FC = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-2xl">🏠</div>
+                      <div className="w-full h-full flex items-center justify-center text-[var(--imx-text-muted)]"><Home size={28} /></div>
                     )}
                   </div>
 
