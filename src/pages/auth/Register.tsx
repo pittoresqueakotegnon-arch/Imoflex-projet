@@ -7,7 +7,6 @@ import {
 import { useAuth, SignUpParams } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
 import { diagnoseAndShowError } from '../../utils/errorDiagnostics';
-import { supabase } from '../../lib/supabase';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Register — Inscription ImoFlex

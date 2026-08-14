@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, Notification } from '../lib/supabase';
+import { triggerPushNotification, requestPushPermission, getPushPermissionStatus } from '../lib/webPush';
 
 export function useNotifications(userId: string | undefined) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -78,6 +79,13 @@ export function useNotifications(userId: string | undefined) {
           const newNotification = payload.new as Notification;
           setNotifications((prev) => [newNotification, ...prev]);
           setUnreadCount((prev) => prev + (newNotification.is_read ? 0 : 1));
+
+          // Déclenchement automatique de la notification Web Push si le navigateur l'autorise
+          triggerPushNotification(newNotification.title, {
+            body: newNotification.body,
+            tag: `imoflex-${newNotification.id}`,
+            data: { url: '/notifications', id: newNotification.id }
+          });
         }
       )
       .on(
@@ -112,5 +120,7 @@ export function useNotifications(userId: string | undefined) {
     refetch: fetchNotifications,
     markAllRead,
     markRead,
+    requestPushPermission,
+    pushPermissionStatus: getPushPermissionStatus(),
   };
 }

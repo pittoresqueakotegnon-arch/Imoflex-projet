@@ -156,8 +156,13 @@ export default function Rejoindre() {
       }
 
       setStep('complete');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la création du bail';
+    } catch (err: any) {
+      let message = 'Erreur lors de la création du bail';
+      if (err?.code === '23505' || err?.message?.includes('uniq_active_lease_per_property')) {
+        message = "Ce logement vient d'être pris par un autre locataire.";
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
       setError(message);
       showToast(message, 'error');
     } finally {

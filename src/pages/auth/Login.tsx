@@ -4,7 +4,6 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
 import { diagnoseAndShowError } from '../../utils/errorDiagnostics';
-import { supabase } from '../../lib/supabase';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Login — Page de connexion ImoFlex
