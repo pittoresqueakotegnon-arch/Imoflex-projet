@@ -23,6 +23,7 @@ export type PaymentStatus = 'en_attente' | 'valide' | 'echoue';
 export type WithdrawalStatus = 'en_traitement' | 'complete' | 'echoue';
 export type Operator = 'mtn' | 'moov' | 'celtiis';
 export type ContactStatus = 'nouvelle' | 'traitee';
+export type ListingStatus = 'en_attente' | 'publiee' | 'rejetee' | 'suppression_demandee' | 'supprimee';
 export type NotificationType =
   | 'rappel'
   | 'confirmation'
@@ -31,7 +32,32 @@ export type NotificationType =
   | 'nouveau_locataire'
   | 'nouvelle_demande_contact'
   | 'retrait_complete'
-  | 'retrait_echoue';
+  | 'retrait_echoue'
+  | 'suppression_annonce_approuvee'
+  | 'suppression_annonce_rejetee'
+  | 'suppression_annonce_demandee';
+
+export type ListingDeletionReason =
+  | 'Logement déjà loué'
+  | "Logement n'est plus disponible"
+  | 'Erreur dans l’annonce'
+  | 'Je souhaite retirer temporairement l’annonce'
+  | 'Autre';
+
+export interface ListingDeletionRequest {
+  id: string;
+  listing_id: string;
+  owner_id: string;
+  reason: string;
+  custom_reason?: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  admin_id?: string | null;
+  admin_note?: string | null;
+  created_at: string;
+  reviewed_at?: string | null;
+  listings?: Listing;
+  users?: UserProfile;
+}
 
 export interface UserProfile {
   id: string;

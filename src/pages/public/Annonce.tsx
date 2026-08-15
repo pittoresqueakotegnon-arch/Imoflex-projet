@@ -124,9 +124,11 @@ const Annonce: React.FC = () => {
   const photos = photosForPreload;
   const currentPhoto = photos[currentPhotoIndex];
 
+  const isAvailable = listing.availability_status === 'disponible';
+
   const statusConfig = {
-    disponible: { label: 'DISPONIBLE', className: 'px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 backdrop-blur-sm' },
-    reserve:    { label: 'RÉSERVÉ',    className: 'px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide bg-amber-500/20 text-amber-400 border border-amber-500/30 backdrop-blur-sm' },
+    disponible: { label: 'VÉRIFIÉ ✓', className: 'px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 backdrop-blur-sm' },
+    reserve:    { label: 'INDISPONIBLE',    className: 'px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide bg-amber-500/20 text-amber-400 border border-amber-500/30 backdrop-blur-sm' },
     occupe:     { label: 'OCCUPÉ',     className: 'px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide bg-amber-500/20 text-amber-400 border border-amber-500/30 backdrop-blur-sm' },
   }[listing.availability_status] ?? { label: 'N/A', className: 'px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide bg-white/10 text-white/70 border border-white/20 backdrop-blur-sm' };
 
@@ -365,11 +367,16 @@ const Annonce: React.FC = () => {
           <Heart size={20} className={isFavorite ? 'fill-red-500 text-red-500' : 'text-[var(--imx-text-primary)]'} />
         </button>
         <button
-          onClick={handleContactClick}
-          className="flex-1 min-w-0 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all active:scale-95"
+          onClick={isAvailable ? handleContactClick : undefined}
+          disabled={!isAvailable}
+          className={`flex-1 min-w-0 font-bold rounded-xl transition-all ${
+            isAvailable 
+              ? 'bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)] active:scale-95'
+              : 'bg-white/5 text-[var(--imx-text-muted)] border border-white/10 cursor-not-allowed'
+          }`}
           style={{ height: '48px', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
         >
-          Demander une visite
+          {isAvailable ? 'Demander une visite' : 'Logement indisponible'}
         </button>
       </div>
 

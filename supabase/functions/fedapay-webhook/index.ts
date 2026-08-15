@@ -4,6 +4,25 @@ import * as crypto from "node:crypto";
 import { Buffer } from "node:buffer";
 import { safeLog } from "../_shared/security.ts";
 
+// ── Helper : envoyer une notification push (best-effort, ne bloque pas) ───────
+async function sendPush(userId: string, title: string, body: string, data?: Record<string, string>) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceRoleKey) return;
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({ user_id: userId, title, body, data }),
+    });
+  } catch (e) {
+    console.warn("sendPush failed (non-blocking):", e);
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -159,6 +178,8 @@ Deno.serve(async (req: Request) => {
             title: "Nouveau versement reçu",
             body: `${tenantName} a versé ${amount} FCFA. ${owner_amount} FCFA crédités sur votre wallet (${commission_rate}% de commission ImoFlex).`,
           });
+          // Push native
+          await sendPush(owner_id, "Nouveau versement reçu 💰", `${tenantName} a versé ${amount} FCFA.`);
         }
         // Notify tenant
         if (tenant_id) {
@@ -169,6 +190,8 @@ Deno.serve(async (req: Request) => {
             title: "Versement confirmé",
             body: `Votre versement de ${amount} FCFA a été validé avec succès.`,
           });
+          // Push native
+          await sendPush(tenant_id, "Versement confirmé ✅", `Votre versement de ${amount} FCFA a bien été reçu.`);
         }
       } else if (rpcResult?.status === "declined") {
         const { tenant_id, payment_id } = rpcResult;
@@ -191,6 +214,8 @@ Deno.serve(async (req: Request) => {
             title: "Versement échoué",
             body: bodyMsg,
           });
+          // Push native
+          await sendPush(tenant_id, "Versement échoué ❌", bodyMsg);
         }
       }
     } else if (eventName.startsWith("payout.")) {
@@ -234,6 +259,8 @@ Deno.serve(async (req: Request) => {
             title: "Retrait validé",
             body: `Votre retrait de ${withdrawal.amount} FCFA vers ${withdrawal.destination_phone} a été effectué avec succès.`,
           });
+          // Push native
+          await sendPush(ownerId, "Retrait effectué ✅", `${withdrawal.amount} FCFA ont été envoyés vers ${withdrawal.destination_phone}.`);
         }
       } else if (["payout.failed", "payout.declined", "payout.canceled"].includes(eventName)) {
         if (withdrawal.status !== "echoue") {
@@ -257,6 +284,8 @@ Deno.serve(async (req: Request) => {
             title: "Échec du retrait",
             body: `Votre retrait de ${withdrawal.amount} FCFA vers ${withdrawal.destination_phone} a échoué. Les fonds ont été restitués sur votre portefeuille.`,
           });
+          // Push native
+          await sendPush(ownerId, "Retrait échoué ❌", `Votre retrait de ${withdrawal.amount} FCFA a échoué. Fonds restitués sur votre wallet.`);
 
           await supabase.from("audit_logs").insert({
             user_id: ownerId,

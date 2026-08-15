@@ -125,6 +125,7 @@ const AdminDashboard: React.FC = () => {
     alerts.pendingWithdrawals > 0 && { label: `${alerts.pendingWithdrawals} retrait(s) en attente`,  color: '#f59e0b', icon: <Wallet size={12} />,       link: '/admin/transactions' },
     alerts.lateRentPeriods    > 0 && { label: `${alerts.lateRentPeriods} loyer(s) en retard`,        color: '#ef4444', icon: <AlertTriangle size={12} />, link: '/admin/loyers-retard' },
     alerts.failedPayments     > 0 && { label: `${alerts.failedPayments} paiement(s) échoué(s)`,      color: '#ef4444', icon: <CreditCard size={12} />,    link: '/admin/transactions' },
+    alerts.pendingDeletionRequests > 0 && { label: `${alerts.pendingDeletionRequests} demande(s) de suppression`, color: '#f59e0b', icon: <Trash2 size={12} />, link: '/admin/suppressions' },
   ].filter(Boolean) as { label: string; color: string; icon: React.ReactNode; link: string }[];
 
   if (loading) {
@@ -603,6 +604,13 @@ const AdminDashboard: React.FC = () => {
               detail: kpis.pendingListings > 0 ? `${kpis.pendingListings} annonce(s)` : 'File vide',
               icon: <Home size={13} />,
               color: kpis.pendingListings > 0 ? '#f59e0b' : '#10b981',
+            },
+            {
+              label: 'Suppressions',
+              ok: alerts.pendingDeletionRequests === 0,
+              detail: alerts.pendingDeletionRequests > 0 ? `${alerts.pendingDeletionRequests} demande(s)` : 'Aucune demande',
+              icon: <Trash2 size={13} />,
+              color: alerts.pendingDeletionRequests > 0 ? '#f59e0b' : '#10b981',
             },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between">

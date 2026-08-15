@@ -8,7 +8,8 @@ import {
   Settings,
   LogOut,
   Sun,
-  Moon
+  Moon,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useAdminTheme } from '../hooks/useAdminTheme';
@@ -35,6 +36,7 @@ export default function AdminLayout() {
   const menuItems = [
     { path: '/admin', icon: LayoutDashboard, label: 'Tableau de bord' },
     { path: '/admin/annonces', icon: List, label: 'Annonces' },
+    { path: '/admin/suppressions', icon: Trash2, label: 'Demandes suppression' },
     { path: '/admin/utilisateurs', icon: Users, label: 'Utilisateurs' },
     { path: '/admin/transactions', icon: CreditCard, label: 'Transactions' },
     { path: '/admin/logs', icon: FileText, label: 'Audit Logs' },

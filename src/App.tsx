@@ -8,6 +8,7 @@ import AdminLayout from './components/AdminLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toaster, toast } from 'sonner';
 import { useEffect } from 'react';
+import { useFcmToken } from './hooks/useFcmToken';
 
 // ── Lazy-loaded pages ─────────────────────────────────────────────────────────
 // Public
@@ -51,6 +52,7 @@ const AdminTransactions = lazy(() => import('./pages/admin/AdminTransactions'));
 const AdminConfig       = lazy(() => import('./pages/admin/AdminConfig'));
 const AdminLogs         = lazy(() => import('./pages/admin/AdminLogs'));
 const AdminLoyersRetard = lazy(() => import('./pages/admin/AdminLoyersRetard'));
+const AdminDemandesSuppression = lazy(() => import('./pages/admin/AdminDemandesSuppression'));
 
 // Common
 const Profil            = lazy(() => import('./pages/common/Profil'));
@@ -83,6 +85,9 @@ function PageLoader() {
 function MobileFrame({ children }: { children: React.ReactNode }) {
   const { user, profile } = useAuth();
   
+  // Enregistrement du token FCM Capacitor (no-op si non natif ou non connecté)
+  useFcmToken(user?.id);
+
   // 🛡️ Gardien de route anti-admin :
   // Si un admin tente d'afficher l'interface client/marketplace (qui utilise MobileFrame),
   // on le redirige de force vers l'interface d'administration.
@@ -127,6 +132,7 @@ export default function App() {
               >
                 <Route index element={<AdminDashboard />} />
                 <Route path="annonces" element={<AdminAnnonces />} />
+                <Route path="suppressions" element={<AdminDemandesSuppression />} />
                 <Route path="utilisateurs" element={<AdminUtilisateurs />} />
                 <Route path="transactions" element={<AdminTransactions />} />
                 <Route path="loyers-retard" element={<AdminLoyersRetard />} />

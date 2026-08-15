@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, Listing, ListingSummary, PropertyType } from '../lib/supabase';
+import { supabase, Listing, ListingSummary, PropertyType, AvailabilityStatus } from '../lib/supabase';
 import { getCachedListings, setCachedListings, getCachedListingDetail, setCachedListingDetail } from '../lib/offlineStorage';
 
 export interface ListingFilters {
@@ -169,4 +169,44 @@ export function useListing(id: string) {
   }, [id]);
 
   return { listing, loading, error };
+}
+
+/**
+ * Change le statut de disponibilité d'un logement.
+ * Règle de cohérence : on ne peut pas repasser un logement à 'disponible'
+ * manuellement si un bail actif existe sur ce logement, afin d'éviter
+ * qu'un propriétaire réouvre à de nouveaux locataires alors que le bien
+ * est encore légalement occupé côté baux.
+ */
+export async function updateAvailability(listingId: string, status: AvailabilityStatus) {
+  // Garde : si on cherche à marquer disponible, vérifier l'absence de bail actif
+  if (status === 'disponible') {
+    const { data: activeLease, error: leaseCheckError } = await supabase
+      .from('properties')
+      .select('id, leases!inner(id)')
+      .eq('listing_id', listingId)
+      .eq('leases.status', 'actif')
+      .maybeSingle();
+
+    if (leaseCheckError) {
+      console.error('Erreur vérification bail actif:', leaseCheckError);
+      throw leaseCheckError;
+    }
+
+    if (activeLease) {
+      throw new Error(
+        'Ce logement a encore un bail actif. Clôturez le bail avant de le remettre en \'disponible\'.'
+      );
+    }
+  }
+
+  const { error } = await supabase
+    .from('listings')
+    .update({ availability_status: status })
+    .eq('id', listingId);
+
+  if (error) {
+    console.error('Erreur lors de la mise à jour du statut:', error);
+    throw error;
+  }
 }
