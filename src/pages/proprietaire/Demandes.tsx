@@ -212,14 +212,94 @@ const Demandes: React.FC = () => {
                         « {req.message} »
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setOpenMenuId(req.id)}
-                      className="p-1.5 -mr-1 rounded-lg text-[var(--imx-text-secondary)] hover:text-[var(--imx-text-primary)] hover:bg-[var(--imx-surface-2)] transition-colors"
-                      aria-label="Actions"
-                    >
-                      <MoreVertical size={18} />
-                    </button>
+
+                    {/* Bouton ⋮ avec menu contextuel flottant */}
+                    <div className="relative flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === req.id ? null : req.id);
+                        }}
+                        className="p-1.5 -mr-1 rounded-lg text-[var(--imx-text-secondary)] hover:text-[var(--imx-text-primary)] hover:bg-[var(--imx-surface-2)] transition-colors"
+                        aria-label="Options"
+                      >
+                        <MoreVertical size={18} />
+                      </button>
+
+                      {openMenuId === req.id && (
+                        <>
+                          {/* Backdrop transparent pour fermer au clic dehors */}
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(null);
+                            }}
+                          />
+                          {/* Menu flottant contextuel */}
+                          <div
+                            className="absolute right-0 top-full mt-1 w-52 bg-[var(--imx-surface)] border border-[var(--imx-border)] rounded-2xl shadow-2xl z-50 py-1.5 overflow-hidden backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {/* 1. Appeler */}
+                            {req.requester_phone ? (
+                              <a
+                                href={`tel:${req.requester_phone}`}
+                                onClick={() => setOpenMenuId(null)}
+                                className="flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-[var(--imx-text-primary)] hover:bg-[var(--imx-surface-2)] transition-colors"
+                              >
+                                <Phone size={14} className="text-blue-400" />
+                                <span>Appeler</span>
+                              </a>
+                            ) : null}
+
+                            {/* 2. WhatsApp */}
+                            {req.requester_phone ? (
+                              <a
+                                href={`https://wa.me/${req.requester_phone.replace(/\D/g, '')}?text=Bonjour%2C%20je%20suis%20votre%20bailleur%20sur%20ImoFlex.`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => setOpenMenuId(null)}
+                                className="flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                              >
+                                <MessageCircle size={14} className="text-emerald-400" />
+                                <span>WhatsApp</span>
+                              </a>
+                            ) : null}
+
+                            {/* 3. Accepter ce locataire */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                navigate(`/pro/activer/${req.listing_id}?request_id=${req.id}`);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-[var(--imx-accent-light)] hover:bg-purple-500/10 transition-colors text-left"
+                            >
+                              <UserCheck size={14} className="text-[var(--imx-accent-light)]" />
+                              <span>Accepter ce locataire</span>
+                            </button>
+
+                            {/* 4. Marquer comme traitée */}
+                            {req.status !== 'traitee' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  handleMarkAsRead(req.id);
+                                }}
+                                disabled={markingAsRead === req.id}
+                                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-[var(--imx-text-secondary)] hover:text-[var(--imx-text-primary)] hover:bg-[var(--imx-surface-2)] transition-colors text-left border-t border-[var(--imx-border)]"
+                              >
+                                <Check size={14} />
+                                <span>Marquer comme traitée</span>
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between mt-1 pt-2 border-t border-[var(--imx-surface-2)]">
@@ -233,132 +313,6 @@ const Demandes: React.FC = () => {
           </div>
         ))}
       </div>
-
-      {/* Menu d'actions glissant (Bottom Sheet) */}
-      {openMenuId && activeRequest && (
-        <div
-          className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => setOpenMenuId(null)}
-        >
-          <div
-            className="bg-[var(--imx-surface)] border-t border-[var(--imx-border)] rounded-t-3xl p-5 w-full max-w-md space-y-4 shadow-2xl animate-in slide-in-from-bottom duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-2" />
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-nunito font-800 text-[var(--imx-text-primary)] text-base">
-                  {activeRequest.requester_name || 'Demande de contact'}
-                </h3>
-                <p className="text-xs text-[var(--imx-text-secondary)] truncate" style={{ fontFamily: 'Space Grotesk' }}>
-                  {activeRequest.listing_title || 'Logement'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOpenMenuId(null)}
-                className="p-1 text-[var(--imx-text-secondary)] hover:text-[var(--imx-text-primary)]"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {/* 1. Appeler */}
-              {activeRequest.requester_phone ? (
-                <a
-                  href={`tel:${activeRequest.requester_phone}`}
-                  onClick={() => setOpenMenuId(null)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-[var(--imx-surface-2)] hover:bg-white/5 text-[var(--imx-text-primary)] transition-all font-semibold text-xs"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
-                    <Phone size={16} />
-                  </div>
-                  <div className="text-left">
-                    <div>Appeler</div>
-                    <div className="text-[10px] text-[var(--imx-text-secondary)]">{activeRequest.requester_phone}</div>
-                  </div>
-                </a>
-              ) : (
-                <div className="w-full flex items-center gap-3 p-3 rounded-xl bg-[var(--imx-surface-2)] opacity-50 text-[var(--imx-text-secondary)] text-xs">
-                  <div className="w-8 h-8 rounded-lg bg-gray-500/20 flex items-center justify-center">
-                    <Phone size={16} />
-                  </div>
-                  <div>Numéro indisponible</div>
-                </div>
-              )}
-
-              {/* 2. WhatsApp */}
-              {activeRequest.requester_phone ? (
-                <a
-                  href={`https://wa.me/${activeRequest.requester_phone.replace(/\D/g, '')}?text=Bonjour%2C%20je%20suis%20votre%20bailleur%20sur%20ImoFlex.`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setOpenMenuId(null)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all font-semibold text-xs"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                    <MessageCircle size={16} />
-                  </div>
-                  <div className="text-left">
-                    <div>WhatsApp</div>
-                    <div className="text-[10px] text-emerald-300/80">Ouvrir la conversation</div>
-                  </div>
-                </a>
-              ) : null}
-
-              {/* 3. Accepter ce locataire */}
-              <button
-                type="button"
-                onClick={() => {
-                  setOpenMenuId(null);
-                  navigate(`/pro/activer/${activeRequest.listing_id}?request_id=${activeRequest.id}`);
-                }}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-[var(--imx-accent-light)] hover:bg-purple-500/20 transition-all font-semibold text-xs"
-              >
-                <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-[var(--imx-accent-light)] flex items-center justify-center">
-                  <UserCheck size={16} />
-                </div>
-                <div className="text-left">
-                  <div>Accepter ce locataire</div>
-                  <div className="text-[10px] text-purple-300/80">Créer le bail et activer le contrat</div>
-                </div>
-              </button>
-
-              {/* 4. Marquer comme traitée */}
-              <button
-                type="button"
-                onClick={() => {
-                  handleMarkAsRead(activeRequest.id);
-                  setOpenMenuId(null);
-                }}
-                disabled={activeRequest.status === 'traitee' || markingAsRead === activeRequest.id}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-semibold text-xs ${
-                  activeRequest.status === 'traitee'
-                    ? 'bg-[var(--imx-surface-2)] opacity-50 text-[var(--imx-text-secondary)]'
-                    : 'bg-white/5 hover:bg-white/10 text-[var(--imx-text-primary)]'
-                }`}
-              >
-                <div className="w-8 h-8 rounded-lg bg-white/10 text-[var(--imx-text-primary)] flex items-center justify-center">
-                  <Check size={16} />
-                </div>
-                <div className="text-left">
-                  <div>{activeRequest.status === 'traitee' ? 'Déjà marquée comme traitée' : 'Marquer comme traitée'}</div>
-                  <div className="text-[10px] text-[var(--imx-text-secondary)]">Archiver la demande de contact</div>
-                </div>
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setOpenMenuId(null)}
-              className="w-full py-2 text-center text-xs font-semibold text-[var(--imx-text-secondary)] hover:text-[var(--imx-text-primary)] transition-colors"
-            >
-              Fermer
-            </button>
-          </div>
-        </div>
-      )}
 
       <BottomNav />
     </div>
