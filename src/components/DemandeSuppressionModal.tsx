@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, Send, Loader2, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from './Toast';
+import { useTheme } from '../contexts/ThemeContext';
 
 const DELETION_REASONS = [
   'Logement déjà loué',
@@ -29,6 +30,9 @@ export const DemandeSuppressionModal: React.FC<DemandeSuppressionModalProps> = (
   onSuccess,
 }) => {
   const { showToast } = useToast();
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === 'light';
+
   const [selectedReason, setSelectedReason] = useState<string>(DELETION_REASONS[0]);
   const [customReason, setCustomReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -70,8 +74,8 @@ export const DemandeSuppressionModal: React.FC<DemandeSuppressionModalProps> = (
     setSubmitting(true);
     try {
       const finalCustomReason = selectedReason === 'Autre' ? customReason.trim() : null;
-      
-      // 1. Appel RPC sécurisé (gère le statut + la notification admin)
+
+      // 1. Tenter via la RPC sécurisée request_listing_deletion
       const { error: rpcErr } = await supabase.rpc('request_listing_deletion', {
         p_listing_id: listing.id,
         p_reason: selectedReason,
@@ -117,33 +121,41 @@ export const DemandeSuppressionModal: React.FC<DemandeSuppressionModalProps> = (
       onClick={submitting ? undefined : onClose}
     >
       <div
-        className="w-full max-w-sm sm:max-w-md rounded-3xl p-4 sm:p-6 border shadow-2xl transition-all relative my-auto max-h-[92vh] flex flex-col"
-        style={{
-          backgroundColor: 'var(--imx-surface)',
-          borderColor: 'var(--imx-border)',
-          boxShadow: 'var(--imx-card-shadow), 0 20px 50px rgba(0, 0, 0, 0.4)',
-        }}
+        className={`w-full max-w-sm sm:max-w-md rounded-3xl p-4 sm:p-6 border shadow-2xl transition-all relative my-auto max-h-[92vh] flex flex-col ${
+          isLight
+            ? 'bg-white text-slate-900 border-slate-200 shadow-slate-900/20'
+            : 'bg-[#1A1230] text-white border-white/10 shadow-black/60'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
-          className="flex items-start justify-between pb-3.5 border-b flex-shrink-0"
-          style={{ borderColor: 'var(--imx-border)' }}
+          className={`flex items-start justify-between pb-3.5 border-b flex-shrink-0 ${
+            isLight ? 'border-slate-100' : 'border-white/10'
+          }`}
         >
           <div className="flex items-center gap-3 min-w-0 pr-2">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 bg-amber-500/15 text-amber-500 border border-amber-500/20">
+            <div
+              className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+                isLight
+                  ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+              }`}
+            >
               <AlertTriangle size={20} />
             </div>
             <div className="min-w-0">
               <h2
-                className="font-nunito font-bold text-base sm:text-lg truncate"
-                style={{ color: 'var(--imx-text-primary)' }}
+                className={`font-nunito font-bold text-base sm:text-lg truncate ${
+                  isLight ? 'text-slate-900' : 'text-white'
+                }`}
               >
                 Demander la suppression
               </h2>
               <p
-                className="text-xs font-space-grotesk truncate opacity-80"
-                style={{ color: 'var(--imx-text-secondary)' }}
+                className={`text-xs font-space-grotesk truncate ${
+                  isLight ? 'text-slate-500' : 'text-purple-200/70'
+                }`}
               >
                 {listing.title}
               </p>
@@ -153,12 +165,11 @@ export const DemandeSuppressionModal: React.FC<DemandeSuppressionModalProps> = (
             onClick={onClose}
             disabled={submitting}
             aria-label="Fermer"
-            className="w-8 h-8 rounded-full flex items-center justify-center transition-all flex-shrink-0 hover:opacity-80"
-            style={{
-              backgroundColor: 'var(--imx-surface-2)',
-              color: 'var(--imx-text-secondary)',
-              border: '1px solid var(--imx-border)',
-            }}
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${
+              isLight
+                ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                : 'bg-white/10 text-purple-200/70 hover:bg-white/20 hover:text-white'
+            }`}
           >
             <X size={16} />
           </button>
@@ -166,18 +177,25 @@ export const DemandeSuppressionModal: React.FC<DemandeSuppressionModalProps> = (
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="mt-3.5 space-y-4 overflow-y-auto pr-0.5 flex-1">
-          {/* Avertissement contextuel */}
-          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-600 dark:text-amber-300/90 leading-relaxed font-space-grotesk">
-            Votre demande sera examinée par l'administration avant suppression définitive. Pendant ce temps, l'annonce sera marquée <strong>en attente de suppression</strong>.
+          {/* Avertissement */}
+          <div
+            className={`p-3 rounded-2xl border text-xs leading-relaxed font-space-grotesk ${
+              isLight
+                ? 'bg-amber-50 border-amber-200 text-amber-900'
+                : 'bg-amber-500/10 border-amber-500/25 text-amber-200/90'
+            }`}
+          >
+            Votre demande sera examinée par l'administration avant toute suppression définitive. Pendant ce temps, l'annonce sera marquée <strong>en attente de suppression</strong>.
           </div>
 
-          {/* Choix du motif */}
+          {/* Motif */}
           <div>
             <label
-              className="block text-[11px] sm:text-xs font-semibold uppercase tracking-wider mb-2 font-space-grotesk"
-              style={{ color: 'var(--imx-text-secondary)' }}
+              className={`block text-[11px] sm:text-xs font-bold uppercase tracking-wider mb-2 font-space-grotesk ${
+                isLight ? 'text-slate-600' : 'text-purple-200/70'
+              }`}
             >
-              Motif de suppression <span className="text-red-400">*</span>
+              Motif de suppression <span className="text-red-500">*</span>
             </label>
             <div className="space-y-2">
               {DELETION_REASONS.map((reason) => {
@@ -187,12 +205,13 @@ export const DemandeSuppressionModal: React.FC<DemandeSuppressionModalProps> = (
                     key={reason}
                     className={`flex items-center gap-3 p-3 rounded-2xl border text-xs cursor-pointer transition-all ${
                       isSelected
-                        ? 'border-[var(--imx-accent)] bg-[var(--imx-accent)]/10 font-bold shadow-sm ring-1 ring-[var(--imx-accent)]/30'
-                        : 'border-[var(--imx-border)] bg-[var(--imx-surface-2)] hover:border-[var(--imx-accent)]/40'
+                        ? isLight
+                          ? 'border-purple-600 bg-purple-50 text-purple-950 font-bold ring-2 ring-purple-500/30 shadow-sm'
+                          : 'border-purple-500 bg-purple-500/20 text-white font-bold ring-1 ring-purple-500/50 shadow-sm'
+                        : isLight
+                        ? 'border-slate-200 bg-slate-50/80 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
+                        : 'border-white/10 bg-white/5 text-purple-100/80 hover:bg-white/10 hover:border-white/20'
                     }`}
-                    style={{
-                      color: isSelected ? 'var(--imx-accent-glow, var(--imx-accent))' : 'var(--imx-text-primary)',
-                    }}
                   >
                     <input
                       type="radio"
@@ -200,11 +219,14 @@ export const DemandeSuppressionModal: React.FC<DemandeSuppressionModalProps> = (
                       value={reason}
                       checked={isSelected}
                       onChange={() => setSelectedReason(reason)}
-                      className="accent-[var(--imx-accent)] w-4 h-4 cursor-pointer"
+                      className="accent-purple-600 w-4 h-4 cursor-pointer"
                     />
                     <span className="flex-1 leading-snug">{reason}</span>
                     {isSelected && (
-                      <CheckCircle2 size={16} className="text-[var(--imx-accent)] flex-shrink-0" />
+                      <CheckCircle2
+                        size={16}
+                        className={isLight ? 'text-purple-600 flex-shrink-0' : 'text-purple-400 flex-shrink-0'}
+                      />
                     )}
                   </label>
                 );
@@ -212,14 +234,15 @@ export const DemandeSuppressionModal: React.FC<DemandeSuppressionModalProps> = (
             </div>
           </div>
 
-          {/* Précision si "Autre" */}
+          {/* Si Autre */}
           {selectedReason === 'Autre' && (
             <div className="animate-fade-in">
               <label
-                className="block text-xs font-semibold mb-1.5 font-space-grotesk"
-                style={{ color: 'var(--imx-text-secondary)' }}
+                className={`block text-xs font-semibold mb-1.5 font-space-grotesk ${
+                  isLight ? 'text-slate-700' : 'text-purple-200/80'
+                }`}
               >
-                Précisez la raison <span className="text-red-400">*</span>
+                Précisez la raison <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={customReason}
@@ -227,47 +250,49 @@ export const DemandeSuppressionModal: React.FC<DemandeSuppressionModalProps> = (
                 placeholder="Indiquez les détails de votre demande..."
                 rows={2}
                 required
-                className="w-full rounded-2xl p-3 text-xs border focus:outline-none transition-all resize-none font-space-grotesk"
-                style={{
-                  backgroundColor: 'var(--imx-surface-2)',
-                  borderColor: 'var(--imx-border)',
-                  color: 'var(--imx-text-primary)',
-                }}
+                className={`w-full rounded-2xl p-3 text-xs border focus:outline-none transition-all resize-none font-space-grotesk ${
+                  isLight
+                    ? 'bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-purple-600 focus:ring-1 focus:ring-purple-600'
+                    : 'bg-white/5 border-white/10 text-white placeholder:text-purple-200/30 focus:border-purple-500 focus:ring-1 focus:ring-purple-500'
+                }`}
               />
             </div>
           )}
 
           {error && (
-            <div className="text-xs text-red-600 dark:text-red-300 bg-red-500/10 border border-red-500/25 p-3 rounded-2xl leading-relaxed">
+            <div
+              className={`text-xs p-3 rounded-2xl leading-relaxed border ${
+                isLight
+                  ? 'text-red-700 bg-red-50 border-red-200'
+                  : 'text-red-300 bg-red-500/15 border-red-500/30'
+              }`}
+            >
               {error}
             </div>
           )}
 
           {/* Actions */}
           <div
-            className="flex items-center justify-end gap-2.5 pt-3 border-t flex-shrink-0"
-            style={{ borderColor: 'var(--imx-border)' }}
+            className={`flex items-center justify-end gap-2.5 pt-3 border-t flex-shrink-0 ${
+              isLight ? 'border-slate-100' : 'border-white/10'
+            }`}
           >
             <button
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="px-4 py-2.5 rounded-2xl text-xs font-semibold transition-colors"
-              style={{
-                color: 'var(--imx-text-secondary)',
-                backgroundColor: 'var(--imx-surface-2)',
-              }}
+              className={`px-4 py-2.5 rounded-2xl text-xs font-semibold transition-colors ${
+                isLight
+                  ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  : 'bg-white/5 text-purple-200/70 hover:bg-white/10 hover:text-white'
+              }`}
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold text-white shadow-lg active:scale-95 transition-all disabled:opacity-50"
-              style={{
-                backgroundColor: 'var(--imx-accent)',
-                boxShadow: '0 4px 14px rgba(123, 63, 228, 0.4)',
-              }}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold text-white bg-purple-600 hover:bg-purple-500 active:scale-95 transition-all shadow-md shadow-purple-600/30 disabled:opacity-50"
             >
               {submitting ? (
                 <>
