@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Home, Eye, Trash2, Clock, CheckCircle2, AlertCircle, Archive } from 'lucide-react';
+import { Plus, Home, Eye, Trash2, Clock, CheckCircle2, AlertCircle, Archive, ChevronDown, Check, X } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, ListingSummary, AvailabilityStatus } from '../../lib/supabase';
 import { updateAvailability } from '../../hooks/useListings';
@@ -19,6 +19,7 @@ const Annonces: React.FC = () => {
   const { showToast } = useToast();
   const [listings, setListings] = useState<AnnounceListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openAvailabilityMenuId, setOpenAvailabilityMenuId] = useState<string | null>(null);
   const [selectedListingForDelete, setSelectedListingForDelete] = useState<{
     id: string;
     title: string;
@@ -92,6 +93,8 @@ const Annonces: React.FC = () => {
       )
     );
   };
+
+  const activeAvailabilityListing = listings.find(l => l.id === openAvailabilityMenuId);
 
   if (loading) {
     return (
@@ -229,18 +232,34 @@ const Annonces: React.FC = () => {
                 {/* Sélecteur de disponibilité */}
                 {isPublished && !isDeletionPending && !isDeleted && (
                   <div className="flex items-center justify-between pt-1 pb-1">
-                    <label className="text-[10px] text-[var(--imx-text-secondary)] font-semibold" style={{ fontFamily: 'Space Grotesk' }}>
+                    <span className="text-[10px] text-[var(--imx-text-secondary)] font-semibold" style={{ fontFamily: 'Space Grotesk' }}>
                       Disponibilité du bien
-                    </label>
-                    <select
-                      value={listing.availability_status}
-                      onChange={(e) => handleAvailabilityChange(listing.id, e.target.value as AvailabilityStatus)}
-                      className="bg-[var(--imx-surface-2)] text-[var(--imx-text-primary)] text-[10px] rounded-lg px-2 py-1 outline-none font-semibold border border-[var(--imx-border)] focus:border-[var(--imx-accent-light)] transition-colors cursor-pointer"
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setOpenAvailabilityMenuId(listing.id)}
+                      className="flex items-center gap-1.5 bg-[var(--imx-surface-2)] hover:bg-white/10 text-[var(--imx-text-primary)] text-[10px] rounded-lg px-2.5 py-1.5 font-semibold border border-[var(--imx-border)] focus:border-[var(--imx-accent-light)] transition-colors cursor-pointer"
                     >
-                      <option value="disponible">✅ Disponible</option>
-                      <option value="reserve">⏳ Indisponible temp.</option>
-                      <option value="occupe">🏠 Occupé (Loué)</option>
-                    </select>
+                      {listing.availability_status === 'disponible' && (
+                        <>
+                          <CheckCircle2 size={12} className="text-emerald-400" />
+                          <span>Disponible</span>
+                        </>
+                      )}
+                      {listing.availability_status === 'reserve' && (
+                        <>
+                          <Clock size={12} className="text-amber-400" />
+                          <span>Indisponible temp.</span>
+                        </>
+                      )}
+                      {listing.availability_status === 'occupe' && (
+                        <>
+                          <Home size={12} className="text-blue-400" />
+                          <span>Occupé (Loué)</span>
+                        </>
+                      )}
+                      <ChevronDown size={11} className="text-[var(--imx-text-secondary)] ml-0.5" />
+                    </button>
                   </div>
                 )}
 
@@ -315,6 +334,120 @@ const Annonces: React.FC = () => {
           onClose={() => setSelectedListingForDelete(null)}
           onSuccess={handleDeletionRequested}
         />
+      )}
+
+      {/* Modal / Bottom sheet de sélection de disponibilité */}
+      {openAvailabilityMenuId && activeAvailabilityListing && (
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setOpenAvailabilityMenuId(null)}
+        >
+          <div
+            className="bg-[var(--imx-surface)] border-t border-[var(--imx-border)] rounded-t-3xl p-5 w-full max-w-md space-y-4 shadow-2xl animate-in slide-in-from-bottom duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-2" />
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-nunito font-800 text-[var(--imx-text-primary)] text-base">
+                  Disponibilité du bien
+                </h3>
+                <p className="text-xs text-[var(--imx-text-secondary)] truncate" style={{ fontFamily: 'Space Grotesk' }}>
+                  {activeAvailabilityListing.title}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpenAvailabilityMenuId(null)}
+                className="p-1 text-[var(--imx-text-secondary)] hover:text-[var(--imx-text-primary)]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  handleAvailabilityChange(activeAvailabilityListing.id, 'disponible');
+                  setOpenAvailabilityMenuId(null);
+                }}
+                className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
+                  activeAvailabilityListing.availability_status === 'disponible'
+                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 font-bold'
+                    : 'bg-[var(--imx-surface-2)] border-transparent text-[var(--imx-text-primary)] hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                    <CheckCircle2 size={18} />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-bold">Disponible</div>
+                    <div className="text-[10px] text-[var(--imx-text-secondary)]">Visible et ouvert aux demandes</div>
+                  </div>
+                </div>
+                {activeAvailabilityListing.availability_status === 'disponible' && <Check size={16} />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  handleAvailabilityChange(activeAvailabilityListing.id, 'reserve');
+                  setOpenAvailabilityMenuId(null);
+                }}
+                className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
+                  activeAvailabilityListing.availability_status === 'reserve'
+                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 font-bold'
+                    : 'bg-[var(--imx-surface-2)] border-transparent text-[var(--imx-text-primary)] hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                    <Clock size={18} />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-bold">Indisponible temporairement</div>
+                    <div className="text-[10px] text-[var(--imx-text-secondary)]">En cours de visite ou négociation</div>
+                  </div>
+                </div>
+                {activeAvailabilityListing.availability_status === 'reserve' && <Check size={16} />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  handleAvailabilityChange(activeAvailabilityListing.id, 'occupe');
+                  setOpenAvailabilityMenuId(null);
+                }}
+                className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
+                  activeAvailabilityListing.availability_status === 'occupe'
+                    ? 'bg-blue-500/15 border-blue-500/40 text-blue-400 font-bold'
+                    : 'bg-[var(--imx-surface-2)] border-transparent text-[var(--imx-text-primary)] hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                    <Home size={18} />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-bold">Occupé (Loué)</div>
+                    <div className="text-[10px] text-[var(--imx-text-secondary)]">Un locataire habite actuellement le bien</div>
+                  </div>
+                </div>
+                {activeAvailabilityListing.availability_status === 'occupe' && <Check size={16} />}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setOpenAvailabilityMenuId(null)}
+              className="w-full py-2 text-center text-xs font-semibold text-[var(--imx-text-secondary)] hover:text-[var(--imx-text-primary)] transition-colors"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
       )}
 
       <BottomNav />
