@@ -7,6 +7,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#120D2A" />
     <title>ImoFlex — Trouvez. Louez. Payez à votre rythme.</title>
+    <!-- Anti-FOUC : applique le thème stocké AVANT que React ne monte, évitant le flash blanc/sombre -->
+    <script>
+      (function() {
+        try {
+          var stored = localStorage.getItem('imoflex-theme-mode');
+          var theme;
+          if (stored === 'light') {
+            theme = 'light';
+          } else if (stored === 'dark') {
+            theme = 'dark';
+          } else {
+            // mode 'auto' ou aucune préférence stockée → détection système
+            theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+          }
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch(e) {}
+      })();
+    </script>
     <meta name="description" content="ImoFlex — Plateforme immobilière et fintech. Trouvez votre logement au Bénin et payez progressivement via Mobile Money." />
 
     <!-- Open Graph -->

@@ -18,8 +18,24 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // La signingConfig lit les variables définies dans android/gradle.properties
+            // (ou via variables d'environnement CI) — jamais hardcodées ici.
+            if (project.hasProperty('KEYSTORE_PATH') &&
+                project.hasProperty('KEYSTORE_PASSWORD') &&
+                project.hasProperty('KEY_ALIAS') &&
+                project.hasProperty('KEY_PASSWORD')) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+    signingConfigs {
+        release {
+            storeFile     project.hasProperty('KEYSTORE_PATH')     ? file(KEYSTORE_PATH)     : null
+            storePassword project.hasProperty('KEYSTORE_PASSWORD') ? KEYSTORE_PASSWORD        : ''
+            keyAlias      project.hasProperty('KEY_ALIAS')         ? KEY_ALIAS                : ''
+            keyPassword   project.hasProperty('KEY_PASSWORD')      ? KEY_PASSWORD             : ''
         }
     }
 }

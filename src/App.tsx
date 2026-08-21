@@ -9,7 +9,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { OnboardingSlides } from './components/OnboardingSlides';
 import { AppRatingModal } from './components/AppRatingModal';
 import { NetworkBanner } from './components/NetworkBanner';
-import { Toaster, toast } from 'sonner';
+import { Toaster } from 'sonner';
 import { useEffect } from 'react';
 import { useFcmToken } from './hooks/useFcmToken';
 import { useAndroidBackButton } from './hooks/useAndroidBackButton';

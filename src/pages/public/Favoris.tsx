@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, ListingSummary } from '../../lib/supabase';
 import { queueSyncAction } from '../../lib/offlineSyncManager';
@@ -11,7 +10,6 @@ import PullToRefresh from '../../components/PullToRefresh';
 
 const Favoris: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const [favorites, setFavorites] = useState<ListingSummary[]>([]);
   const [loading, setLoading] = useState(true);
