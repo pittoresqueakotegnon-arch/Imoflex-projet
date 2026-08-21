@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Heart, MapPin, Building2, Bed, Wallet, Coins, Zap, Droplets, Car, Wifi, ChevronLeft, ChevronRight, Snowflake, Armchair, ShieldCheck, Sparkles } from 'lucide-react';
+import { Heart, MapPin, Building2, Bed, Wallet, Coins, Zap, Droplets, Car, Wifi, ChevronLeft, ChevronRight, Snowflake, Armchair, ShieldCheck, Sparkles, Share2 } from 'lucide-react';
 import { useListing } from '../../hooks/useListings';
 import { useToast } from '../../components/Toast';
 import { useAuthGate } from '../../hooks/useAuthGate';
@@ -10,6 +10,7 @@ import ImageGalleryModal from '../../components/ImageGalleryModal';
 import { OptimizedImage } from '../../components/OptimizedImage';
 import { formatMontant, getOptimizedUrl } from '../../lib/utils';
 import { haptics } from '../../lib/haptics';
+import { Share } from '@capacitor/share';
 
 const AMENITY_ICONS: Record<string, React.ReactNode> = {
   electricity: <Zap size={14} />,
@@ -132,6 +133,20 @@ const Annonce: React.FC = () => {
     occupe:     { label: 'OCCUPÉ',     className: 'px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide bg-amber-500/20 text-amber-400 border border-amber-500/30 backdrop-blur-sm' },
   }[listing.availability_status] ?? { label: 'N/A', className: 'px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide bg-white/10 text-white/70 border border-white/20 backdrop-blur-sm' };
 
+  const handleShare = async () => {
+    haptics.light();
+    try {
+      await Share.share({
+        title: listing?.title || 'Annonce ImoFlex',
+        text: `Découvre ce logement sur ImoFlex : ${listing?.title} à ${listing?.city}`,
+        url: window.location.href,
+        dialogTitle: 'Partager cette annonce',
+      });
+    } catch (error) {
+      console.error('Erreur lors du partage:', error);
+    }
+  };
+
   return (
     <div className="page-container pb-24">
       {/* ── Photo & Boutons flottants ─────────────────────── */}
@@ -152,13 +167,22 @@ const Annonce: React.FC = () => {
               <polyline points="15 18 9 12 15 6"/>
             </svg>
           </button>
-          <button
-            onClick={handleToggleFavorite}
-            aria-label="Favoris"
-            className="pointer-events-auto w-10 h-10 rounded-full flex items-center justify-center text-white bg-[var(--imx-bg-app)]/70 backdrop-blur-md border border-white/15 hover:bg-[var(--imx-bg-app)]/90 transition-all shadow-lg active:scale-95"
-          >
-            <Heart size={20} className={isFavorite ? 'fill-red-500 text-red-500' : 'text-[var(--imx-text-primary)]'} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleShare}
+              aria-label="Partager"
+              className="pointer-events-auto w-10 h-10 rounded-full flex items-center justify-center text-white bg-[var(--imx-bg-app)]/70 backdrop-blur-md border border-white/15 hover:bg-[var(--imx-bg-app)]/90 transition-all shadow-lg active:scale-95"
+            >
+              <Share2 size={18} className="text-[var(--imx-text-primary)]" />
+            </button>
+            <button
+              onClick={handleToggleFavorite}
+              aria-label="Favoris"
+              className="pointer-events-auto w-10 h-10 rounded-full flex items-center justify-center text-white bg-[var(--imx-bg-app)]/70 backdrop-blur-md border border-white/15 hover:bg-[var(--imx-bg-app)]/90 transition-all shadow-lg active:scale-95"
+            >
+              <Heart size={20} className={isFavorite ? 'fill-red-500 text-red-500' : 'text-[var(--imx-text-primary)]'} />
+            </button>
+          </div>
         </div>
 
         {photos.length > 0 && currentPhoto ? (

@@ -5,6 +5,7 @@ import { ListingSummary } from '../lib/supabase';
 import { formatMontant } from '../lib/utils';
 import StatusBadge from './StatusBadge';
 import { OptimizedImage } from './OptimizedImage';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 interface ListingCardProps {
   listing: ListingSummary;
@@ -34,8 +35,13 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   };
   const thumbUrl = getThumbUrl(coverPhoto?.photo_url);
 
-  const handleFavoriteClick = (e: React.MouseEvent) => {
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault();
+    try {
+      await Haptics.impact({ style: ImpactStyle.Light });
+    } catch (e) {
+      // Ignore if not on a device that supports haptics
+    }
     onToggleFavorite?.();
   };
 
@@ -69,7 +75,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
             {/* Heart */}
             <button
               onClick={handleFavoriteClick}
-              className="absolute top-3 right-3"
+              className="absolute top-3 right-3 active:scale-75 transition-transform duration-200"
             >
               <Heart
                 size={18}
@@ -130,7 +136,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
           {/* Bouton favori — en haut à droite */}
           <button
             onClick={handleFavoriteClick}
-            className="absolute top-2.5 right-2.5 w-8 h-8 flex items-center justify-center rounded-full"
+            className="absolute top-2.5 right-2.5 w-8 h-8 flex items-center justify-center rounded-full active:scale-75 transition-transform duration-200"
             style={{ background: 'rgba(18, 13, 42, 0.7)', backdropFilter: 'blur(6px)' }}
           >
             <Heart
