@@ -59,7 +59,7 @@ export default function Login() {
 
 
 
-  const fadeStyle = (_delay = 0) => ({});
+  const fadeStyle = (_delay?: number) => ({ opacity: 1, delay: _delay ? 0 : 0 });
 
   return (
     <div

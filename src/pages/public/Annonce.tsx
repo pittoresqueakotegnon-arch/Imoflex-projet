@@ -75,7 +75,7 @@ const Annonce: React.FC = () => {
     }, 'contact');
   };
 
-  const photosForPreload = listing?.listing_photos || [];
+  const photosForPreload = React.useMemo(() => listing?.listing_photos || [], [listing?.listing_photos]);
 
   // Preload primary image for instant above-the-fold render
   // (déplacé avant les early returns : les Hooks doivent toujours s'exécuter

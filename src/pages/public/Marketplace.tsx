@@ -9,6 +9,7 @@ import ListingCard from '../../components/ListingCard';
 import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
 import { SplashScreen } from '../../components/SplashScreen';
+import { PullToRefresh } from '../../components/PullToRefresh';
 import { supabase, PropertyType } from '../../lib/supabase';
 import { getOptimizedUrl } from '../../lib/utils';
 
@@ -62,7 +63,7 @@ const Marketplace: React.FC = () => {
 
   const activeType = filterParams.types?.[0] || selectedType;
 
-  const { listings, loading, error } = useListings({
+  const { listings, loading, error, refetch } = useListings({
     search: searchQuery,
     propertyTypes: activeType ? [activeType] : undefined,
     city: filterParams.city ?? undefined,
@@ -266,42 +267,44 @@ const Marketplace: React.FC = () => {
       </div>
 
       {/* ── Liste ──────────────────────────────────────────── */}
-      <div className="px-4 flex-1">
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-52 bg-[var(--imx-surface)] rounded-[20px] animate-pulse" />
-            ))}
-          </div>
-        ) : error ? (
-          <EmptyState
-            title="Erreur de chargement"
-            description={error}
-            action={{ label: 'Réessayer', onClick: () => window.location.reload() }}
-          />
-        ) : sortedListings.length === 0 ? (
-          <EmptyState
-            title="Aucune annonce trouvée"
-            description="Essayez de modifier vos critères de recherche"
-            action={{ label: 'Réinitialiser les filtres', onClick: () => {
-              navigate('/');
-              setSearchQuery('');
-              setSelectedType(null);
-            } }}
-          />
-        ) : (
-          <div className="space-y-4 pb-6">
-            {sortedListings.map((listing) => (
-              <ListingCard
-                key={listing.id}
-                listing={listing}
-                isFavorite={favorites.includes(listing.id)}
-                onToggleFavorite={() => handleToggleFavorite(listing.id)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      <PullToRefresh onRefresh={refetch}>
+        <div className="px-4 flex-1">
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-52 bg-[var(--imx-surface)] rounded-[20px] animate-pulse" />
+              ))}
+            </div>
+          ) : error ? (
+            <EmptyState
+              title="Erreur de chargement"
+              description={error}
+              action={{ label: 'Réessayer', onClick: () => refetch() }}
+            />
+          ) : sortedListings.length === 0 ? (
+            <EmptyState
+              title="Aucune annonce trouvée"
+              description="Essayez de modifier vos critères de recherche"
+              action={{ label: 'Réinitialiser les filtres', onClick: () => {
+                navigate('/');
+                setSearchQuery('');
+                setSelectedType(null);
+              } }}
+            />
+          ) : (
+            <div className="space-y-4 pb-20">
+              {sortedListings.map((listing) => (
+                <ListingCard
+                  key={listing.id}
+                  listing={listing}
+                  isFavorite={favorites.includes(listing.id)}
+                  onToggleFavorite={() => handleToggleFavorite(listing.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </PullToRefresh>
 
       <BottomNav />
 

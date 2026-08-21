@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, ChevronRight, AlertCircle, Clock, CheckCircle2, KeyRound } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -6,6 +6,7 @@ import { supabase, Payment } from '../../lib/supabase';
 import { daysUntilDeadline, getDeadlineDateForMonth } from '../../lib/utils';
 import { getGreeting } from '../../utils/greeting';
 import BottomNav from '../../components/BottomNav';
+import { PullToRefresh } from '../../components/PullToRefresh';
 
 interface LeaseWithPeriod {
   leaseId: string;
@@ -48,14 +49,11 @@ export default function Dashboard() {
   const [recentPayments, setRecentPayments] = useState<(Payment & { propertyName?: string })[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (authLoading) return;
+  const fetchData = useCallback(async () => {
     if (!profile?.id) {
       setLoading(false);
       return;
     }
-
-    const fetchData = async () => {
       try {
         const { data: leasesData, error: leasesError } = await supabase
           .from('leases')
@@ -151,10 +149,13 @@ export default function Dashboard() {
       } finally {
         setLoading(false);
       }
-    };
+  }, [profile?.id]);
 
-    fetchData();
-  }, [profile?.id, authLoading]);
+  useEffect(() => {
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [authLoading, fetchData]);
 
   const firstName = profile?.full_name?.split(' ')[0] || '';
   const lastName = profile?.full_name?.split(' ').slice(1).join(' ') || '';
@@ -183,7 +184,8 @@ export default function Dashboard() {
 
   return (
     <div className="page-container">
-      {/* ── Role Switcher ── */}
+      <PullToRefresh onRefresh={fetchData}>
+        {/* ── Role Switcher ── */}
       <div className="px-4 pt-4 flex justify-center">
         <div className="bg-[var(--imx-surface)] rounded-full p-1 flex items-center border border-white/5">
           <button className="px-5 py-1.5 rounded-full text-[11px] font-bold text-white bg-[var(--imx-accent-light)] shadow-sm font-nunito">
@@ -398,7 +400,8 @@ export default function Dashboard() {
             )}
           </>
         )}
-      </div>
+        </div>
+      </PullToRefresh>
 
       <BottomNav />
     </div>

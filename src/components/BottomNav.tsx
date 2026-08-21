@@ -65,14 +65,12 @@ export const BottomNav: React.FC = () => {
 
   return (
     <nav
-      className="bottom-nav"
+      className="bottom-nav w-full sm:max-w-[430px]"
       style={{
         position: 'fixed',
         bottom: 0,
         left: '50%',
         transform: 'translateX(-50%)',
-        width: '100%',
-        maxWidth: '390px',
         zIndex: 40,
         background: 'var(--imx-nav-bg)',
         backdropFilter: 'blur(20px)',

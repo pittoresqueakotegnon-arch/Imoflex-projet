@@ -7,6 +7,7 @@ import {
 import { useAuth, SignUpParams } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
 import { diagnoseAndShowError } from '../../utils/errorDiagnostics';
+import { LegalModal } from '../../components/LegalModal';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Register — Inscription ImoFlex
@@ -72,6 +73,7 @@ export default function Register() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(COUNTRY_CODES[0]);
+  const [legalModalTab, setLegalModalTab] = useState<'terms' | 'privacy' | null>(null);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -206,7 +208,7 @@ export default function Register() {
   const update = (field: string, value: string | boolean) =>
     setFormData(prev => ({ ...prev, [field]: value }));
 
-  const fadeStyle = (_delay = 0) => ({});
+  const fadeStyle = (_delay?: number) => ({ opacity: 1, delay: _delay ? 0 : 0 });
 
   // ── ÉCRAN OTP ─────────────────────────────────────────────────────────────
   if (step === 'otp') {
@@ -602,10 +604,14 @@ export default function Register() {
               </div>
               <span className="text-xs leading-relaxed" style={{ fontFamily: 'Space Grotesk', color: 'var(--imx-text-secondary)' }}>
                 J'accepte les{' '}
-                <a href="#" onClick={(e) => e.stopPropagation()}
-                  className="underline" style={{ color: 'var(--imx-accent-light)' }}>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setLegalModalTab('terms'); }}
+                  className="underline font-semibold"
+                  style={{ color: 'var(--imx-accent-light)' }}
+                >
                   Conditions d'utilisation
-                </a>
+                </button>
               </span>
             </label>
             {errors.acceptTerms && <p className="text-xs -mt-2 ml-8" style={{ color: '#EF4444', fontFamily: 'Space Grotesk' }}>{errors.acceptTerms}</p>}
@@ -622,10 +628,14 @@ export default function Register() {
               </div>
               <span className="text-xs leading-relaxed" style={{ fontFamily: 'Space Grotesk', color: 'var(--imx-text-secondary)' }}>
                 J'accepte la{' '}
-                <a href="#" onClick={(e) => e.stopPropagation()}
-                  className="underline" style={{ color: 'var(--imx-accent-light)' }}>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setLegalModalTab('privacy'); }}
+                  className="underline font-semibold"
+                  style={{ color: 'var(--imx-accent-light)' }}
+                >
                   Politique de confidentialité
-                </a>
+                </button>
               </span>
             </label>
             {errors.acceptPrivacy && <p className="text-xs -mt-2 ml-8" style={{ color: '#EF4444', fontFamily: 'Space Grotesk' }}>{errors.acceptPrivacy}</p>}
@@ -636,6 +646,12 @@ export default function Register() {
             Continuer
           </button>
         </form>
+
+        <LegalModal
+          isOpen={legalModalTab !== null}
+          onClose={() => setLegalModalTab(null)}
+          initialTab={legalModalTab || 'terms'}
+        />
 
 
 

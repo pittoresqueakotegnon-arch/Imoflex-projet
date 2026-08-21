@@ -70,14 +70,22 @@ export const AuthGateModal: React.FC<AuthGateModalProps> = ({
 
   const config = REASON_CONFIG[reason];
 
-  // Fermeture par touche Escape
+  // Fermeture par touche Escape et Bouton Retour Android
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
+    const handleAndroidBack = (e: Event) => {
+      e.preventDefault();
+      onClose();
+    };
     document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
+    document.addEventListener('imx:android-back', handleAndroidBack);
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+      document.removeEventListener('imx:android-back', handleAndroidBack);
+    };
   }, [isOpen, onClose]);
 
   // Empêcher le scroll du body quand modal ouverte

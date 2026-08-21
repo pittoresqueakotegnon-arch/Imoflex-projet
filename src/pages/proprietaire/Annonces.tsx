@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Home, Eye, Trash2, Clock, CheckCircle2, AlertCircle, Archive, ChevronDown, Check, X } from 'lucide-react';
+import { Plus, Home, Eye, Trash2, Clock, CheckCircle2, AlertCircle, Archive, ChevronDown, Check } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, ListingSummary, AvailabilityStatus } from '../../lib/supabase';
 import { updateAvailability } from '../../hooks/useListings';
@@ -9,6 +9,7 @@ import EmptyState from '../../components/EmptyState';
 import StatusBadge from '../../components/StatusBadge';
 import { useToast } from '../../components/Toast';
 import { DemandeSuppressionModal } from '../../components/DemandeSuppressionModal';
+import { PullToRefresh } from '../../components/PullToRefresh';
 
 interface AnnounceListItem extends ListingSummary {
   contactRequestsCount: number;
@@ -26,46 +27,45 @@ const Annonces: React.FC = () => {
     owner_id: string;
   } | null>(null);
 
-  useEffect(() => {
+  const fetchListings = useCallback(async () => {
     if (!profile?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('listings')
+        .select('id, title, city, neighborhood, availability_status, status, rejection_reason, created_at, owner_id, monthly_rent, listing_photos(photo_url, is_cover)')
+        .eq('owner_id', profile.id)
+        .order('created_at', { ascending: false });
 
-    const fetchListings = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('listings')
-          .select('id, title, city, neighborhood, availability_status, status, rejection_reason, created_at, owner_id, monthly_rent, listing_photos(photo_url, is_cover)')
-          .eq('owner_id', profile.id)
-          .order('created_at', { ascending: false });
+      if (error) throw error;
 
-        if (error) throw error;
+      const listingsWithCounts: AnnounceListItem[] = [];
 
-        const listingsWithCounts: AnnounceListItem[] = [];
+      for (const listing of data || []) {
+        const { count, error: countError } = await supabase
+          .from('contact_requests')
+          .select('id', { count: 'exact' })
+          .eq('listing_id', listing.id);
 
-        for (const listing of data || []) {
-          const { count, error: countError } = await supabase
-            .from('contact_requests')
-            .select('id', { count: 'exact' })
-            .eq('listing_id', listing.id);
-
-          if (!countError) {
-            listingsWithCounts.push({
-              ...(listing as ListingSummary),
-              contactRequestsCount: count || 0,
-            });
-          }
+        if (!countError) {
+          listingsWithCounts.push({
+            ...(listing as ListingSummary),
+            contactRequestsCount: count || 0,
+          });
         }
-
-        setListings(listingsWithCounts);
-      } catch (error) {
-        console.error('Error fetching listings:', error);
-        showToast('Erreur lors du chargement des annonces', 'error');
-      } finally {
-        setLoading(false);
       }
-    };
 
-    fetchListings();
+      setListings(listingsWithCounts);
+    } catch (error) {
+      console.error('Error fetching listings:', error);
+      showToast('Erreur lors du chargement des annonces', 'error');
+    } finally {
+      setLoading(false);
+    }
   }, [profile?.id, showToast]);
+
+  useEffect(() => {
+    fetchListings();
+  }, [fetchListings]);
 
   const handleAvailabilityChange = async (listingId: string, status: AvailabilityStatus) => {
     try {
@@ -94,8 +94,6 @@ const Annonces: React.FC = () => {
     );
   };
 
-  const activeAvailabilityListing = listings.find(l => l.id === openAvailabilityMenuId);
-
   if (loading) {
     return (
       <div className="page-container">
@@ -122,7 +120,8 @@ const Annonces: React.FC = () => {
         </Link>
       </header>
 
-      {listings.length === 0 ? (
+      <PullToRefresh onRefresh={fetchListings}>
+        {listings.length === 0 ? (
         <EmptyState
           title="Aucune annonce publiée"
           description="Publiez votre premier bien sur la marketplace ImoFlex."
@@ -406,7 +405,9 @@ const Annonces: React.FC = () => {
         </div>
       )}
 
-      {/* Modal de demande de suppression */}
+      </PullToRefresh>
+
+      {/* Modal de demande de suppression - Doit être en dehors de PullToRefresh pour que position:fixed marche correctement */}
       {selectedListingForDelete && (
         <DemandeSuppressionModal
           isOpen={!!selectedListingForDelete}

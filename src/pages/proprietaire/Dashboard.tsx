@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Building2, ArrowRight, Home } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -8,6 +8,7 @@ import BottomNav from '../../components/BottomNav';
 import { HeaderBell } from '../../components/HeaderBell';
 import { useToast } from '../../components/Toast';
 import { getGreeting } from '../../utils/greeting';
+import { PullToRefresh } from '../../components/PullToRefresh';
 
 interface DashboardData {
   totalEncaisse: number;
@@ -64,11 +65,9 @@ const Dashboard: React.FC = () => {
   // On affiche directement l'écran d'onboarding sans chercher des données en base
   const isLocataire = profile?.role === 'locataire';
 
-  useEffect(() => {
+  const fetchData = useCallback(async () => {
     if (!profile?.id) return;
-
-    const fetchData = async () => {
-      try {
+    try {
         // Fetch listings
         const { data: listingsData, error: listingsError } = await supabase
           .from('listings')
@@ -193,10 +192,11 @@ const Dashboard: React.FC = () => {
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchData();
   }, [profile?.id, showToast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   if (loading && !isLocataire) {
     return (
@@ -331,7 +331,8 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="page-container">
-      {/* ── Role Switcher ── */}
+      <PullToRefresh onRefresh={fetchData}>
+        {/* ── Role Switcher ── */}
       <div className="px-4 pt-4 flex justify-center">
         <div className="bg-[var(--imx-surface)] rounded-full p-1 flex items-center border border-white/5">
           <button className="px-5 py-1.5 rounded-full text-[11px] font-bold text-white bg-[var(--imx-accent-light)] shadow-sm font-nunito">
@@ -596,6 +597,7 @@ const Dashboard: React.FC = () => {
       >
         <Plus size={22} />
       </Link>
+      </PullToRefresh>
 
       <BottomNav />
     </div>
