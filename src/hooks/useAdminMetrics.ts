@@ -70,7 +70,7 @@ const DEFAULT_KPIS: DashboardKPIs = {
 };
 
 const DEFAULT_ALERTS: DashboardAlerts = {
-  pendingWithdrawals: 0, lateRentPeriods: 0, failedPayments: 0,
+  pendingWithdrawals: 0, lateRentPeriods: 0, failedPayments: 0, pendingDeletionRequests: 0,
 };
 
 export function useAdminMetrics(): AdminMetricsState {

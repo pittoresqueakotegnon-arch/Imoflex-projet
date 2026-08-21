@@ -9,16 +9,23 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toaster, toast } from 'sonner';
 import { useEffect } from 'react';
 import { useFcmToken } from './hooks/useFcmToken';
+import { useAndroidBackButton } from './hooks/useAndroidBackButton';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { SplashScreen } from '@capacitor/splash-screen';
 
 // ── Lazy-loaded pages ─────────────────────────────────────────────────────────
 // Public
-const Splash        = lazy(() => import('./pages/public/Splash'));
-const Marketplace   = lazy(() => import('./pages/public/Marketplace'));
-const Filtres       = lazy(() => import('./pages/public/Filtres'));
-const Annonce       = lazy(() => import('./pages/public/Annonce'));
-const Contact       = lazy(() => import('./pages/public/Contact'));
-const Favoris       = lazy(() => import('./pages/public/Favoris'));
-const MesDemandes   = lazy(() => import('./pages/public/MesDemandes'));
+const Splash                  = lazy(() => import('./pages/public/Splash'));
+const Marketplace             = lazy(() => import('./pages/public/Marketplace'));
+const Filtres                 = lazy(() => import('./pages/public/Filtres'));
+const Annonce                 = lazy(() => import('./pages/public/Annonce'));
+const Contact                 = lazy(() => import('./pages/public/Contact'));
+const Favoris                 = lazy(() => import('./pages/public/Favoris'));
+const MesDemandes             = lazy(() => import('./pages/public/MesDemandes'));
+const CGU                     = lazy(() => import('./pages/public/CGU'));
+const PolitiqueConfidentialite = lazy(() => import('./pages/public/PolitiqueConfidentialite'));
+const Aide                    = lazy(() => import('./pages/public/Aide'));
 
 // Auth
 const Login           = lazy(() => import('./pages/auth/Login'));
@@ -98,42 +105,21 @@ function MobileFrame({ children }: { children: React.ReactNode }) {
   return <div className="mobile-frame">{children}</div>;
 }
 
-export default function App() {
+function AppRoutes() {
+  useAndroidBackButton();
+
   useEffect(() => {
-    const handleOffline = () => {
-      toast.error('Vous êtes hors ligne', {
-        id: 'network-status',
-        description: 'Vérifiez votre connexion internet.',
-        duration: Infinity,
-      });
-    };
-
-    const handleOnline = () => {
-      toast.dismiss('network-status');
-      toast.success('Connexion rétablie', {
-        id: 'network-status',
-        description: 'Vous êtes de nouveau en ligne.',
-        duration: 3000,
-      });
-    };
-
-    window.addEventListener('offline', handleOffline);
-    window.addEventListener('online', handleOnline);
-
-    return () => {
-      window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('online', handleOnline);
-    };
+    if (Capacitor.isNativePlatform()) {
+      // Configuration native de la barre de statut
+      StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+      StatusBar.setBackgroundColor({ color: '#120D2A' }).catch(() => {});
+      // Masquer le splash screen natif dès que l'app React est montée
+      SplashScreen.hide().catch(() => {});
+    }
   }, []);
 
   return (
-    <ErrorBoundary>
-      <BrowserRouter>
-        <ThemeProvider>
-        <AuthProvider>
-          <ToastProvider>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
+    <Routes>
 
               {/* ── ESPACE ADMIN (Desktop layout) ──────────────────── */}
               <Route
@@ -163,6 +149,9 @@ export default function App() {
               <Route path="/annonce/:id" element={<MobileFrame><Annonce /></MobileFrame>} />
               <Route path="/favoris" element={<MobileFrame><Favoris /></MobileFrame>} />
               <Route path="/mes-demandes" element={<MobileFrame><MesDemandes /></MobileFrame>} />
+              <Route path="/cgu" element={<MobileFrame><CGU /></MobileFrame>} />
+              <Route path="/politique-confidentialite" element={<MobileFrame><PolitiqueConfidentialite /></MobileFrame>} />
+              <Route path="/aide" element={<MobileFrame><Aide /></MobileFrame>} />
               <Route
                 path="/contact/:listing_id"
                 element={
@@ -347,12 +336,51 @@ export default function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
 
             </Routes>
-          </Suspense>
-        </ToastProvider>
-      </AuthProvider>
+  );
+}
+
+export default function App() {
+  useEffect(() => {
+    const handleOffline = () => {
+      toast.error('Vous êtes hors ligne', {
+        id: 'network-status',
+        description: 'Vérifiez votre connexion internet.',
+        duration: Infinity,
+      });
+    };
+
+    const handleOnline = () => {
+      toast.dismiss('network-status');
+      toast.success('Connexion rétablie', {
+        id: 'network-status',
+        description: 'Vous êtes de nouveau en ligne.',
+        duration: 3000,
+      });
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, []);
+
+  return (
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ThemeProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <Suspense fallback={<PageLoader />}>
+                <AppRoutes />
+              </Suspense>
+            </ToastProvider>
+          </AuthProvider>
         </ThemeProvider>
-      <Toaster position="top-center" richColors closeButton />
-    </BrowserRouter>
+        <Toaster position="top-center" richColors closeButton />
+      </BrowserRouter>
     </ErrorBoundary>
   );
 }

@@ -120,8 +120,6 @@ export default function Payer() {
   useEffect(() => {
     if (!pollingPaymentId) return;
 
-    let timeoutId: ReturnType<typeof setTimeout>;
-
     const channel = supabase
       .channel(`payment-status-${pollingPaymentId}`)
       .on(
@@ -150,7 +148,7 @@ export default function Payer() {
       .subscribe();
 
     // Timeout de sécurité : 45 secondes si l'opérateur ne répond pas
-    timeoutId = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       supabase.removeChannel(channel);
       setPollingPaymentId(null);
       setProcessing(false);

@@ -5,7 +5,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useToast } from '../../components/Toast';
 import BottomNav from '../../components/BottomNav';
-import { ShieldCheck, FileText, Receipt, Wallet, MessageCircle, HelpCircle, ChevronRight, FileCheck, KeyRound, Home, Sun, Moon, Monitor, User, Settings, Camera } from 'lucide-react';
+import { ShieldCheck, FileText, Receipt, Wallet, MessageCircle, HelpCircle, ChevronRight, FileCheck, KeyRound, Home, Sun, Moon, Monitor, User, Settings, Camera, Trash2 } from 'lucide-react';
+import { LegalModal } from '../../components/LegalModal';
 
 const compressImage = (file: File): Promise<Blob> => {
   return new Promise((resolve, reject) => {
@@ -115,6 +116,9 @@ export default function Profil() {
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+  const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState<'terms' | 'privacy' | null>(null);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -157,6 +161,38 @@ export default function Profil() {
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!profile?.id) return;
+    setDeletingAccount(true);
+    try {
+      // 1. Désactiver le compte en base (anonymisation et flag is_active: false)
+      const { error: updateErr } = await supabase
+        .from('users')
+        .update({
+          is_active: false,
+          full_name: 'Compte supprimé',
+          phone: null,
+          mobile_money_number: null,
+        })
+        .eq('id', profile.id);
+
+      if (updateErr) {
+        console.warn('Erreur anonymisation profil:', updateErr);
+      }
+
+      // 2. Déconnexion complète
+      await signOut();
+      showToast('Votre compte a été supprimé avec succès.', 'success');
+      navigate('/', { replace: true });
+    } catch (err) {
+      console.error('Erreur suppression compte:', err);
+      showToast('Impossible de supprimer le compte. Contactez le support.', 'error');
+    } finally {
+      setDeletingAccount(false);
+      setShowDeleteAccountConfirm(false);
+    }
   };
 
   if (!profile) {
@@ -359,6 +395,12 @@ export default function Profil() {
               label="Changer le mot de passe"
               to="/profil/mot-de-passe"
             />
+            <ProfilRow
+              icon={<Trash2 size={16} />}
+              iconColor="#EF4444"
+              label="Supprimer mon compte"
+              onClick={() => setShowDeleteAccountConfirm(true)}
+            />
           </div>
         </div>
 
@@ -369,13 +411,13 @@ export default function Profil() {
               icon={<MessageCircle size={16} />}
               iconColor="#22C55E"
               label="Centre d'aide & WhatsApp"
-              href="https://wa.me/22900000000?text=Bonjour%20ImoFlex%20Support"
+              href="https://wa.me/22901291159?text=Bonjour%20ImoFlex%20Support"
             />
             <ProfilRow
               icon={<HelpCircle size={16} />}
               iconColor="#60A5FA"
               label="FAQ / Mode d'emploi"
-              to="/contact"
+              to="/aide"
             />
           </div>
         </div>
@@ -390,8 +432,8 @@ export default function Profil() {
 
         <div className="text-center pb-4 space-y-2">
           <button
-            onClick={() => showToast('Conditions disponibles bientôt', 'success')}
-            className="text-[11px] text-[var(--imx-text-muted)] hover:text-[var(--imx-text-secondary)] transition-colors"
+            onClick={() => setLegalModalTab('terms')}
+            className="text-[11px] text-[var(--imx-text-muted)] hover:text-[var(--imx-text-secondary)] transition-colors underline"
             style={{ fontFamily: 'Space Grotesk' }}
           >
             Conditions d'utilisation & Confidentialité
@@ -438,6 +480,74 @@ export default function Profil() {
           </div>
         </div>
       )}
+
+      {showDeleteAccountConfirm && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+          onClick={() => setShowDeleteAccountConfirm(false)}
+        >
+          <div
+            className="w-full max-w-[360px] rounded-[28px] p-6 shadow-2xl"
+            style={{ background: 'var(--imx-surface)', border: '1px solid rgba(239,68,68,0.35)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Icône d'avertissement */}
+            <div className="flex flex-col items-center mb-5">
+              <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-3" style={{ border: '2px solid rgba(239,68,68,0.3)' }}>
+                <Trash2 size={28} className="text-[#EF4444]" />
+              </div>
+              <h3 className="font-nunito font-900 text-[18px] text-[var(--imx-text-primary)] text-center">
+                Supprimer mon compte
+              </h3>
+            </div>
+
+            {/* Avertissements */}
+            <div className="rounded-2xl p-4 mb-5 space-y-2.5" style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}>
+              <p className="text-[12px] font-bold text-[#EF4444] uppercase tracking-wide" style={{ fontFamily: 'Space Grotesk' }}>⚠️ Avant de continuer</p>
+              {[
+                'Toutes vos données personnelles seront supprimées.',
+                'Vos annonces, demandes et historique seront anonymisés.',
+                'Cette action est irréversible — votre compte ne pourra pas être récupéré.',
+                'Vous serez déconnecté(e) définitivement.',
+              ].map((warn, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="text-[#EF4444] text-[11px] mt-0.5 flex-shrink-0">•</span>
+                  <p className="text-[12px] text-[var(--imx-text-secondary)] leading-snug" style={{ fontFamily: 'Space Grotesk' }}>{warn}</p>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[11px] text-center text-[var(--imx-text-muted)] mb-5 leading-relaxed" style={{ fontFamily: 'Space Grotesk' }}>
+              En continuant, vous envoyez une demande de suppression à notre équipe. Votre compte sera traité sous 48h.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteAccountConfirm(false)}
+                className="flex-1 font-bold text-sm py-3.5 rounded-2xl transition-colors"
+                style={{ background: 'var(--imx-surface-2)', color: 'var(--imx-text-primary)', fontFamily: 'Sora' }}
+              >
+                Annuler
+              </button>
+              <a
+                href={`mailto:repostinardakotegnon@gmail.com?subject=Demande%20de%20suppression%20de%20compte%20ImoFlex&body=Bonjour%2C%0A%0AJe%20souhaite%20supprimer%20mon%20compte%20ImoFlex.%0A%0AID%20utilisateur%20%3A%20${profile?.id}%0AEmail%20%3A%20${profile?.email}%0A%0AMerci.`}
+                onClick={() => setShowDeleteAccountConfirm(false)}
+                className="flex-1 font-bold text-sm py-3.5 rounded-2xl text-white text-center transition-all active:scale-95"
+                style={{ background: '#EF4444', fontFamily: 'Sora' }}
+              >
+                Confirmer
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <LegalModal
+        isOpen={legalModalTab !== null}
+        onClose={() => setLegalModalTab(null)}
+        initialTab={legalModalTab || 'terms'}
+      />
 
       <BottomNav />
     </div>

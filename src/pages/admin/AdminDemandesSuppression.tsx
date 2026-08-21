@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Trash2, CheckCircle2, XCircle, Clock, Eye, AlertTriangle,
-  User, Phone, Mail, Home, MessageSquare, Loader2, Calendar, FileText
+  Trash2, CheckCircle2, XCircle, Clock, Eye,
+  User, Phone, Mail, Home, Loader2, Calendar
 } from 'lucide-react';
 import { supabase, ListingDeletionRequest } from '../../lib/supabase';
 import { useToast } from '../../components/Toast';
 import { useAuth } from '../../hooks/useAuth';
 import { logAction } from '../../lib/audit';
-import EmptyState from '../../components/EmptyState';
 
 interface EnrichedDeletionRequest extends ListingDeletionRequest {
   listingDetails?: {

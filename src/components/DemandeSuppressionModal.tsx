@@ -117,7 +117,7 @@ export const DemandeSuppressionModal: React.FC<DemandeSuppressionModalProps> = (
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in overflow-y-auto"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3.5 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in overflow-y-auto"
       onClick={submitting ? undefined : onClose}
     >
       <div
