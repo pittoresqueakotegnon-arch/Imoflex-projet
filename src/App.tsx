@@ -7,6 +7,8 @@ import RoleGuard from './components/RoleGuard';
 import AdminLayout from './components/AdminLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OnboardingSlides } from './components/OnboardingSlides';
+import { AppRatingModal } from './components/AppRatingModal';
+import { NetworkBanner } from './components/NetworkBanner';
 import { Toaster, toast } from 'sonner';
 import { useEffect } from 'react';
 import { useFcmToken } from './hooks/useFcmToken';
@@ -346,33 +348,6 @@ function AppRoutes() {
 }
 
 export default function App() {
-  useEffect(() => {
-    const handleOffline = () => {
-      toast.error('Vous êtes hors ligne', {
-        id: 'network-status',
-        description: 'Vérifiez votre connexion internet.',
-        duration: Infinity,
-      });
-    };
-
-    const handleOnline = () => {
-      toast.dismiss('network-status');
-      toast.success('Connexion rétablie', {
-        id: 'network-status',
-        description: 'Vous êtes de nouveau en ligne.',
-        duration: 3000,
-      });
-    };
-
-    window.addEventListener('offline', handleOffline);
-    window.addEventListener('online', handleOnline);
-
-    return () => {
-      window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('online', handleOnline);
-    };
-  }, []);
-
   return (
     <ErrorBoundary>
       <BrowserRouter>
@@ -380,11 +355,15 @@ export default function App() {
           <AuthProvider>
             <ToastProvider>
               <Suspense fallback={<PageLoader />}>
+                <div className="fixed top-0 left-0 w-full z-50">
+                  <NetworkBanner />
+                </div>
                 <AppRoutes />
               </Suspense>
             </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
+        <AppRatingModal />
         <Toaster position="top-center" richColors closeButton offset="70px" />
       </BrowserRouter>
     </ErrorBoundary>
