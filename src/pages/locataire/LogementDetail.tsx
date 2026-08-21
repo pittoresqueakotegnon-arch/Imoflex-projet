@@ -83,8 +83,19 @@ export default function LogementDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--imx-bg-app)] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[var(--imx-accent)] border-t-transparent rounded-full animate-spin"></div>
+      <div className="page-container pb-24">
+        <header className="sticky-header px-4 py-4 flex items-center justify-between">
+          <button className="p-2 w-10 h-10 rounded-full bg-[var(--imx-surface)] animate-pulse" />
+        </header>
+        <div className="px-4 py-4 space-y-6 mt-4">
+          <div className="space-y-3">
+            <div className="h-8 bg-[var(--imx-surface)] rounded w-3/4 animate-pulse" />
+            <div className="h-4 bg-[var(--imx-surface)] rounded w-1/2 animate-pulse" />
+          </div>
+          <div className="h-40 bg-[var(--imx-surface)] rounded-2xl animate-pulse" />
+          <div className="h-20 bg-[var(--imx-surface)] rounded-2xl animate-pulse" />
+          <div className="h-20 bg-[var(--imx-surface)] rounded-2xl animate-pulse" />
+        </div>
       </div>
     );
   }
