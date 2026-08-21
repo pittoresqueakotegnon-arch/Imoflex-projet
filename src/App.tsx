@@ -6,6 +6,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import RoleGuard from './components/RoleGuard';
 import AdminLayout from './components/AdminLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { OnboardingSlides } from './components/OnboardingSlides';
 import { Toaster, toast } from 'sonner';
 import { useEffect } from 'react';
 import { useFcmToken } from './hooks/useFcmToken';
@@ -102,7 +103,12 @@ function MobileFrame({ children }: { children: React.ReactNode }) {
     return <Navigate to="/admin" replace />;
   }
 
-  return <div className="mobile-frame">{children}</div>;
+  return (
+    <div className="mobile-frame">
+      {children}
+      <OnboardingSlides />
+    </div>
+  );
 }
 
 function AppRoutes() {
@@ -379,7 +385,7 @@ export default function App() {
             </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
-        <Toaster position="top-center" richColors closeButton />
+        <Toaster position="top-center" richColors closeButton offset="70px" />
       </BrowserRouter>
     </ErrorBoundary>
   );

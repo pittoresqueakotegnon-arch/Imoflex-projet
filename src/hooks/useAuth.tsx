@@ -59,11 +59,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, fetchProfile]);
 
   useEffect(() => {
+    let userSubscription: any = null;
+
+    const setupRealtimeProfile = (userId: string) => {
+      if (userSubscription) {
+        supabase.removeChannel(userSubscription);
+      }
+      userSubscription = supabase.channel(`public:users:id=eq.${userId}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${userId}` },
+          (payload) => {
+            const newProfile = payload.new as UserProfile;
+            setProfile(newProfile);
+            
+            if (newProfile.account_status === 'banni' || newProfile.account_status === 'suspendu') {
+              supabase.auth.signOut().then(() => {
+                setSession(null);
+                setUser(null);
+                setProfile(null);
+                window.location.href = '/login?banned=true';
+              });
+            }
+          }
+        )
+        .subscribe();
+    };
+
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
         fetchProfile(s.user.id).catch(console.error).finally(() => setLoading(false));
+        setupRealtimeProfile(s.user.id);
       } else {
         setLoading(false);
       }
@@ -76,15 +104,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(s?.user ?? null);
           if (s?.user) {
             await fetchProfile(s.user.id).catch(console.error);
+            setupRealtimeProfile(s.user.id);
           } else {
             setProfile(null);
+            if (userSubscription) {
+              supabase.removeChannel(userSubscription);
+              userSubscription = null;
+            }
           }
           setLoading(false);
         })();
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (userSubscription) supabase.removeChannel(userSubscription);
+    };
   }, [fetchProfile]);
 
   const signIn = async (email: string, password: string) => {

@@ -192,14 +192,18 @@ const MesDemandes: React.FC = () => {
         />
       ) : filtered.length === 0 ? (
         <EmptyState
-          icon={<MessageSquare size={48} className="text-[var(--imx-text-secondary)]" />}
+          imageSrc="/assets/empty/requests.jpg"
           title={filter === 'all' ? 'Aucune demande' : 'Aucune demande dans cette catégorie'}
           description={
             filter === 'all'
               ? 'Contactez un propriétaire depuis la marketplace pour voir vos demandes ici.'
               : 'Essayez un autre filtre.'
           }
-          action={filter === 'all' ? { label: 'Explorer la marketplace', href: '/' } : undefined}
+          action={
+            filter === 'all'
+              ? { label: 'Explorer la marketplace', href: '/' }
+              : undefined
+          }
         />
       ) : (
         <div className="px-4 py-4 space-y-3 flex-1 pb-24">

@@ -70,6 +70,7 @@ export interface UserProfile {
   preferred_operator?: Operator;
   phone_verified: boolean;
   is_active: boolean;
+  account_status?: 'actif' | 'suspendu' | 'banni';
   created_at: string;
 }
 

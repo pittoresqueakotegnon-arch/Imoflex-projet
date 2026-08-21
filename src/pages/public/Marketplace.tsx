@@ -283,6 +283,7 @@ const Marketplace: React.FC = () => {
             />
           ) : sortedListings.length === 0 ? (
             <EmptyState
+              imageSrc="/assets/empty/search.jpg"
               title="Aucune annonce trouvée"
               description="Essayez de modifier vos critères de recherche"
               action={{ label: 'Réinitialiser les filtres', onClick: () => {

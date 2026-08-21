@@ -16,7 +16,12 @@ export function diagnoseAndShowError(error: any, context?: string) {
   // de confirmation de compte — sans ce garde-fou, ces erreurs tombaient dans
   // la règle n°7 (timeout USSD) et affichaient un message de paiement complètement
   // hors sujet sur l'écran d'inscription.
-  if (context === 'Authentification' && (rawMessage.includes('OTP') || rawMessage.includes('TOKEN') || rawMessage.includes('EXPIR') || rawMessage.includes('INVALID') || rawMessage.includes('CODE'))) {
+  if (
+    context === 'Authentification' &&
+    !rawMessage.includes('INVALID LOGIN') &&
+    !rawMessage.includes('INVALID CREDENTIALS') &&
+    (rawMessage.includes('OTP') || rawMessage.includes('TOKEN') || rawMessage.includes('EXPIR') || rawMessage.includes('INVALID') || rawMessage.includes('CODE'))
+  ) {
     title = '⏳ Code invalide ou expiré';
     description = "Le code de confirmation est incorrect ou a expiré. Cliquez sur \"Je n'ai pas reçu de code — Renvoyer\" pour en recevoir un nouveau.";
     type = 'warning';

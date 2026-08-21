@@ -151,26 +151,15 @@ const Favoris: React.FC = () => {
           action={{ label: 'Réessayer', onClick: () => window.location.reload() }}
         />
       ) : favorites.length === 0 ? (
-        /* État vide : cœur grisé centré, comme dans la maquette */
-        <div className="flex-1 flex flex-col items-center justify-center px-8 py-20">
-          <div className="mb-6">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="var(--imx-text-muted)" stroke="none">
-              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-            </svg>
-          </div>
-          <h2 className="font-nunito font-800 text-[var(--imx-text-primary)] text-xl mb-2 text-center">
-            Aucun favori pour l'instant
-          </h2>
-          <p className="text-[var(--imx-text-secondary)] text-sm text-center mb-8 max-w-[240px] leading-relaxed">
-            Touchez le cœur sur une annonce pour la retrouver ici facilement.
-          </p>
-          <button
-            onClick={() => navigate('/')}
-            className="btn-primary w-full"
-          >
-            Explorer la marketplace
-          </button>
-        </div>
+        <EmptyState
+          imageSrc="/assets/empty/favorites.jpg"
+          title="Aucun favori pour l'instant"
+          description="Touchez le cœur sur une annonce pour la retrouver ici facilement."
+          action={{
+            label: "Explorer les logements",
+            href: "/"
+          }}
+        />
       ) : (
         /* Liste avec cards horizontales */
         <div className="px-4 py-4 flex-1">
