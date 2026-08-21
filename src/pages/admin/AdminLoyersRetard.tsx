@@ -109,12 +109,12 @@ const AdminLoyersRetard: React.FC = () => {
       <div className="flex items-center gap-4 mb-8">
         <button
           onClick={() => navigate('/admin')}
-          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+          className="p-2 hover:bg-[var(--adm-hover)] rounded-lg transition-colors"
         >
-          <ChevronLeft size={24} className="text-white" />
+          <ChevronLeft size={24} style={{ color: 'var(--adm-text)' }} />
         </button>
         <div>
-          <h1 className="text-2xl font-nunito font-900 text-white flex items-center gap-2">
+          <h1 className="text-2xl font-nunito font-900 flex items-center gap-2" style={{ color: 'var(--adm-text)' }}>
             <AlertTriangle className="text-red-500" />
             Loyers en retard
           </h1>
@@ -144,7 +144,7 @@ const AdminLoyersRetard: React.FC = () => {
               <div key={rent.id} className="card p-5 border border-red-500/20">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="font-nunito font-bold text-white text-lg">
+                    <h3 className="font-nunito font-bold text-lg" style={{ color: 'var(--adm-text)' }}>
                       {rent.property_name}
                     </h3>
                     <p className="text-[var(--imx-text-secondary)] text-xs line-clamp-1">{rent.property_address}</p>
@@ -156,10 +156,10 @@ const AdminLoyersRetard: React.FC = () => {
                 </div>
 
                 <div className="space-y-3 mb-5">
-                  <div className="bg-[#181135] p-3 rounded-xl">
+                  <div className="p-3 rounded-xl" style={{ background: 'var(--adm-surface-alt)' }}>
                     <p className="text-[10px] text-[var(--imx-text-secondary)] uppercase font-bold tracking-wider mb-1">Locataire</p>
                     <div className="flex justify-between items-center">
-                      <p className="text-sm text-white font-medium">{rent.tenant_name}</p>
+                      <p className="text-sm font-medium" style={{ color: 'var(--adm-text)' }}>{rent.tenant_name}</p>
                       {rent.tenant_phone && (
                         <a href={`tel:${rent.tenant_phone}`} className="p-2 bg-[#2A1E5C] text-[var(--imx-accent-light)] rounded-lg hover:bg-[#3D2C85] transition-colors">
                           <Phone size={14} />
@@ -168,10 +168,10 @@ const AdminLoyersRetard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="bg-[#181135] p-3 rounded-xl">
+                  <div className="p-3 rounded-xl" style={{ background: 'var(--adm-surface-alt)' }}>
                     <p className="text-[10px] text-[var(--imx-text-secondary)] uppercase font-bold tracking-wider mb-1">Propriétaire</p>
                     <div className="flex justify-between items-center">
-                      <p className="text-sm text-white font-medium">{rent.owner_name}</p>
+                      <p className="text-sm font-medium" style={{ color: 'var(--adm-text)' }}>{rent.owner_name}</p>
                       {rent.owner_phone && (
                         <a href={`tel:${rent.owner_phone}`} className="p-2 bg-[#2A1E5C] text-[var(--imx-accent-light)] rounded-lg hover:bg-[#3D2C85] transition-colors">
                           <Phone size={14} />

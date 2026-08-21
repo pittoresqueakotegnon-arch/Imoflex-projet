@@ -69,7 +69,11 @@ export default function LogementDetail() {
           .limit(5);
 
         if (paymentsError) throw paymentsError;
-        const cleaned: Payment[] = (paymentsData || []).map(({ rent_periods: _, ...rest }: any) => rest);
+        const cleaned: Payment[] = (paymentsData || []).map((row: any) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { rent_periods, ...rest } = row;
+          return rest as Payment;
+        });
         setLeasePayments(cleaned);
       } catch (err) {
         console.error('[LogementDetail] Error fetching data:', err);

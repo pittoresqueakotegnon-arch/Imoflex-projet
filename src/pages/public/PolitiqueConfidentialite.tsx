@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Shield, Lock, Trash2, Mail } from 'lucide-react';
+import { ArrowLeft, Shield } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
 
 export default function PolitiqueConfidentialite() {

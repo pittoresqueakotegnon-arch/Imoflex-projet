@@ -530,14 +530,14 @@ export default function Profil() {
               >
                 Annuler
               </button>
-              <a
-                href={`mailto:repostinardakotegnon@gmail.com?subject=Demande%20de%20suppression%20de%20compte%20ImoFlex&body=Bonjour%2C%0A%0AJe%20souhaite%20supprimer%20mon%20compte%20ImoFlex.%0A%0AID%20utilisateur%20%3A%20${profile?.id}%0AEmail%20%3A%20${profile?.email}%0A%0AMerci.`}
-                onClick={() => setShowDeleteAccountConfirm(false)}
-                className="flex-1 font-bold text-sm py-3.5 rounded-2xl text-white text-center transition-all active:scale-95"
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+                className="flex-1 font-bold text-sm py-3.5 rounded-2xl text-white text-center transition-all active:scale-95 disabled:opacity-60"
                 style={{ background: '#EF4444', fontFamily: 'Sora' }}
               >
-                Confirmer
-              </a>
+                {deletingAccount ? 'Suppression…' : 'Confirmer'}
+              </button>
             </div>
           </div>
         </div>
