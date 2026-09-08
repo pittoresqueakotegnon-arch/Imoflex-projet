@@ -6,6 +6,7 @@ import { supabase, Payment } from '../../lib/supabase';
 import { daysUntilDeadline } from '../../lib/utils';
 import { getGreeting } from '../../utils/greeting';
 import BottomNav from '../../components/BottomNav';
+import { HeaderSupport } from '../../components/HeaderSupport';
 import { PullToRefresh } from '../../components/PullToRefresh';
 
 interface LeaseWithPeriod {
@@ -192,10 +193,13 @@ export default function Dashboard() {
           <span style={{ color: 'var(--imx-accent-light)', fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: '0.85rem' }}>{getGreeting()}</span>
           <h1 className="font-nunito font-900 text-xl text-[var(--imx-text-primary)]">{firstName} {lastName}</h1>
         </div>
-        <Link to="/notifications" className="relative btn-icon">
-          <Bell size={20} />
-          <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FBBF24] rounded-full"></div>
-        </Link>
+        <div className="flex items-center gap-2">
+          <HeaderSupport className="relative w-9 h-9 flex items-center justify-center text-[#17132B] rounded-full bg-gray-50 border border-gray-100 active:bg-gray-100 transition-colors flex-shrink-0" style={{}} />
+          <Link to="/notifications" className="relative w-9 h-9 flex items-center justify-center text-[#17132B] rounded-full bg-gray-50 border border-gray-100 active:bg-gray-100 transition-colors flex-shrink-0">
+            <Bell size={20} />
+            <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FBBF24] rounded-full"></div>
+          </Link>
+        </div>
       </div>
 
       <div className="px-5 flex-1">

@@ -60,6 +60,7 @@ const AdminDashboard    = lazy(() => import('./pages/admin/AdminDashboard'));
 const AdminAnnonces     = lazy(() => import('./pages/admin/AdminAnnonces'));
 const AdminUtilisateurs = lazy(() => import('./pages/admin/AdminUtilisateurs'));
 const AdminTransactions = lazy(() => import('./pages/admin/AdminTransactions'));
+const AdminSupport      = lazy(() => import('./pages/admin/AdminSupport'));
 const AdminConfig       = lazy(() => import('./pages/admin/AdminConfig'));
 const AdminLogs         = lazy(() => import('./pages/admin/AdminLogs'));
 const AdminLoyersRetard = lazy(() => import('./pages/admin/AdminLoyersRetard'));
@@ -144,6 +145,7 @@ function AppRoutes() {
                 <Route path="suppressions" element={<AdminDemandesSuppression />} />
                 <Route path="utilisateurs" element={<AdminUtilisateurs />} />
                 <Route path="transactions" element={<AdminTransactions />} />
+                <Route path="support" element={<AdminSupport />} />
                 <Route path="loyers-retard" element={<AdminLoyersRetard />} />
                 <Route path="config" element={<AdminConfig />} />
                 <Route path="logs" element={<AdminLogs />} />

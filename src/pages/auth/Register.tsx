@@ -595,51 +595,57 @@ export default function Register() {
           {/* Acceptations légales */}
           <div className="flex flex-col gap-3 mt-2" style={fadeStyle(330)}>
             {/* CGU */}
-            <label className="flex items-start gap-3 cursor-pointer"
-              onClick={() => update('acceptTerms', !formData.acceptTerms)}>
-              <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
+            <div className="flex items-start gap-3">
+              <button
+                type="button"
+                onClick={() => update('acceptTerms', !formData.acceptTerms)}
+                className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 transition-all cursor-pointer focus:outline-none"
                 style={{
                   background: formData.acceptTerms ? 'var(--imx-accent)' : 'transparent',
                   border: `1.5px solid ${formData.acceptTerms ? 'var(--imx-accent)' : 'var(--imx-border)'}`,
-                }}>
+                }}
+              >
                 {formData.acceptTerms && <Check size={11} className="text-white" />}
-              </div>
+              </button>
               <span className="text-xs leading-relaxed" style={{ fontFamily: 'Space Grotesk', color: 'var(--imx-text-secondary)' }}>
-                J'accepte les{' '}
+                <span className="cursor-pointer" onClick={() => update('acceptTerms', !formData.acceptTerms)}>J'accepte les </span>
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); setLegalModalTab('terms'); }}
+                  onClick={() => setLegalModalTab('terms')}
                   className="underline font-semibold"
                   style={{ color: 'var(--imx-accent-light)' }}
                 >
                   Conditions d'utilisation
                 </button>
               </span>
-            </label>
+            </div>
             {errors.acceptTerms && <p className="text-xs -mt-2 ml-8" style={{ color: '#EF4444', fontFamily: 'Space Grotesk' }}>{errors.acceptTerms}</p>}
 
             {/* Politique */}
-            <label className="flex items-start gap-3 cursor-pointer"
-              onClick={() => update('acceptPrivacy', !formData.acceptPrivacy)}>
-              <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 transition-all"
+            <div className="flex items-start gap-3">
+              <button
+                type="button"
+                onClick={() => update('acceptPrivacy', !formData.acceptPrivacy)}
+                className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 transition-all cursor-pointer focus:outline-none"
                 style={{
                   background: formData.acceptPrivacy ? 'var(--imx-accent)' : 'transparent',
                   border: `1.5px solid ${formData.acceptPrivacy ? 'var(--imx-accent)' : 'var(--imx-border)'}`,
-                }}>
+                }}
+              >
                 {formData.acceptPrivacy && <Check size={11} className="text-white" />}
-              </div>
+              </button>
               <span className="text-xs leading-relaxed" style={{ fontFamily: 'Space Grotesk', color: 'var(--imx-text-secondary)' }}>
-                J'accepte la{' '}
+                <span className="cursor-pointer" onClick={() => update('acceptPrivacy', !formData.acceptPrivacy)}>J'accepte la </span>
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); setLegalModalTab('privacy'); }}
+                  onClick={() => setLegalModalTab('privacy')}
                   className="underline font-semibold"
                   style={{ color: 'var(--imx-accent-light)' }}
                 >
                   Politique de confidentialité
                 </button>
               </span>
-            </label>
+            </div>
             {errors.acceptPrivacy && <p className="text-xs -mt-2 ml-8" style={{ color: '#EF4444', fontFamily: 'Space Grotesk' }}>{errors.acceptPrivacy}</p>}
           </div>
 

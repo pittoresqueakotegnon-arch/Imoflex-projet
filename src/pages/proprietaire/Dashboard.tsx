@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { getCurrentMonth, getMonthName } from '../../lib/utils';
 import BottomNav from '../../components/BottomNav';
 import { HeaderBell } from '../../components/HeaderBell';
+import { HeaderSupport } from '../../components/HeaderSupport';
 import { useToast } from '../../components/Toast';
 import { getGreeting } from '../../utils/greeting';
 import { PullToRefresh } from '../../components/PullToRefresh';
@@ -360,8 +361,11 @@ const Dashboard: React.FC = () => {
           </h1>
         </div>
 
-        {/* Bell button — using shared component */}
-        <HeaderBell />
+        {/* Bell and Support buttons — using shared components */}
+        <div className="flex items-center gap-2">
+          <HeaderSupport />
+          <HeaderBell />
+        </div>
       </div>
 
       <div className="px-4 space-y-4 flex-1 pb-6">

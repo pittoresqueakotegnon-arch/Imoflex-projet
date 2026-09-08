@@ -6,6 +6,7 @@ import { useListings } from '../../hooks/useListings';
 import { useAuthGate } from '../../hooks/useAuthGate';
 import { AuthGateModal } from '../../components/AuthGateModal';
 import BottomNav from '../../components/BottomNav';
+import { HeaderSupport } from '../../components/HeaderSupport';
 import EmptyState from '../../components/EmptyState';
 import { SplashScreen } from '../../components/SplashScreen';
 import { PullToRefresh } from '../../components/PullToRefresh';
@@ -408,6 +409,12 @@ const Marketplace: React.FC = () => {
             </span>
             <ChevronDown size={13} className="text-gray-400 flex-shrink-0" />
           </button>
+          
+          <HeaderSupport 
+            className="relative w-9 h-9 flex items-center justify-center text-[#17132B] rounded-full bg-gray-50 border border-gray-100 active:bg-gray-100 transition-colors flex-shrink-0"
+            style={{}}
+          />
+
           <button onClick={() => navigate('/notifications')} className="relative w-9 h-9 flex items-center justify-center text-[#17132B] rounded-full bg-gray-50 border border-gray-100 active:bg-gray-100 transition-colors flex-shrink-0">
             <Bell size={18} />
             <div className="absolute top-2 right-2 w-2 h-2 bg-[#7B3FE4] rounded-full border border-white" />

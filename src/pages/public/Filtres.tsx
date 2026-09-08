@@ -33,12 +33,14 @@ const FilterCheckbox: React.FC<{ checked: boolean; label: string; onToggle: () =
   <button
     type="button"
     onClick={onToggle}
-    className="flex items-center gap-3 py-2 w-full text-left"
+    className="flex items-center gap-3 py-2 w-full text-left focus:outline-none group"
   >
     <div
-      className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors flex-shrink-0 ${
-        checked ? 'bg-[var(--imx-accent)] border-[var(--imx-accent)]' : 'border-[rgba(255,255,255,0.2)] bg-transparent'
-      }`}
+      className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 transition-all group-hover:opacity-80"
+      style={{
+        background: checked ? 'var(--imx-accent)' : 'transparent',
+        border: `1.5px solid ${checked ? 'var(--imx-accent)' : 'var(--imx-border)'}`,
+      }}
     >
       {checked && <Check size={14} className="text-white" />}
     </div>
