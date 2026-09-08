@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Heart, User, Plus, Building2, ClipboardList, CreditCard, MessageSquare, HelpCircle } from 'lucide-react';
+import { Home, Heart, CircleUserRound, Plus, Building2, ClipboardList, CreditCard, MessageSquare, LifeBuoy } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { haptics } from '../lib/haptics';
@@ -56,7 +56,7 @@ export const BottomNav: React.FC = () => {
         { icon: Building2, label: 'Annonces', path: '/pro/annonces' },
         { icon: Plus, label: 'Publier', path: '/pro/publier', isCenter: true, centerType: 'publier' },
         { icon: ClipboardList, label: 'Demandes', path: '/pro/demandes' },
-        { icon: User, label: 'Profil', path: '/profil' },
+        { icon: CircleUserRound, label: 'Profil', path: '/profil' },
       ];
     }
     if (role === 'locataire') {
@@ -65,16 +65,16 @@ export const BottomNav: React.FC = () => {
         { icon: MessageSquare, label: 'Demande', path: '/mes-demandes' },
         { icon: CreditCard, label: 'Payer', path: '/dashboard', isCenter: true, centerType: 'payer' },
         { icon: Heart, label: 'Favoris', path: '/favoris' },
-        { icon: User, label: 'Profil', path: '/profil' },
+        { icon: CircleUserRound, label: 'Profil', path: '/profil' },
       ];
     }
     // Visiteur — « Aide » remplace « Rechercher » (la barre de recherche est déjà en haut de la Marketplace)
     return [
       { icon: Home, label: 'Accueil', path: '/' },
-      { icon: HelpCircle, label: 'Aide', path: '/aide' },
+      { icon: LifeBuoy, label: 'Aide', path: '/aide' },
       { icon: Plus, label: 'Publier', path: '/pro/publier', isCenter: true, centerType: 'publier' },
       { icon: Heart, label: 'Favoris', path: '/favoris' },
-      { icon: User, label: 'Compte', path: '/login' },
+      { icon: CircleUserRound, label: 'Compte', path: '/login' },
     ];
   };
 
