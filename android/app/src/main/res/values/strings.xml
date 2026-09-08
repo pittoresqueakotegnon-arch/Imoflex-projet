@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ImoFlex</string>
+    <string name="title_activity_main">ImoFlex</string>
+    <string name="package_name">com.imoflex.app</string>
+    <string name="custom_url_scheme">com.imoflex.app</string>
+</resources>

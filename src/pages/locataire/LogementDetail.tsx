@@ -1,0 +1,230 @@
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ChevronLeft, AlertCircle, Clock, CreditCard, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
+import { supabase, Payment } from '../../lib/supabase';
+import { formatMontant, daysUntilDeadline, getMonthName, operatorLabel } from '../../lib/utils';
+
+interface RentPeriodLite {
+  id: string;
+  amount_due: number;
+  amount_paid: number;
+  deadline_date: string;
+}
+
+export default function LogementDetail() {
+  const navigate = useNavigate();
+  const { leaseId } = useParams<{ leaseId: string }>();
+  const { profile } = useAuth();
+
+  const [propertyName, setPropertyName] = useState('');
+  const [propertyAddress, setPropertyAddress] = useState('');
+  const [currentPeriod, setCurrentPeriod] = useState<RentPeriodLite | null>(null);
+  const [leasePayments, setLeasePayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!profile?.id || !leaseId) return;
+
+      try {
+        const { data: leaseData, error: leaseError } = await supabase
+          .from('leases')
+          .select('id, tenant_id, status, properties:property_id(name, address)')
+          .eq('id', leaseId)
+          .eq('tenant_id', profile.id)
+          .eq('status', 'actif')
+          .maybeSingle();
+
+        if (leaseError) throw leaseError;
+
+        if (!leaseData) {
+          setNotFound(true);
+          return;
+        }
+
+        setPropertyName((leaseData as any).properties?.name || 'Logement');
+        setPropertyAddress((leaseData as any).properties?.address || '');
+
+        const now = new Date();
+        const { data: periodData, error: periodError } = await supabase
+          .from('rent_periods')
+          .select('id, amount_due, amount_paid, deadline_date')
+          .eq('lease_id', leaseId)
+          .eq('period_month', now.getMonth() + 1)
+          .eq('period_year', now.getFullYear())
+          .maybeSingle();
+
+        if (periodError && periodError.code !== 'PGRST116') throw periodError;
+        setCurrentPeriod(periodData || null);
+
+        const { data: paymentsData, error: paymentsError } = await supabase
+          .from('payments')
+          .select('id, amount, status, created_at, operator, fedapay_transaction_id, rent_periods!inner(lease_id)')
+          .eq('tenant_id', profile.id)
+          .eq('rent_periods.lease_id', leaseId)
+          .eq('is_test_data', false)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (paymentsError) throw paymentsError;
+        const cleaned: Payment[] = (paymentsData || []).map((row: any) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { rent_periods, ...rest } = row;
+          return rest as Payment;
+        });
+        setLeasePayments(cleaned);
+      } catch (err) {
+        console.error('[LogementDetail] Error fetching data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [profile?.id, leaseId]);
+
+  if (loading) {
+    return (
+      <div className="page-container pb-24">
+        <header className="sticky-header px-4 py-4 flex items-center justify-between">
+          <button className="p-2 w-10 h-10 rounded-full bg-[var(--imx-surface)] animate-pulse" />
+        </header>
+        <div className="px-4 py-4 space-y-6 mt-4">
+          <div className="space-y-3">
+            <div className="h-8 bg-[var(--imx-surface)] rounded w-3/4 animate-pulse" />
+            <div className="h-4 bg-[var(--imx-surface)] rounded w-1/2 animate-pulse" />
+          </div>
+          <div className="h-40 bg-[var(--imx-surface)] rounded-2xl animate-pulse" />
+          <div className="h-20 bg-[var(--imx-surface)] rounded-2xl animate-pulse" />
+          <div className="h-20 bg-[var(--imx-surface)] rounded-2xl animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen bg-[var(--imx-bg-app)] text-[var(--imx-text-primary)] p-6 flex flex-col">
+        <button onClick={() => navigate('/dashboard')} className="p-2 hover:bg-[var(--imx-surface-2)] rounded-lg transition-colors w-fit">
+          <ChevronLeft size={24} />
+        </button>
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-[var(--imx-text-secondary)]">Logement introuvable ou inactif</p>
+        </div>
+      </div>
+    );
+  }
+
+  const now = new Date();
+  const paid = currentPeriod?.amount_paid || 0;
+  const due = currentPeriod?.amount_due || 0;
+  const remaining = Math.max(due - paid, 0);
+  const percentage = due > 0 ? Math.min((paid / due) * 100, 100) : 0;
+  const daysUntil = currentPeriod ? daysUntilDeadline(currentPeriod.deadline_date) : 0;
+  const isLate = daysUntil < 0 && remaining > 0;
+
+  return (
+    <div className="min-h-screen bg-[var(--imx-bg-app)] text-[var(--imx-text-primary)] flex flex-col p-6">
+      <div className="flex items-center gap-4 mb-6">
+        <button onClick={() => navigate('/dashboard')} className="p-3 bg-[var(--imx-surface-2)] hover:bg-[#2A1E5C] rounded-2xl transition-colors">
+          <ChevronLeft size={20} className="text-[var(--imx-text-primary)]" />
+        </button>
+        <div>
+          <h1 className="font-nunito font-900 text-[19px] text-[var(--imx-text-primary)] leading-tight">{propertyName}</h1>
+          {propertyAddress && (
+            <p className="text-[var(--imx-text-secondary)] text-[12px]" style={{ fontFamily: 'Space Grotesk' }}>{propertyAddress}</p>
+          )}
+        </div>
+      </div>
+
+      {currentPeriod ? (
+        <>
+          <div
+            className="loyer-hero rounded-3xl p-6 text-white relative mb-6"
+            style={{ border: isLate ? '1px solid rgba(239,68,68,0.4)' : '1px solid var(--imx-border)' }}
+          >
+            <p className="text-white/80 text-[10px] font-space-grotesk font-bold uppercase tracking-wider mb-4 relative z-10">
+              Loyer — {getMonthName(now.getMonth() + 1, now.getFullYear())}
+            </p>
+
+            <div className="mb-5 relative z-10">
+              <p className="font-nunito font-black text-[2.2rem] leading-none">
+                {paid.toLocaleString('fr-FR')} <span className="text-[1.3rem] font-normal text-white/80">FCFA</span>
+              </p>
+              <p className="text-white/70 text-xs mt-1" style={{ fontFamily: 'Space Grotesk' }}>
+                Payé sur {formatMontant(due)}
+              </p>
+            </div>
+
+            <div className="mb-4 relative z-10">
+              <div className="h-2 rounded-full w-full bg-white/20 overflow-hidden">
+                <div className="h-full rounded-full transition-all" style={{ width: `${percentage}%`, background: isLate ? '#EF4444' : '#22C55E' }} />
+              </div>
+              <div className="flex justify-between mt-2 text-[10px] font-bold" style={{ fontFamily: 'Space Grotesk' }}>
+                <span className="text-white">{Math.round(percentage)}% payé</span>
+                <span className="text-white/70">{Math.round(100 - percentage)}% restant</span>
+              </div>
+            </div>
+
+            {remaining > 0 && (
+              <div
+                className="mb-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full relative z-10"
+                style={{
+                  background: isLate ? 'rgba(239, 68, 68, 0.25)' : 'rgba(245, 158, 11, 0.25)',
+                  border: `1px solid ${isLate ? 'rgba(239, 68, 68, 0.4)' : 'rgba(245, 158, 11, 0.4)'}`,
+                }}
+              >
+                {isLate ? <AlertCircle size={13} className="text-[#FF8080]" /> : <Clock size={13} className="text-amber-300" />}
+                <span className="text-[10px] font-bold text-white" style={{ fontFamily: 'Space Grotesk' }}>
+                  {isLate ? `En retard de ${Math.abs(daysUntil)} jours` : `Échéance dans ${daysUntil} jours`}
+                </span>
+              </div>
+            )}
+
+            <button
+              onClick={() => navigate(`/payer/${leaseId}`)}
+              disabled={remaining === 0}
+              className="w-full text-white font-bold rounded-2xl py-4 flex items-center justify-center gap-2 relative z-10 disabled:opacity-50 shadow-md active:scale-[0.98] transition-transform"
+              style={{ background: 'var(--imx-accent-light)', fontFamily: 'Sora', fontSize: '14px' }}
+            >
+              {remaining === 0 ? <CheckCircle2 size={18} /> : <CreditCard size={18} />}
+              {remaining === 0 ? 'Loyer soldé' : 'Effectuer un versement'}
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="rounded-3xl p-6 mb-6" style={{ background: 'var(--imx-surface-2)' }}>
+          <p className="text-[var(--imx-text-secondary)] text-sm" style={{ fontFamily: 'Space Grotesk' }}>
+            Aucune période de loyer en cours pour ce logement.
+          </p>
+        </div>
+      )}
+
+      <h2 className="font-nunito font-black text-[var(--imx-text-primary)] text-[15px] mb-4">Versements pour ce logement</h2>
+      {leasePayments.length === 0 ? (
+        <p className="text-[var(--imx-text-secondary)] text-[13px]" style={{ fontFamily: 'Space Grotesk' }}>Aucun versement pour l'instant.</p>
+      ) : (
+        <div className="space-y-3">
+          {leasePayments.map((payment) => (
+            <div key={payment.id} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--imx-surface)' }}>
+                  <div className="w-4 h-4 rounded-full" style={{ background: '#FBBF24' }}></div>
+                </div>
+                <div>
+                  <p className="text-[14px] font-bold text-[var(--imx-text-primary)] mb-0.5 font-nunito">Versement {operatorLabel(payment.operator || 'mtn')}</p>
+                  <p className="text-[var(--imx-text-secondary)] text-[11px]" style={{ fontFamily: 'Space Grotesk' }}>
+                    {new Date(payment.created_at).toLocaleDateString('fr-FR')}
+                  </p>
+                </div>
+              </div>
+              <p className="text-[var(--imx-text-primary)] font-black text-[15px] font-nunito">- {new Intl.NumberFormat('fr-FR').format(payment.amount)}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

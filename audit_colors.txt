@@ -1,0 +1,162 @@
+﻿BottomNav.tsx:95 - active ? 'bg-purple-500/15' : 'hover:bg-white/5'
+ImageGalleryModal.tsx:77 - <div className="fixed inset-0 z-[100] pointer-events-none flex justify-center bg-black/80 backdrop-blur-sm">
+ImageGalleryModal.tsx:78 - <div className="w-full max-w-[390px] h-full bg-[var(--imx-bg-app)] text-white overflow-hidden flex flex-col pointer-events-auto relative shadow-[0_0_80px_rgba(123,63,228,0.2)]">
+ImageGalleryModal.tsx:88 - className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all active:scale-95"
+ImageGalleryModal.tsx:104 - className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all active:scale-95"
+ImageGalleryModal.tsx:136 - className="w-full h-full flex flex-col items-center justify-center relative bg-black"
+ImageGalleryModal.tsx:154 - className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full items-center justify-center bg-black/50 text-white/80 hover:bg-black/80 hover:text-white transition-all backdrop-blur-sm"
+ImageGalleryModal.tsx:166 - className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full items-center justify-center bg-black/50 text-white/80 hover:bg-black/80 hover:text-white transition-all backdrop-blur-sm"
+ListingCard.tsx:61 - <span className="text-white font-nunito font-900 text-xs">
+ListingCard.tsx:138 - className={isFavorite ? 'fill-red-500 text-red-500' : 'text-white'}
+ListingCard.tsx:147 - <span className="font-nunito font-900 text-white text-xs">
+RoleGuard.tsx:36 - <h2 className="font-nunito font-black text-[18px] text-white mb-3">Impossible de charger votre profil</h2>
+RoleGuard.tsx:42 - className="w-full max-w-sm text-white font-bold rounded-2xl py-[18px]"
+Toast.tsx:74 - className={`${styles.bg} text-white px-4 py-3 rounded-lg flex items-center gap-3 animate-slideIn pointer-events-auto shadow-lg max-w-xs`}
+WalletCard.tsx:20 - <div className="h-3 bg-white/10 rounded w-28"></div>
+WalletCard.tsx:21 - <div className="h-10 bg-white/10 rounded w-48"></div>
+WalletCard.tsx:22 - <div className="h-3 bg-white/10 rounded w-64"></div>
+WalletCard.tsx:23 - <div className="h-[52px] bg-white/10 rounded-2xl"></div>
+WalletCard.tsx:24 - <div className="h-3 bg-white/10 rounded w-36 mx-auto"></div>
+WalletCard.tsx:42 - className="rounded-[20px] p-6 text-white relative overflow-hidden"
+WalletCard.tsx:66 - className="p-1 text-[#B89FD8] hover:text-white transition-colors"
+WalletCard.tsx:93 - className="w-full flex items-center justify-center font-bold text-[15px] text-white rounded-2xl"
+AdminDashboard.tsx:72 - <div className="p-2.5 rounded-xl text-white" style={{ background: gradient }}>
+AdminDashboard.tsx:133 - <div className="h-8 bg-white/5 rounded-xl w-64" />
+AdminDashboard.tsx:134 - <div className="h-10 bg-white/5 rounded-xl w-full" />
+AdminDashboard.tsx:136 - {[1,2,3,4,5,6,7,8].map(i => <div key={i} className="h-32 bg-white/5 rounded-2xl" />)}
+AdminDashboard.tsx:138 - <div className="h-64 bg-white/5 rounded-2xl" />
+AdminDashboard.tsx:140 - <div className="h-64 bg-white/5 rounded-2xl" />
+AdminDashboard.tsx:141 - <div className="h-64 bg-white/5 rounded-2xl" />
+AdminDashboard.tsx:551 - <div key={log.id} className="flex items-center gap-3 px-2 py-2.5 rounded-lg transition-colors hover:bg-white/[0.02]">
+AdminLoyersRetard.tsx:112 - className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+AdminLoyersRetard.tsx:114 - <ChevronLeft size={24} className="text-white" />
+AdminLoyersRetard.tsx:117 - <h1 className="text-2xl font-nunito font-900 text-white flex items-center gap-2">
+AdminLoyersRetard.tsx:130 - <div key={i} className="h-32 bg-white/5 rounded-2xl animate-pulse" />
+AdminLoyersRetard.tsx:147 - <h3 className="font-nunito font-bold text-white text-lg">
+AdminLoyersRetard.tsx:162 - <p className="text-sm text-white font-medium">{rent.tenant_name}</p>
+AdminLoyersRetard.tsx:174 - <p className="text-sm text-white font-medium">{rent.owner_name}</p>
+Login.tsx:213 - {rememberMe && <Check size={12} className="text-white" />}
+Register.tsx:358 - icon: <Search size={28} className="text-white" />,
+Register.tsx:427 - <Check size={11} className="text-white" />
+Register.tsx:525 - className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-white/5"
+Register.tsx:632 - {formData.acceptTerms && <Check size={11} className="text-white" />}
+Register.tsx:652 - {formData.acceptPrivacy && <Check size={11} className="text-white" />}
+Notifications.tsx:181 - <div className="w-9 h-[3px] rounded-full bg-white/20" />
+Notifications.tsx:197 - <span className="text-[9px] text-white font-bold">i</span>
+Notifications.tsx:210 - <h2 className="font-nunito font-900 text-white text-lg leading-snug px-2">
+Notifications.tsx:274 - <p className="font-nunito font-900 text-white text-xl">{fmt(details.amount)}</p>
+Notifications.tsx:553 - <h1 className="font-nunito font-900 text-lg text-white leading-none">Notifications</h1>
+Profil.tsx:228 - <h2 className="font-nunito font-800 text-lg text-white">{profile.full_name}</h2>
+Profil.tsx:427 - className="flex-1 font-bold text-sm py-3.5 rounded-2xl text-white transition-colors"
+Dashboard.tsx:188 - <button className="px-5 py-1.5 rounded-full text-[11px] font-bold text-white bg-[var(--imx-accent-light)] shadow-sm font-nunito">
+Dashboard.tsx:193 - className="px-5 py-1.5 rounded-full text-[11px] font-bold text-[var(--imx-text-secondary)] hover:text-white transition-colors font-nunito"
+Dashboard.tsx:203 - <h1 className="font-nunito font-900 text-xl text-white">{firstName} {lastName}</h1>
+Dashboard.tsx:217 - <h2 className="font-nunito font-black text-[18px] text-white mb-3">Pas encore de logement actif</h2>
+Dashboard.tsx:223 - className="w-full text-white font-bold rounded-2xl py-[18px]"
+Dashboard.tsx:231 - <h3 className="text-white font-nunito font-black text-[15px] mb-5 self-start text-left w-full">En attendant, continuez votre recherche</h3>
+Dashboard.tsx:244 - <h2 className="font-nunito font-black text-white text-[15px]">
+Dashboard.tsx:285 - <p className="font-nunito font-900 text-3xl text-white leading-none mb-1">{new Intl.NumberFormat('fr-FR').format(remaining)} <span className="text-sm text-white/70 font-normal">F</span></p>
+Dashboard.tsx:286 - <p className="text-[13px] text-white/90 font-nunito font-bold mb-4">{lease.propertyName}</p>
+Dashboard.tsx:290 - className="w-full flex items-center justify-center gap-2 font-bold text-[14px] text-white rounded-2xl py-3.5 transition-transform active:scale-[0.98]"
+Dashboard.tsx:370 - <h2 className="font-nunito font-black text-white text-[15px]">Derniers versements</h2>
+Dashboard.tsx:384 - <p className="text-[14px] font-bold text-white mb-0.5 font-nunito">{payment.propertyName || 'Logement'}</p>
+Dashboard.tsx:391 - <p className="text-white font-black text-[15px] font-nunito">- {new Intl.NumberFormat('fr-FR').format(payment.amount)}</p>
+Historique.tsx:149 - <h1 className="font-nunito font-800 text-lg text-white">Historique</h1>
+Historique.tsx:161 - ? 'bg-[var(--imx-accent-light)] text-white'
+Historique.tsx:173 - ? 'bg-[var(--imx-accent-light)] text-white'
+Historique.tsx:204 - <p className="font-nunito font-900 text-2xl amount text-white">
+Historique.tsx:236 - className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+Historique.tsx:267 - className="p-1 rounded-full bg-[var(--imx-surface)] border border-white/10 text-[var(--imx-accent-light)] hover:bg-[var(--imx-accent-light)] hover:text-white transition-colors"
+Historique.tsx:298 - <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+Historique.tsx:299 - <div className="bg-white rounded-[24px] w-full max-w-sm overflow-hidden flex flex-col relative printable-receipt">
+Historique.tsx:342 - className="w-full bg-[var(--imx-surface)] hover:bg-[#2A1D5A] text-white font-bold py-3.5 rounded-xl transition-colors font-nunito flex items-center justify-center gap-2"
+LogementDetail.tsx:117 - <ChevronLeft size={20} className="text-white" />
+LogementDetail.tsx:120 - <h1 className="font-nunito font-900 text-[19px] text-white leading-tight">{propertyName}</h1>
+LogementDetail.tsx:130 - className="rounded-3xl p-6 text-white relative overflow-hidden mb-6"
+LogementDetail.tsx:179 - className="w-full text-white font-bold rounded-2xl py-4 flex items-center justify-center gap-2 relative z-10 disabled:opacity-50"
+LogementDetail.tsx:194 - <h2 className="font-nunito font-black text-white text-[15px] mb-4">Versements pour ce logement</h2>
+LogementDetail.tsx:206 - <p className="text-[14px] font-bold text-white mb-0.5 font-nunito">Versement {operatorLabel(payment.operator || 'mtn')}</p>
+LogementDetail.tsx:212 - <p className="text-white font-black text-[15px] font-nunito">- {new Intl.NumberFormat('fr-FR').format(payment.amount)}</p>
+Payer.tsx:245 - <h1 className="font-nunito font-900 text-[22px] text-white">Effectuer un versement</h1>
+Payer.tsx:273 - className={`font-nunito font-900 leading-none text-white bg-transparent border-b-2 border-[var(--imx-accent-light)] focus:border-[#FBBF24] text-center w-full max-w-[220px] outline-none transition-colors disabled:opacity-50 ${
+Payer.tsx:281 - Solde restant : <strong className="text-white">{new Intl.NumberFormat('fr-FR').format(remaining)} FCFA</strong>
+Payer.tsx:298 - ? <>À régler après versement : <strong className="text-white">{new Intl.NumberFormat('fr-FR').format(remaining - amount)} FCFA</strong></>
+Payer.tsx:375 - className="w-full bg-[#181135] text-white font-nunito font-800 text-[15px] py-4 px-5 rounded-2xl outline-none border border-transparent focus:border-[var(--imx-accent-light)] transition-all"
+Payer.tsx:384 - <span className="text-white font-nunito font-900 text-[15px]">{new Intl.NumberFormat('fr-FR').format(amount)} FCFA</span>
+Payer.tsx:397 - <span className={`font-nunito font-900 text-[15px] ${remaining - amount === 0 ? 'text-[#22C55E]' : 'text-white'}`}>
+Payer.tsx:413 - className="w-full text-white font-nunito font-900 text-[17px] rounded-3xl py-5 flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
+Rejoindre.tsx:188 - <h1 className="text-white font-nunito font-black text-[22px]">Rejoindre un logement</h1>
+Rejoindre.tsx:231 - className="w-full text-white font-bold rounded-2xl py-[18px]"
+Rejoindre.tsx:249 - <h1 className="font-nunito font-900 text-2xl mb-1.5 text-white">Confirmer le logement</h1>
+Activer.tsx:189 - <h3 className="font-nunito font-700 text-white text-base">{listing.title}</h3>
+Activer.tsx:196 - <p className="font-nunito font-700 text-white text-sm">{requesterInfo.name}</p>
+Activer.tsx:234 - <h3 className="font-nunito font-700 text-white text-base">{listing.title}</h3>
+Activer.tsx:241 - <p className="font-nunito font-700 text-white text-sm">{requesterInfo.name}</p>
+Annonces.tsx:80 - <h1 className="font-nunito font-900 text-lg text-white">Mes annonces</h1>
+Annonces.tsx:120 - <h3 className="font-nunito font-700 text-white text-sm truncate leading-tight">
+Dashboard.tsx:235 - <button className="px-5 py-1.5 rounded-full text-[11px] font-bold text-white bg-[var(--imx-accent-light)] shadow-sm font-nunito">
+Dashboard.tsx:240 - className="px-5 py-1.5 rounded-full text-[11px] font-bold text-[var(--imx-text-secondary)] hover:text-white transition-colors font-nunito"
+Dashboard.tsx:265 - <Home size={16} className="text-white" />
+Dashboard.tsx:269 - <h1 className="font-nunito font-900 text-white text-[24px] leading-tight mb-3">
+Dashboard.tsx:282 - className="w-full max-w-xs flex items-center justify-center gap-2 text-white font-nunito font-900 text-[16px] rounded-3xl py-4 mb-4 transition-all hover:opacity-90 active:scale-95"
+Dashboard.tsx:290 - className="w-full max-w-xs flex items-center justify-center gap-2 text-white font-nunito font-900 text-[16px] rounded-3xl py-4 mb-4 transition-all hover:opacity-90 active:scale-95"
+Dashboard.tsx:336 - <button className="px-5 py-1.5 rounded-full text-[11px] font-bold text-white bg-[var(--imx-accent-light)] shadow-sm font-nunito">
+Dashboard.tsx:341 - className="px-5 py-1.5 rounded-full text-[11px] font-bold text-[var(--imx-text-secondary)] hover:text-white transition-colors font-nunito"
+Dashboard.tsx:357 - <h1 className="text-[22px] font-nunito font-black text-white mt-0.5 leading-tight">
+Dashboard.tsx:369 - className="rounded-[20px] p-5 text-white relative overflow-hidden"
+Dashboard.tsx:454 - <h3 className="font-nunito font-black text-white text-[15px]">Demandes reçues</h3>
+Dashboard.tsx:475 - <p className="font-nunito font-bold text-white text-[14px] truncate">{listing.title}</p>
+Dashboard.tsx:481 - className="text-[10px] font-bold text-white rounded-md px-2.5 py-1 flex-shrink-0"
+Dashboard.tsx:495 - <h3 className="font-nunito font-black text-white text-[15px]">Mes logements</h3>
+Dashboard.tsx:513 - <h4 className="font-nunito font-black text-white text-[15px] leading-tight truncate">
+Dashboard.tsx:567 - <p className="font-nunito font-bold text-white mb-1.5 text-sm">Aucun logement occupé pour l'instant</p>
+Dashboard.tsx:585 - className="fixed flex items-center justify-center text-white"
+Demandes.tsx:138 - <h1 className="text-xl font-nunito font-900 text-white">Demandes reçues</h1>
+Demandes.tsx:156 - <h1 className="text-xl font-nunito font-900 text-white">Demandes reçues</h1>
+Demandes.tsx:169 - className="w-full appearance-none font-nunito text-[13px] font-600 text-white rounded-xl px-4 pr-9 py-2.5 outline-none"
+Demandes.tsx:204 - <h3 className="font-nunito font-800 text-white text-base leading-tight">
+Demandes.tsx:235 - className="btn-sm flex items-center gap-1.5 font-bold text-white rounded-xl px-3"
+FicheBail.tsx:204 - <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #7B3FE4, #A855F7)' }}>
+FicheBail.tsx:212 - <h2 className="font-nunito font-black text-white text-[18px] truncate">
+FicheBail.tsx:237 - <h3 className="font-nunito font-black text-white text-[15px] mb-3 ml-1">Informations du Bail</h3>
+FicheBail.tsx:247 - <span className="font-nunito font-black text-white text-[24px]">
+FicheBail.tsx:250 - <span className="text-[12px] text-white">FCFA</span>
+FicheBail.tsx:263 - <p className="font-nunito font-bold text-white text-[14px] truncate">{lease.property?.name || '—'}</p>
+FicheBail.tsx:276 - <p className="font-nunito font-bold text-white text-[14px]">Début du bail</p>
+FicheBail.tsx:282 - <p className="font-nunito font-bold text-white text-[14px]">Limite</p>
+FicheBail.tsx:294 - <h3 className="font-nunito font-black text-white text-[15px] mb-3 ml-1">Historique des paiements</h3>
+FicheBail.tsx:302 - <p className="text-[12px] font-bold text-white uppercase tracking-wide" style={{ fontFamily: 'Space Grotesk' }}>
+FicheBail.tsx:347 - <p className="font-nunito font-bold text-white text-[14px]">Paiement Mobile Money</p>
+FicheBail.tsx:354 - <p className="font-nunito font-black text-white text-[15px]">
+FicheBail.tsx:376 - <p className="text-[13px] font-bold text-white">Aucun paiement effectué</p>
+MesLocataires.tsx:194 - <span className="font-nunito font-700 text-white text-sm">
+MesLocataires.tsx:199 - <p className="font-semibold text-white">{tenant.tenantName}</p>
+MesLocataires.tsx:209 - <span className="font-semibold text-white">{formatMontant(tenant.amountPaid)}</span>
+Publier.tsx:237 - className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white shadow-lg hover:bg-red-600 z-10"
+Publier.tsx:499 - className={`absolute top-1 w-4 h-4 rounded-full bg-white transition transform ${
+Retrait.tsx:132 - <h1 className="text-white font-nunito font-black text-[22px]">Retirer des fonds</h1>
+Retrait.tsx:147 - className="bg-transparent border-none outline-none font-nunito font-950 text-4xl text-white text-center w-48 disabled:opacity-50"
+Wallet.tsx:33 - <div className="h-10 bg-white/10 rounded w-48"></div>
+Wallet.tsx:54 - <h1 className="text-xl font-nunito font-black text-white">Mon Wallet</h1>
+Wallet.tsx:63 - <h2 className="font-nunito font-black text-white text-[15px] mb-3">
+Wallet.tsx:93 - <p className="text-[13.5px] font-semibold text-white leading-tight">
+Annonce.tsx:131 - }[listing.availability_status] ?? { label: 'N/A', className: 'px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide bg-white/10 text-white/70 border border-white/20 backdrop-blur-sm' };
+Annonce.tsx:156 - className="pointer-events-auto w-10 h-10 rounded-full flex items-center justify-center text-white bg-[var(--imx-bg-app)]/70 backdrop-blur-md border border-white/15 hover:bg-[var(--imx-bg-app)]/90 transition-all shadow-lg active:scale-95"
+Annonce.tsx:183 - className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center text-white/80 bg-black/40 backdrop-blur-sm border border-white/10 hover:bg-black/60 hover:text-white transition-all shadow-md active:scale-95"
+Annonce.tsx:193 - className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center text-white/80 bg-black/40 backdrop-blur-sm border border-white/10 hover:bg-black/60 hover:text-white transition-all shadow-md active:scale-95"
+Annonce.tsx:202 - className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg text-white text-xs font-grotesk"
+Annonce.tsx:240 - <span className="font-nunito font-900 text-3xl text-white" style={{ letterSpacing: '-0.02em' }}>
+Annonce.tsx:259 - <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-lg">
+Annonce.tsx:261 - <span className="font-nunito font-800 text-white text-base">{listing.bedrooms}</span>
+Annonce.tsx:266 - <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-lg">
+Annonce.tsx:268 - <span className="font-nunito font-800 text-white text-sm">{formatMontant(listing.deposit_amount)}</span>
+Annonce.tsx:273 - <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-lg">
+Annonce.tsx:275 - <span className="font-nunito font-800 text-white text-sm">{formatMontant(listing.advance_amount)}</span>
+Annonce.tsx:308 - <span className="text-[12px] font-bold text-white font-nunito mt-0.5">Forfaitaire</span>
+Annonce.tsx:313 - <span className="text-[12px] font-bold text-white font-nunito mt-0.5">Cash-Power</span>
+Annonce.tsx:320 - <span className="text-[12px] font-bold text-white font-nunito mt-0.5">Propriétaire</span>
+Annonce.tsx:369 - className="flex-1 min-w-0 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all active:scale-95"
+Filtres.tsx:43 - {checked && <Check size={14} className="text-white" />}
+Filtres.tsx:175 - className="absolute top-1/2 w-5 h-5 bg-white border-2 border-[var(--imx-accent)] rounded-full -translate-y-1/2 -translate-x-1/2 cursor-pointer touch-none"
+Filtres.tsx:181 - className="absolute top-1/2 w-5 h-5 bg-white border-2 border-[var(--imx-accent)] rounded-full -translate-y-1/2 -translate-x-1/2 cursor-pointer touch-none"
+Filtres.tsx:216 - ? 'bg-[var(--imx-accent)] text-white'
