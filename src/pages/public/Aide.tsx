@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ChevronDown, HelpCircle, BookOpen, Shield,
   Phone, Mail, MessageCircle, Home, Building2, User, ChevronRight,
+  Sparkles, UserPlus,
 } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
+import { useAuth } from '../../hooks/useAuth';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DATA
@@ -100,6 +102,8 @@ type GuideRole = 'locataire' | 'proprietaire';
 
 export default function Aide() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isVisitor = !user;
   const [activeTab, setActiveTab] = useState<Tab>('faq');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [guideRole, setGuideRole] = useState<GuideRole>('locataire');
@@ -128,6 +132,44 @@ export default function Aide() {
           <p className="text-[11px] text-[var(--imx-text-muted)]" style={{ fontFamily: 'Space Grotesk' }}>Centre d'aide ImoFlex</p>
         </div>
       </header>
+
+      {/* ── Bandeau de bienvenue visiteur ── */}
+      {isVisitor && (
+        <div
+          className="mx-4 mt-4 rounded-3xl p-5 flex flex-col gap-3"
+          style={{
+            background: 'linear-gradient(135deg, #7B3FE4 0%, #9B6BF2 100%)',
+            boxShadow: '0 8px 24px rgba(123,63,228,0.28)',
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+              <Sparkles size={18} className="text-white" />
+            </div>
+            <div>
+              <p className="text-white font-bold text-[15px] leading-tight" style={{ fontFamily: 'Sora' }}>
+                Bienvenue sur ImoFlex 👋
+              </p>
+              <p className="text-white/80 text-[11px]" style={{ fontFamily: 'Space Grotesk' }}>
+                Découvrez comment trouver votre prochain logement.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/register"
+            className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl text-[13px] font-bold transition-all active:scale-95"
+            style={{
+              background: 'rgba(255,255,255,0.95)',
+              color: '#7B3FE4',
+              fontFamily: 'Nunito',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+            }}
+          >
+            <UserPlus size={15} />
+            Créer mon compte gratuitement
+          </Link>
+        </div>
+      )}
 
       {/* Tab Bar */}
       <div className="flex border-b border-[var(--imx-border)] bg-[var(--imx-surface)] flex-shrink-0">

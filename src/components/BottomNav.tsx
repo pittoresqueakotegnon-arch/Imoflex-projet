@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Heart, User, Search, Plus, Building2, ClipboardList, CreditCard, MessageSquare } from 'lucide-react';
+import { Home, Heart, User, Plus, Building2, ClipboardList, CreditCard, MessageSquare, HelpCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { haptics } from '../lib/haptics';
@@ -10,7 +10,7 @@ import { useToast } from './Toast';
 // BottomNav — Navigation inférieure ImoFlex
 //
 // 3 configurations distinctes :
-//   - Visiteur     → Accueil (/), Rechercher (/filtres), Publier (+ / login), Favoris (/favoris), Compte (/login)
+//   - Visiteur     → Accueil (/), Aide (/aide), Publier (+ / login), Favoris (/favoris), Compte (/login)
 //   - Locataire    → Accueil/Marketplace (/), Demandes (/mes-demandes), Payer (/dashboard), Favoris (/favoris), Profil (/profil)
 //   - Propriétaire → Dashboard (/pro/dashboard), Annonces (/pro/annonces), Publier (+), Demandes (/pro/demandes), Profil (/profil)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -68,10 +68,10 @@ export const BottomNav: React.FC = () => {
         { icon: User, label: 'Profil', path: '/profil' },
       ];
     }
-    // Visiteur
+    // Visiteur — « Aide » remplace « Rechercher » (la barre de recherche est déjà en haut de la Marketplace)
     return [
       { icon: Home, label: 'Accueil', path: '/' },
-      { icon: Search, label: 'Rechercher', path: '/filtres' },
+      { icon: HelpCircle, label: 'Aide', path: '/aide' },
       { icon: Plus, label: 'Publier', path: '/pro/publier', isCenter: true, centerType: 'publier' },
       { icon: Heart, label: 'Favoris', path: '/favoris' },
       { icon: User, label: 'Compte', path: '/login' },
