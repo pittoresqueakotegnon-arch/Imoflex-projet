@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Send, CheckCheck, ChevronDown, Paperclip, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -111,22 +112,23 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
     } finally { setIsLoading(false); }
   };
 
-  const handleSendMessage = async (e?: React.FormEvent) => {
+  const handleSendMessage = async (e?: React.FormEvent, directMessage?: string) => {
     if (e) e.preventDefault();
-    if (!newMessage.trim() || !conversationId || isSending) return;
-    const text = newMessage.trim();
-    setNewMessage('');
+    const textToSend = directMessage || newMessage.trim();
+    if (!textToSend || !conversationId || isSending) return;
+    
+    if (!directMessage) setNewMessage('');
     setIsSending(true);
     haptics.light();
     const tempId = `temp_${Date.now()}`;
-    const newMsgObj: Message = { id: tempId, sender_type: 'user', message: text, created_at: new Date().toISOString() };
+    const newMsgObj: Message = { id: tempId, sender_type: 'user', message: textToSend, created_at: new Date().toISOString() };
     
     // Add to UI immediately
     setMessages(prev => [...prev, newMsgObj]);
     setTimeout(() => scrollToBottom(true), 50);
 
     try {
-      await supabase.from('support_messages').insert({ conversation_id: conversationId, sender_type: 'user', sender_id: user?.id || null, message: text });
+      await supabase.from('support_messages').insert({ conversation_id: conversationId, sender_type: 'user', sender_id: user?.id || null, message: textToSend });
       await supabase.from('support_conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conversationId);
       // Remove temp message, real one will come via realtime or we can just update it
       setMessages(prev => prev.filter(m => m.id !== tempId));
@@ -136,7 +138,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
     }
     finally { 
       setIsSending(false); 
-      inputRef.current?.focus(); 
+      if (!directMessage) inputRef.current?.focus(); 
     }
   };
 
@@ -173,7 +175,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
     return groups;
   }, []);
 
-  return (
+  const modalContent = (
     <>
       <style>{`
         .imx-support-overlay {
@@ -369,7 +371,10 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
               {/* Quick suggestions */}
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {['Comment rechercher un logement ?', 'Comment contacter un propriétaire ?', 'Signaler une annonce suspecte', 'Problème de paiement'].map((q) => (
-                  <button key={q} className="imx-quick-btn" onClick={() => setNewMessage(q)}>
+                  <button key={q} className="imx-quick-btn" onClick={() => {
+                    setNewMessage(q);
+                    setTimeout(() => handleSendMessage(undefined, q), 0);
+                  }}>
                     {q}
                   </button>
                 ))}
@@ -481,4 +486,6 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
       </div>
     </>
   );
+
+  return createPortal(modalContent, document.body);
 };
