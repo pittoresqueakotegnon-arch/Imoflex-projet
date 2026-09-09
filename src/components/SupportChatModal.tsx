@@ -150,18 +150,21 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
         .imx-support-overlay {
           position: fixed !important;
           top: 0 !important;
-          left: 0 !important;
-          right: 0 !important;
-          bottom: 0 !important;
+          left: 50% !important;
+          transform: translateX(-50%) !important;
+          width: 100% !important;
+          max-width: 480px !important; /* Constrain to mobile width on PC/Tablet */
+          height: 100% !important;
           z-index: 99999 !important; /* Higher than bottom nav */
           display: flex !important;
           flex-direction: column !important;
           background: #ffffff !important;
           animation: imxChatOpen 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+          box-shadow: 0 0 24px rgba(0,0,0,0.1) !important;
         }
         @keyframes imxChatOpen {
-          from { opacity: 0; transform: translateY(100%); }
-          to { opacity: 1; transform: translateY(0); }
+          from { opacity: 0; transform: translateY(100%) translateX(-50%); }
+          to { opacity: 1; transform: translateY(0) translateX(-50%); }
         }
         .imx-header-bg {
           background: #ffffff !important;
