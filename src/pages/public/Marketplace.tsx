@@ -207,9 +207,9 @@ const Marketplace: React.FC = () => {
     const isNew = listing.created_at && new Date(listing.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
     const isFav = favorites.includes(listing.id);
     return (
-      <Link key={listing.id} to={`/annonce/${listing.id}`} className={`block ${isHorizontal ? 'w-[230px] flex-shrink-0 snap-start' : 'w-full'}`}>
-        <div className="bg-white rounded-[20px] overflow-hidden border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.04)] h-full flex flex-col">
-          <div className="relative h-[150px] w-full bg-gray-100 overflow-hidden">
+      <Link key={listing.id} to={`/annonce/${listing.id}`} className={`block ${isHorizontal ? 'w-[150px] flex-shrink-0 snap-start' : 'w-full mb-4'}`}>
+        <div className="bg-white rounded-[16px] overflow-hidden border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.04)] h-full flex flex-col">
+          <div className={`relative ${isHorizontal ? 'h-[110px]' : 'h-[180px]'} w-full bg-gray-100 overflow-hidden`}>
             {photoUrl ? (
               <OptimizedImage
                 src={photoUrl}
@@ -234,11 +234,11 @@ const Marketplace: React.FC = () => {
               )}
             </div>
           </div>
-          <div className="p-3.5 flex flex-col flex-1">
-            <div className="font-nunito font-900 text-[16px] text-[#7B3FE4] mb-0.5">
-              {formatMontant(listing.monthly_rent)} <span className="text-[11px] font-bold text-gray-400 lowercase">/ mois</span>
+          <div className="p-3 flex flex-col flex-1">
+            <div className="font-nunito font-900 text-[14px] text-[#7B3FE4] mb-0.5">
+              {formatMontant(listing.monthly_rent)} <span className="text-[10px] font-bold text-gray-400 lowercase">/ mois</span>
             </div>
-            <h3 className="font-nunito font-800 text-[13.5px] text-[#17132B] line-clamp-1 mb-1" title={listing.title}>
+            <h3 className="font-nunito font-800 text-[13px] text-[#17132B] line-clamp-1 mb-1" title={listing.title}>
               {listing.title}
             </h3>
             <div className="flex items-center gap-1 text-gray-400 mb-2">
@@ -483,7 +483,7 @@ const Marketplace: React.FC = () => {
             <div className="relative">
               <div className="flex gap-4 overflow-x-auto scrollbar-hide px-6 pb-4 snap-x snap-mandatory">
                 {loading ? (
-                  [1, 2, 3].map(i => <div key={i} className="w-[230px] flex-shrink-0 snap-start"><ListingCardSkeleton /></div>)
+                  [1, 2, 3, 4].map(i => <div key={i} className="w-[150px] flex-shrink-0 snap-start"><ListingCardSkeleton /></div>)
                 ) : horizontalListings.length > 0 ? (
                   horizontalListings.map((l, i) => renderListingCard(l, true, i < 3))
                 ) : (
