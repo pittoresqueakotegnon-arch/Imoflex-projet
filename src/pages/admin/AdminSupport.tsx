@@ -1,225 +1,550 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Headset, CheckCircle2, Clock, AlertCircle, Search, Filter, ExternalLink } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
+import { Headset, CheckCircle2, MessageSquare, Send, Image as ImageIcon, RefreshCw, User } from 'lucide-react';
 import { toast } from 'sonner';
+import { format, formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
-interface Ticket {
+interface Conversation {
   id: string;
   user_id: string | null;
-  role: string;
-  category: string;
-  message: string;
-  status: 'nouveau' | 'en_cours' | 'resolu';
-  page_context: string | null;
-  listing_id: string | null;
-  contact_email: string | null;
+  visitor_id: string | null;
+  status: 'ouverte' | 'en_cours' | 'resolue';
   created_at: string;
   updated_at: string;
-  users?: {
-    full_name: string;
-    phone: string;
-  } | null;
+  last_message_at: string;
+  users?: { full_name: string; phone: string; } | null;
+  unread_count?: number;
+  last_message?: string;
 }
 
-export default function AdminSupport() {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<'tous' | 'nouveau' | 'en_cours' | 'resolu'>('tous');
-  const [search, setSearch] = useState('');
+interface Message {
+  id: string;
+  conversation_id: string;
+  sender_type: 'user' | 'admin';
+  sender_id: string | null;
+  message: string;
+  screenshot_url?: string;
+  read_at?: string;
+  created_at: string;
+}
 
-  const fetchTickets = async () => {
+type StatusFilter = 'tous' | 'ouverte' | 'en_cours' | 'resolue';
+
+const STATUS_LABELS: Record<string, string> = {
+  ouverte: 'Ouverte',
+  en_cours: 'En cours',
+  resolue: 'Résolue',
+};
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const styles: Record<string, string> = {
+    ouverte: 'bg-blue-500/20 text-blue-400',
+    en_cours: 'bg-orange-500/20 text-orange-400',
+    resolue: 'bg-emerald-500/20 text-emerald-400',
+  };
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${styles[status] || 'bg-gray-500/20 text-gray-400'}`}>
+      {STATUS_LABELS[status] || status}
+    </span>
+  );
+};
+
+export default function AdminSupport() {
+  const { user } = useAuth();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('tous');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const fetchConversations = async () => {
     try {
       const { data, error } = await supabase
-        .from('support_tickets')
-        .select(`
-          *,
-          users:user_id (full_name, phone)
-        `)
-        .order('created_at', { ascending: false });
+        .from('support_conversations')
+        .select(`*, users:user_id (full_name, phone)`)
+        .order('last_message_at', { ascending: false });
 
       if (error) throw error;
-      setTickets(data as Ticket[]);
+
+      // For each conversation, fetch the last message
+      const convWithLastMsg = await Promise.all((data || []).map(async (conv) => {
+        const { data: lastMsgData } = await supabase
+          .from('support_messages')
+          .select('message, sender_type')
+          .eq('conversation_id', conv.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        const { count } = await supabase
+          .from('support_messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('conversation_id', conv.id)
+          .eq('sender_type', 'user')
+          .is('read_at', null);
+
+        return {
+          ...conv,
+          last_message: lastMsgData?.message,
+          unread_count: count || 0,
+        };
+      }));
+
+      setConversations(convWithLastMsg as Conversation[]);
     } catch (err) {
-      console.error('Erreur chargement tickets:', err);
-      toast.error('Impossible de charger les tickets');
+      console.error('Erreur chargement conversations:', err);
+      toast.error('Impossible de charger les conversations');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTickets();
+    fetchConversations();
 
-    // Abonnement temps réel
-    const subscription = supabase
-      .channel('support_tickets_changes')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'support_tickets' },
-        (payload) => {
-          toast('Nouveau ticket reçu !', {
-            description: payload.new.category,
-            icon: <Headset size={16} className="text-[#7B3FE4]" />,
-          });
-          // On recharge tout pour avoir les infos jointes (users)
-          fetchTickets();
+    // Subscribe to all conversation and message changes
+    const channel = supabase
+      .channel('admin_support_global')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_conversations' }, () => {
+        fetchConversations();
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, (payload) => {
+        const newMsg = payload.new as Message;
+        // If it's from a user (not admin), show notification
+        if (newMsg.sender_type === 'user') {
+          toast(`Nouveau message`, { description: newMsg.message.slice(0, 60), icon: <MessageSquare size={16} className="text-[#7B3FE4]" /> });
         }
-      )
+        // If we're viewing that conversation, add the message
+        setActiveConversation(prev => {
+          if (prev && prev.id === newMsg.conversation_id) {
+            setMessages(msgs => {
+              if (msgs.find(m => m.id === newMsg.id)) return msgs;
+              return [...msgs, newMsg];
+            });
+          }
+          return prev;
+        });
+        fetchConversations();
+      })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(subscription);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
+  const openConversation = async (conv: Conversation) => {
+    setActiveConversation(conv);
+    setLoadingMessages(true);
+    setMessages([]);
+
     try {
-      const { error } = await supabase
-        .from('support_tickets')
-        .update({ status: newStatus })
-        .eq('id', id);
+      const { data, error } = await supabase
+        .from('support_messages')
+        .select('*')
+        .eq('conversation_id', conv.id)
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
+      setMessages(data || []);
+
+      // Mark user messages as read
+      const unreadIds = (data || [])
+        .filter(m => m.sender_type === 'user' && !m.read_at)
+        .map(m => m.id);
       
-      setTickets(prev => 
-        prev.map(t => t.id === id ? { ...t, status: newStatus as any } : t)
-      );
-      toast.success('Statut mis à jour');
+      if (unreadIds.length > 0) {
+        await supabase.from('support_messages')
+          .update({ read_at: new Date().toISOString() })
+          .in('id', unreadIds);
+        
+        // Update conversation status to 'en_cours' if still 'ouverte'
+        if (conv.status === 'ouverte') {
+          await supabase.from('support_conversations')
+            .update({ status: 'en_cours' })
+            .eq('id', conv.id);
+        }
+        fetchConversations();
+      }
     } catch (err) {
-      console.error('Erreur maj statut:', err);
-      toast.error('Impossible de mettre à jour le statut');
+      console.error('Erreur chargement messages:', err);
+    } finally {
+      setLoadingMessages(false);
     }
   };
 
-  const filteredTickets = useMemo(() => {
-    return tickets.filter(t => {
-      const matchStatus = statusFilter === 'tous' || t.status === statusFilter;
-      const term = search.toLowerCase();
-      const matchSearch = 
-        t.category.toLowerCase().includes(term) ||
-        t.message.toLowerCase().includes(term) ||
-        t.contact_email?.toLowerCase().includes(term) ||
-        t.users?.full_name?.toLowerCase().includes(term);
-      return matchStatus && matchSearch;
-    });
-  }, [tickets, statusFilter, search]);
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newMessage.trim() || !activeConversation || !user) return;
 
-  const getStatusBadge = (status: string) => {
-    switch(status) {
-      case 'nouveau':
-        return <span className="px-2.5 py-1 rounded-full bg-red-500/20 text-red-400 text-[11px] font-bold flex items-center gap-1 w-fit"><AlertCircle size={12}/> Nouveau</span>;
-      case 'en_cours':
-        return <span className="px-2.5 py-1 rounded-full bg-orange-500/20 text-orange-400 text-[11px] font-bold flex items-center gap-1 w-fit"><Clock size={12}/> En cours</span>;
-      case 'resolu':
-        return <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-bold flex items-center gap-1 w-fit"><CheckCircle2 size={12}/> Résolu</span>;
-      default:
-        return null;
+    const text = newMessage.trim();
+    setNewMessage('');
+    setIsSending(true);
+
+    try {
+      const { error } = await supabase.from('support_messages').insert({
+        conversation_id: activeConversation.id,
+        sender_type: 'admin',
+        sender_id: user.id,
+        message: text,
+      });
+      if (error) throw error;
+
+      await supabase.from('support_conversations')
+        .update({ last_message_at: new Date().toISOString() })
+        .eq('id', activeConversation.id);
+    } catch (err) {
+      console.error('Erreur envoi message admin:', err);
+      toast.error("Erreur lors de l'envoi");
+    } finally {
+      setIsSending(false);
     }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeConversation || !user) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Seules les images sont acceptées.');
+      return;
+    }
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `admin_${activeConversation.id}_${Date.now()}.${fileExt}`;
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('support_attachments')
+        .upload(fileName, file);
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('support_attachments')
+        .getPublicUrl(fileName);
+
+      const { error: msgError } = await supabase.from('support_messages').insert({
+        conversation_id: activeConversation.id,
+        sender_type: 'admin',
+        sender_id: user.id,
+        message: 'Image partagée',
+        screenshot_url: publicUrl,
+      });
+      if (msgError) throw msgError;
+
+      await supabase.from('support_conversations')
+        .update({ last_message_at: new Date().toISOString() })
+        .eq('id', activeConversation.id);
+    } catch (err) {
+      console.error('Erreur upload admin:', err);
+      toast.error("Erreur lors de l'envoi de l'image.");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleStatusChange = async (convId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase.from('support_conversations')
+        .update({ status: newStatus })
+        .eq('id', convId);
+      if (error) throw error;
+
+      setActiveConversation(prev => prev ? { ...prev, status: newStatus as any } : prev);
+      toast.success('Statut mis à jour');
+      fetchConversations();
+    } catch (err) {
+      toast.error('Erreur mise à jour statut');
+    }
+  };
+
+  const filteredConversations = conversations.filter(c => {
+    if (statusFilter === 'tous') return true;
+    return c.status === statusFilter;
+  });
+
+  const getConvLabel = (conv: Conversation) => {
+    if (conv.users?.full_name) return conv.users.full_name;
+    if (conv.visitor_id) return `Visiteur ${conv.visitor_id.slice(0, 8)}...`;
+    return 'Utilisateur anonyme';
   };
 
   return (
-    <div>
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-col h-[calc(100vh-160px)] gap-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black mb-1" style={{ fontFamily: 'Nunito' }}>Support & Signalements</h1>
-          <p className="text-sm" style={{ color: 'var(--adm-text-muted)' }}>Gérez les tickets des utilisateurs et visiteurs</p>
+          <h1 className="text-2xl font-black" style={{ fontFamily: 'Nunito' }}>Support Chat</h1>
+          <p className="text-sm" style={{ color: 'var(--adm-text-muted)' }}>
+            {conversations.filter(c => c.unread_count && c.unread_count > 0).length} conversation(s) avec messages non lus
+          </p>
         </div>
+        <button onClick={fetchConversations} className="p-2 rounded-xl transition-colors" style={{ background: 'var(--adm-surface)', border: '1px solid var(--adm-border)' }}>
+          <RefreshCw size={16} style={{ color: 'var(--adm-text-muted)' }} />
+        </button>
       </div>
 
-      <div className="p-4 sm:p-5 rounded-2xl border mb-6 flex flex-col sm:flex-row gap-4" style={{ background: 'var(--adm-surface)', borderColor: 'var(--adm-border)' }}>
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--adm-text-muted)' }} />
-          <input
-            type="text"
-            placeholder="Rechercher un ticket, email, catégorie..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none transition-colors"
-            style={{ background: 'var(--adm-bg)', color: 'var(--adm-text)', border: '1px solid var(--adm-border)' }}
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Filter size={16} style={{ color: 'var(--adm-text-muted)' }} />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="px-4 py-2.5 rounded-xl text-sm outline-none cursor-pointer"
-            style={{ background: 'var(--adm-bg)', color: 'var(--adm-text)', border: '1px solid var(--adm-border)' }}
-          >
-            <option value="tous">Tous les statuts</option>
-            <option value="nouveau">Nouveaux</option>
-            <option value="en_cours">En cours</option>
-            <option value="resolu">Résolus</option>
-          </select>
-        </div>
-      </div>
+      {/* Split pane */}
+      <div className="flex flex-1 gap-4 overflow-hidden rounded-2xl border" style={{ borderColor: 'var(--adm-border)' }}>
+        
+        {/* LEFT: Conversation list */}
+        <div className="w-80 flex-shrink-0 flex flex-col border-r" style={{ background: 'var(--adm-surface)', borderColor: 'var(--adm-border)' }}>
+          {/* Filter tabs */}
+          <div className="p-3 border-b" style={{ borderColor: 'var(--adm-border)' }}>
+            <div className="flex gap-1">
+              {(['tous', 'ouverte', 'en_cours', 'resolue'] as StatusFilter[]).map(s => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className="flex-1 py-1.5 px-1 rounded-lg text-[11px] font-bold capitalize transition-colors"
+                  style={{
+                    background: statusFilter === s ? 'var(--adm-accent)' : 'var(--adm-bg)',
+                    color: statusFilter === s ? 'white' : 'var(--adm-text-muted)',
+                  }}
+                >
+                  {s === 'tous' ? 'Tous' : STATUS_LABELS[s]}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      {loading ? (
-        <div className="flex justify-center p-12">
-          <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--adm-accent)', borderTopColor: 'transparent' }} />
-        </div>
-      ) : filteredTickets.length === 0 ? (
-        <div className="text-center py-16 rounded-2xl border" style={{ background: 'var(--adm-surface)', borderColor: 'var(--adm-border)' }}>
-          <Headset size={40} className="mx-auto mb-4 opacity-50" style={{ color: 'var(--adm-text-muted)' }} />
-          <p className="font-semibold mb-1">Aucun ticket trouvé</p>
-          <p className="text-sm" style={{ color: 'var(--adm-text-dim)' }}>Tous les problèmes semblent résolus.</p>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {filteredTickets.map(ticket => (
-            <div key={ticket.id} className="p-5 rounded-2xl border transition-all" style={{ background: 'var(--adm-surface)', borderColor: 'var(--adm-border)' }}>
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    {getStatusBadge(ticket.status)}
-                    <span className="text-[12px] uppercase font-bold" style={{ color: 'var(--adm-text-dim)', letterSpacing: '0.5px' }}>{ticket.role}</span>
-                    <span className="text-[12px]" style={{ color: 'var(--adm-text-muted)' }}>
-                      {new Date(ticket.created_at).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
-                    </span>
+          {/* List */}
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="flex justify-center p-8">
+                <div className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--adm-accent)', borderTopColor: 'transparent' }} />
+              </div>
+            ) : filteredConversations.length === 0 ? (
+              <div className="text-center py-12 px-4">
+                <Headset size={32} className="mx-auto mb-3 opacity-30" style={{ color: 'var(--adm-text-muted)' }} />
+                <p className="text-sm" style={{ color: 'var(--adm-text-dim)' }}>Aucune conversation</p>
+              </div>
+            ) : (
+              filteredConversations.map(conv => (
+                <button
+                  key={conv.id}
+                  onClick={() => openConversation(conv)}
+                  className="w-full text-left p-4 border-b transition-all hover:opacity-90"
+                  style={{
+                    borderColor: 'var(--adm-border)',
+                    background: activeConversation?.id === conv.id ? 'var(--adm-accent-bg)' : 'transparent',
+                    borderLeft: activeConversation?.id === conv.id ? '3px solid var(--adm-accent)' : '3px solid transparent',
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-[11px] font-bold" style={{ background: 'var(--adm-accent)' }}>
+                        {conv.users ? conv.users.full_name.charAt(0).toUpperCase() : <User size={14} />}
+                      </div>
+                      <span className="text-sm font-bold truncate">{getConvLabel(conv)}</span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <StatusBadge status={conv.status} />
+                      {(conv.unread_count ?? 0) > 0 && (
+                        <span className="w-5 h-5 rounded-full bg-[#7B3FE4] text-white text-[10px] font-bold flex items-center justify-center">
+                          {conv.unread_count}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <h3 className="font-bold text-lg">{ticket.category}</h3>
-                  <div className="flex flex-wrap items-center gap-2 mt-1 text-sm">
-                    <span style={{ color: 'var(--adm-text-muted)' }}>De :</span>
-                    {ticket.users ? (
-                      <span className="font-semibold">{ticket.users.full_name} ({ticket.users.phone})</span>
-                    ) : (
-                      <span className="font-semibold italic">{ticket.contact_email || 'Visiteur anonyme'}</span>
-                    )}
+                  {conv.last_message && (
+                    <p className="text-[12px] truncate pl-10" style={{ color: 'var(--adm-text-muted)' }}>
+                      {conv.last_message}
+                    </p>
+                  )}
+                  <p className="text-[10px] pl-10 mt-1" style={{ color: 'var(--adm-text-dim)' }}>
+                    {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: true, locale: fr })}
+                  </p>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT: Chat view */}
+        <div className="flex-1 flex flex-col overflow-hidden" style={{ background: 'var(--adm-bg)' }}>
+          {!activeConversation ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+              <MessageSquare size={48} className="mb-4 opacity-20" style={{ color: 'var(--adm-text-muted)' }} />
+              <p className="font-bold mb-1" style={{ color: 'var(--adm-text-muted)' }}>Sélectionnez une conversation</p>
+              <p className="text-sm" style={{ color: 'var(--adm-text-dim)' }}>Cliquez sur une conversation à gauche pour voir les messages</p>
+            </div>
+          ) : (
+            <>
+              {/* Chat header */}
+              <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--adm-border)', background: 'var(--adm-surface)' }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[12px] font-bold" style={{ background: 'var(--adm-accent)' }}>
+                    {activeConversation.users ? activeConversation.users.full_name.charAt(0).toUpperCase() : <User size={14} />}
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm">{getConvLabel(activeConversation)}</p>
+                    <p className="text-[11px]" style={{ color: 'var(--adm-text-muted)' }}>
+                      {activeConversation.users?.phone || (activeConversation.visitor_id ? `ID: ${activeConversation.visitor_id.slice(0, 12)}...` : 'Compte non connecté')}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <select
-                    value={ticket.status}
-                    onChange={(e) => handleStatusChange(ticket.id, e.target.value)}
+                    value={activeConversation.status}
+                    onChange={(e) => handleStatusChange(activeConversation.id, e.target.value)}
                     className="px-3 py-1.5 rounded-lg text-sm font-semibold outline-none cursor-pointer border"
                     style={{ background: 'var(--adm-bg)', color: 'var(--adm-text)', borderColor: 'var(--adm-border)' }}
                   >
-                    <option value="nouveau">Marquer Nouveau</option>
-                    <option value="en_cours">Marquer En cours</option>
-                    <option value="resolu">Marquer Résolu</option>
+                    <option value="ouverte">Ouverte</option>
+                    <option value="en_cours">En cours</option>
+                    <option value="resolue">Résolue</option>
                   </select>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl text-sm leading-relaxed mb-4" style={{ background: 'var(--adm-bg)' }}>
-                {ticket.message}
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {loadingMessages ? (
+                  <div className="flex justify-center py-8">
+                    <div className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--adm-accent)', borderTopColor: 'transparent' }} />
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-sm" style={{ color: 'var(--adm-text-dim)' }}>Aucun message dans cette conversation</p>
+                  </div>
+                ) : (
+                  messages.map((msg, index) => {
+                    const isAdmin = msg.sender_type === 'admin';
+                    const showDate = index === 0 || new Date(msg.created_at).toDateString() !== new Date(messages[index - 1].created_at).toDateString();
+                    
+                    return (
+                      <div key={msg.id}>
+                        {showDate && (
+                          <div className="text-center my-2">
+                            <span className="text-[11px] px-3 py-1 rounded-full" style={{ background: 'var(--adm-surface)', color: 'var(--adm-text-muted)' }}>
+                              {format(new Date(msg.created_at), 'EEEE d MMMM', { locale: fr })}
+                            </span>
+                          </div>
+                        )}
+                        <div className={`flex flex-col ${isAdmin ? 'items-end' : 'items-start'}`}>
+                          <div className={`flex items-end gap-2 max-w-[75%] ${isAdmin ? 'flex-row-reverse' : ''}`}>
+                            {!isAdmin && (
+                              <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-white text-[9px] font-bold mb-1" style={{ background: 'var(--adm-accent)' }}>
+                                {activeConversation.users ? activeConversation.users.full_name.charAt(0).toUpperCase() : 'V'}
+                              </div>
+                            )}
+                            <div
+                              className="rounded-2xl px-4 py-2.5"
+                              style={{
+                                background: isAdmin ? 'var(--adm-accent)' : 'var(--adm-surface)',
+                                color: isAdmin ? 'white' : 'var(--adm-text)',
+                                borderRadius: isAdmin ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                                border: isAdmin ? 'none' : '1px solid var(--adm-border)',
+                              }}
+                            >
+                              {msg.screenshot_url ? (
+                                <div className="space-y-2">
+                                  <a href={msg.screenshot_url} target="_blank" rel="noreferrer">
+                                    <img src={msg.screenshot_url} alt="Capture" className="rounded-xl max-w-full h-auto max-h-[200px] object-cover" />
+                                  </a>
+                                  {msg.message !== 'Image partagée' && msg.message !== "Capture d'écran" && (
+                                    <p className="text-sm">{msg.message}</p>
+                                  )}
+                                </div>
+                              ) : (
+                                <p className="text-sm leading-relaxed">{msg.message}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className={`text-[10px] mt-1 ${isAdmin ? 'text-right' : 'text-left pl-8'}`} style={{ color: 'var(--adm-text-dim)' }}>
+                            {format(new Date(msg.created_at), 'HH:mm', { locale: fr })}
+                            {isAdmin && msg.read_at && <span className="ml-1 text-blue-400">· Lu</span>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={messagesEndRef} />
               </div>
 
-              {ticket.page_context && (
-                <div className="flex items-center gap-2 text-[12px]">
-                  <span style={{ color: 'var(--adm-text-dim)' }}>Contexte :</span>
-                  <a href={ticket.page_context} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:underline" style={{ color: 'var(--adm-accent)' }}>
-                    {ticket.page_context} <ExternalLink size={12} />
-                  </a>
-                  {ticket.listing_id && (
-                    <span className="ml-2 font-mono text-[10px] bg-black/10 px-2 py-0.5 rounded">ID: {ticket.listing_id.split('-')[0]}...</span>
-                  )}
+              {/* Admin message input */}
+              {activeConversation.status !== 'resolue' ? (
+                <div className="p-3 border-t" style={{ borderColor: 'var(--adm-border)', background: 'var(--adm-surface)' }}>
+                  <form onSubmit={handleSendMessage} className="flex items-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="p-2.5 rounded-xl transition-colors"
+                      style={{ background: 'var(--adm-bg)', border: '1px solid var(--adm-border)', color: 'var(--adm-text-muted)' }}
+                    >
+                      <ImageIcon size={18} />
+                    </button>
+                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
+                    <textarea
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      placeholder="Répondre en tant qu'Équipe ImoFlex..."
+                      rows={1}
+                      className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none resize-none"
+                      style={{
+                        background: 'var(--adm-bg)',
+                        color: 'var(--adm-text)',
+                        border: '1px solid var(--adm-border)',
+                        minHeight: '44px',
+                        maxHeight: '120px',
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!newMessage.trim() || isSending}
+                      className="p-3 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50"
+                      style={{ background: 'var(--adm-accent)', color: 'white' }}
+                    >
+                      {isSending ? (
+                        <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                      ) : (
+                        <Send size={16} />
+                      )}
+                    </button>
+                  </form>
+                  <p className="text-[10px] mt-2 text-center" style={{ color: 'var(--adm-text-dim)' }}>
+                    Votre réponse apparaîtra comme provenant d'<strong>Équipe ImoFlex</strong>
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 border-t text-center" style={{ borderColor: 'var(--adm-border)' }}>
+                  <div className="flex items-center justify-center gap-2 text-emerald-400">
+                    <CheckCircle2 size={16} />
+                    <span className="text-sm font-semibold">Conversation résolue</span>
+                  </div>
+                  <button
+                    onClick={() => handleStatusChange(activeConversation.id, 'en_cours')}
+                    className="mt-2 text-xs underline"
+                    style={{ color: 'var(--adm-text-muted)' }}
+                  >
+                    Rouvrir la conversation
+                  </button>
                 </div>
               )}
-            </div>
-          ))}
+            </>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

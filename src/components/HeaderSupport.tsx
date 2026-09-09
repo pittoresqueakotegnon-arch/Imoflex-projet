@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Headset } from 'lucide-react';
-import { ReportProblemModal } from './ReportProblemModal';
+import { SupportChatModal } from './SupportChatModal';
 
 interface HeaderSupportProps {
   className?: string;
@@ -27,7 +27,7 @@ export const HeaderSupport: React.FC<HeaderSupportProps> = ({ className, style }
         <Headset size={20} className="text-[#7B3FE4]" />
       </button>
 
-      <ReportProblemModal 
+      <SupportChatModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
       />
