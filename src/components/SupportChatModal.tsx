@@ -285,8 +285,9 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
               width: '44px', height: '44px', borderRadius: '14px',
               background: '#7B3FE4',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden'
             }}>
-              <span style={{ color: 'white', fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: '16px' }}>IM</span>
+              <img src="/support-avatar.png" alt="Support ImoFlex" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
             <div className="imx-status-dot"
               style={{
@@ -321,9 +322,9 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
           ) : messages.length === 0 ? (
             /* ─── ÉTAT VIDE CLAIR ─── */
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '24px 16px' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(123,63,228,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-                 <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#7B3FE4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ color: 'white', fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: '12px' }}>IM</span>
+              <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(123,63,228,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', padding: '4px' }}>
+                 <div style={{ width: '100%', height: '100%', borderRadius: '16px', overflow: 'hidden' }}>
+                    <img src="/support-avatar.png" alt="Support ImoFlex" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                  </div>
               </div>
 
