@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Building2, ArrowRight, Home, MessageCircle, MapPin, AlertTriangle, ArrowUpRight } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -222,25 +222,10 @@ const Dashboard: React.FC = () => {
 
   const hasNoProperty = (data?.totalListingsRaw || 0) === 0 && (data?.propertiesStats.total || 0) === 0;
 
-  // ── ONBOARDING LOCATAIRE OU NOUVEAU PROPRIO ──
-  if (isLocataire || hasNoProperty) {
+  // ── ONBOARDING NOUVEAU PROPRIO ──
+  if (hasNoProperty) {
     return (
       <div className="page-container flex flex-col">
-        {/* Role switcher */}
-        <div className="px-4 pt-4 flex justify-center">
-          <div className="bg-[var(--imx-surface-2)] rounded-full p-1 flex items-center border border-[var(--imx-border)] shadow-xs">
-            <button className="px-5 py-1.5 rounded-full text-[11px] font-bold text-white bg-[var(--imx-accent)] shadow-sm font-nunito transition-all">
-              Propriétaire
-            </button>
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="px-5 py-1.5 rounded-full text-[11px] font-bold text-[var(--imx-text-secondary)] hover:text-[var(--imx-text-primary)] transition-colors font-nunito"
-            >
-              Locataire
-            </button>
-          </div>
-        </div>
-
         {/* Onboarding Screen */}
         <div className="flex-1 flex flex-col items-center justify-center px-6 pb-24 text-center">
           <div className="relative mb-8">

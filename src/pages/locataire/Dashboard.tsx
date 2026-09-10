@@ -174,22 +174,7 @@ export default function Dashboard() {
   return (
     <div className="page-container">
       <PullToRefresh onRefresh={fetchData}>
-        {/* ── Role Switcher ── */}
-      <div className="px-5 flex justify-center" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
-        <div className="bg-[var(--imx-surface-2)] rounded-full p-1 flex items-center border border-[var(--imx-border)] shadow-xs">
-          <button className="px-5 py-1.5 rounded-full text-[11px] font-bold text-white bg-[var(--imx-accent)] shadow-sm font-nunito transition-all">
-            Locataire
-          </button>
-          <button 
-            onClick={() => navigate('/pro/dashboard')}
-            className="px-5 py-1.5 rounded-full text-[11px] font-bold text-[var(--imx-text-secondary)] hover:text-[var(--imx-text-primary)] transition-colors font-nunito"
-          >
-            Propriétaire
-          </button>
-        </div>
-      </div>
-
-      <div className="flex justify-between items-center px-5 pt-4 pb-4">
+      <div className="flex justify-between items-center px-5 pt-4 pb-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
         <div>
           <span style={{ color: 'var(--imx-accent-light)', fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: '0.85rem' }}>{getGreeting()}</span>
           <h1 className="font-nunito font-900 text-xl text-[var(--imx-text-primary)]">{firstName} {lastName}</h1>
