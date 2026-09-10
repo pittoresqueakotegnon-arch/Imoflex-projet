@@ -90,7 +90,7 @@ export default function Payer() {
       try {
         const { data: leaseData, error: leaseError } = await supabase
           .from("leases")
-          .select("id, tenant_id, status, properties:property_id(name, city, neighborhood, owner_id)")
+          .select("id, tenant_id, status, properties:property_id(id, name, address, monthly_rent, owner_id)")
           .eq("id", leaseId)
           .eq("tenant_id", profile.id)
           .eq("status", "actif")
@@ -99,27 +99,63 @@ export default function Payer() {
         if (leaseError) throw leaseError;
         if (!leaseData) { showToast("Logement introuvable ou inactif", "error"); navigate("/dashboard"); return; }
 
-        const prop = (leaseData as any).properties;
-        setPropertyName(prop?.name || "");
-        if (prop?.city) {
-          setPropertyLocation([prop.neighborhood, prop.city].filter(Boolean).join(", "));
+        const prop = (leaseData as any)?.properties;
+        setPropertyName(prop?.name || "Logement");
+        if (prop?.address) {
+          setPropertyLocation(prop.address);
         }
 
         if (prop?.owner_id) {
-          const { data: ownerData } = await supabase
-            .from("users").select("full_name").eq("id", prop.owner_id).maybeSingle();
-          if (ownerData?.full_name) setOwnerName(ownerData.full_name);
+          try {
+            const { data: ownerData } = await supabase
+              .from("users").select("full_name").eq("id", prop.owner_id).maybeSingle();
+            if (ownerData?.full_name) setOwnerName(ownerData.full_name);
+          } catch {
+            // RLS fallback
+            setOwnerName("Propriétaire");
+          }
         }
 
-        const now = new Date();
-        const { data: periodData, error: periodError } = await supabase
-          .from("rent_periods").select("*")
+        // 1. Chercher la période non soldée (priorité à la plus ancienne en retard ou en cours)
+        let { data: periodData, error: periodError } = await supabase
+          .from("rent_periods")
+          .select("*")
           .eq("lease_id", leaseData.id)
-          .eq("period_month", now.getMonth() + 1)
-          .eq("period_year", now.getFullYear())
+          .in("status", ["retard", "en_cours"])
+          .order("period_year", { ascending: true })
+          .order("period_month", { ascending: true })
+          .limit(1)
           .maybeSingle();
 
-        if (periodError && periodError.code !== "PGRST116") throw periodError;
+        if (periodError && periodError.code !== "PGRST116") {
+          console.warn("Period query warning:", periodError);
+        }
+
+        // 2. Si aucune période en cours/retard trouvée, assurer la période du mois actuel
+        if (!periodData) {
+          try {
+            const { data: generatedPeriod } = await supabase
+              .rpc("ensure_current_rent_period", { p_lease_id: leaseData.id });
+            if (generatedPeriod) {
+              periodData = generatedPeriod;
+            }
+          } catch (rpcErr) {
+            console.warn("ensure_current_rent_period error:", rpcErr);
+          }
+
+          if (!periodData) {
+            const now = new Date();
+            const { data: currentPeriod } = await supabase
+              .from("rent_periods")
+              .select("*")
+              .eq("lease_id", leaseData.id)
+              .eq("period_month", now.getMonth() + 1)
+              .eq("period_year", now.getFullYear())
+              .maybeSingle();
+            periodData = currentPeriod;
+          }
+        }
+
         if (periodData) {
           setCurrentRentPeriod(periodData);
           setAmount(Math.max(periodData.amount_due - periodData.amount_paid, 0));
@@ -349,7 +385,7 @@ export default function Payer() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Proprietaire</p>
-                <p className="font-nunito font-800 text-[14px] text-[#17132B] truncate">{ownerName || "�"}</p>
+                <p className="font-nunito font-800 text-[14px] text-[#17132B] truncate">{ownerName || "�"}</p>
               </div>
             </div>
             <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
@@ -358,7 +394,7 @@ export default function Payer() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Bien</p>
-                <p className="font-nunito font-800 text-[14px] text-[#17132B] truncate">{propertyName || "�"}</p>
+                <p className="font-nunito font-800 text-[14px] text-[#17132B] truncate">{propertyName || "�"}</p>
                 {propertyLocation ? <p className="text-[11px] text-gray-500 font-space-grotesk">{propertyLocation}</p> : null}
               </div>
             </div>

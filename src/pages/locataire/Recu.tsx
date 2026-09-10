@@ -60,8 +60,7 @@ export default function Recu() {
               leases:lease_id (
                 tenant_id,
                 properties:property_id (
-                  name, city, neighborhood,
-                  users:owner_id (full_name)
+                  name, address, owner_id
                 )
               )
             )
@@ -76,7 +75,16 @@ export default function Recu() {
         const rp = (data as any).rent_periods;
         const lease = rp?.leases;
         const prop = lease?.properties;
-        const owner = prop?.users;
+        let ownerName = "Proprietaire";
+        if (prop?.owner_id) {
+          try {
+            const { data: ownerData } = await supabase
+              .from("users").select("full_name").eq("id", prop.owner_id).maybeSingle();
+            if (ownerData?.full_name) ownerName = ownerData.full_name;
+          } catch {
+            // fallback
+          }
+        }
         const periodLabel = rp
           ? `${MONTH_NAMES[(rp.period_month ?? 1) - 1]} ${rp.period_year}`
           : "";
@@ -91,9 +99,9 @@ export default function Recu() {
           payment_method: data.payment_method || "mobile_money",
           tenantName: profile.full_name || "Locataire",
           tenantPhone: profile.mobile_money_number || profile.phone || "",
-          ownerName: owner?.full_name || "Proprietaire",
-          propertyName: prop?.name || "",
-          propertyLocation: [prop?.neighborhood, prop?.city].filter(Boolean).join(", "),
+          ownerName,
+          propertyName: prop?.name || "Logement",
+          propertyLocation: prop?.address || "",
           periodLabel,
         });
       } catch (err) {
