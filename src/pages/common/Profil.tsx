@@ -271,13 +271,13 @@ export default function Profil() {
                   {profile.phone || profile.email}
                 </p>
                 
-                {(profile as any).kyc_status === 'verifie' ? (
+                {profile.phone_verified ? (
                   <span className="inline-flex items-center gap-1.5 text-[11px] font-bold mt-1 text-[#22C55E]">
-                    <ShieldCheck size={12} /> Identité vérifiée
+                    <ShieldCheck size={12} /> Téléphone vérifié
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 text-[11px] font-bold mt-1 text-[#FBBF24]">
-                    <ShieldCheck size={12} /> Compte à vérifier
+                    <ShieldCheck size={12} /> Téléphone non vérifié
                   </span>
                 )}
               </div>

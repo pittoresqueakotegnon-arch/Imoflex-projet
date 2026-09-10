@@ -37,22 +37,25 @@ const Annonces: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      const listingData = data || [];
+      if (listingData.length === 0) { setListings([]); return; }
 
-      const listingsWithCounts: AnnounceListItem[] = [];
+      // Requête unique pour compter les contact_requests de toutes les annonces (anti N+1)
+      const listingIds = listingData.map(l => l.id);
+      const { data: contactData } = await supabase
+        .from('contact_requests')
+        .select('listing_id')
+        .in('listing_id', listingIds);
 
-      for (const listing of data || []) {
-        const { count, error: countError } = await supabase
-          .from('contact_requests')
-          .select('id', { count: 'exact' })
-          .eq('listing_id', listing.id);
+      const countMap: Record<string, number> = {};
+      (contactData || []).forEach(cr => {
+        countMap[cr.listing_id] = (countMap[cr.listing_id] || 0) + 1;
+      });
 
-        if (!countError) {
-          listingsWithCounts.push({
-            ...(listing as ListingSummary),
-            contactRequestsCount: count || 0,
-          });
-        }
-      }
+      const listingsWithCounts: AnnounceListItem[] = listingData.map(listing => ({
+        ...(listing as ListingSummary),
+        contactRequestsCount: countMap[listing.id] || 0,
+      }));
 
       setListings(listingsWithCounts);
     } catch (error) {
@@ -62,6 +65,7 @@ const Annonces: React.FC = () => {
       setLoading(false);
     }
   }, [profile?.id, showToast]);
+
 
   useEffect(() => {
     fetchListings();

@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { formatDateShort, formatMontant } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
 import { useWallet } from '../../hooks/useWallet';
@@ -8,26 +8,20 @@ import { useToast } from '../../components/Toast';
 import { ArrowDownLeft, Clock, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
-  completed: {
-    label: 'VersÃ©',
+  complete: {
+    label: 'Versé',
     color: '#22C55E',
     bg: 'rgba(34,197,94,0.10)',
     icon: <CheckCircle2 size={16} className="text-[#22C55E]" />,
   },
-  pending: {
+  en_traitement: {
     label: 'En cours',
     color: '#F59E0B',
     bg: 'rgba(245,158,11,0.10)',
     icon: <Clock size={16} className="text-[#F59E0B]" />,
   },
-  processing: {
-    label: 'Traitement',
-    color: '#3B82F6',
-    bg: 'rgba(59,130,246,0.10)',
-    icon: <RefreshCw size={16} className="text-[#3B82F6]" />,
-  },
-  failed: {
-    label: 'Ã‰chouÃ©',
+  echoue: {
+    label: 'Échoué',
     color: '#EF4444',
     bg: 'rgba(239,68,68,0.10)',
     icon: <XCircle size={16} className="text-[#EF4444]" />,
@@ -35,7 +29,8 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 };
 
 const getStatusConfig = (status: string) =>
-  STATUS_CONFIG[status] ?? STATUS_CONFIG['pending'];
+  STATUS_CONFIG[status] ?? STATUS_CONFIG['en_traitement'];
+
 
 const OPERATOR_COLORS: Record<string, string> = {
   mtn: '#FBBF24',
@@ -98,7 +93,7 @@ const Wallet: React.FC = () => {
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-[20px] p-4" style={{ background: 'var(--imx-surface-2)', border: '1px solid var(--imx-border)' }}>
             <p className="text-[10px] font-space-grotesk font-bold uppercase tracking-wider text-[var(--imx-text-secondary)] mb-1.5">
-              Total retirÃ©
+              Total retiré
             </p>
             <p className="font-nunito font-black text-[18px] text-[var(--imx-text-primary)]">
               {formatMontant(totalWithdrawn)}
@@ -106,7 +101,7 @@ const Wallet: React.FC = () => {
           </div>
           <div className="rounded-[20px] p-4" style={{ background: 'var(--imx-surface-2)', border: '1px solid var(--imx-border)' }}>
             <p className="text-[10px] font-space-grotesk font-bold uppercase tracking-wider text-[var(--imx-text-secondary)] mb-1.5">
-              Retraits rÃ©ussis
+              Retraits réussis
             </p>
             <p className="font-nunito font-black text-[18px] text-[var(--imx-text-primary)]">
               {completedCount} <span className="text-[13px] font-space-grotesk font-medium text-[var(--imx-text-secondary)]">/{withdrawals.length}</span>
@@ -131,7 +126,7 @@ const Wallet: React.FC = () => {
               </div>
               <p className="font-nunito font-bold text-[15px] text-[var(--imx-text-primary)] mb-1">Aucun retrait</p>
               <p className="font-space-grotesk text-[12px] text-[var(--imx-text-secondary)]">
-                Vos versements apparaÃ®tront ici
+                Vos versements apparaîtront ici
               </p>
             </div>
           ) : (
