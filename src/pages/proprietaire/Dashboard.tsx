@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Building2, ArrowRight, Home, MessageCircle, MapPin } from 'lucide-react';
+import { Plus, Building2, ArrowRight, Home, MessageCircle, MapPin, AlertTriangle, ArrowUpRight } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useWallet } from '../../hooks/useWallet';
 import { supabase } from '../../lib/supabase';
-import { getCurrentMonth, getMonthName } from '../../lib/utils';
+import { getCurrentMonth, getMonthName, formatMontant } from '../../lib/utils';
 import BottomNav from '../../components/BottomNav';
 import { HeaderBell } from '../../components/HeaderBell';
 import { HeaderSupport } from '../../components/HeaderSupport';
@@ -11,188 +12,191 @@ import { useToast } from '../../components/Toast';
 import { getGreeting } from '../../utils/greeting';
 import { PullToRefresh } from '../../components/PullToRefresh';
 
-interface DashboardData {
-  totalEncaisse: number;
-  totalListingsRaw: number;  // total brut des annonces (avant filtre par demandes)
-  listings: Array<{
-    id: string;
-    title: string;
-    location: string;
-    newRequests: number;
-  }>;
-  properties: Array<{
-    id: string;
-    leaseId: string;
-    name: string;
-    address: string;
-    monthlyRent: number;
-    amountPaid: number;
-    amountDue: number;
-    status: string;
-  }>;
-  stats: {
-    soldes: number;
-    enCours: number;
-    enRetard: number;
-  };
+interface ChartData {
+  month: string;
+  shortName: string;
+  total: number;
 }
 
-// Barre de progression avec couleur dynamique
-const ProgressBar: React.FC<{ current: number; total: number; isSolde: boolean }> = ({ current, total, isSolde }) => {
-  const pct = total > 0 ? Math.min((current / total) * 100, 100) : 0;
-  return (
-    <div className="h-[6px] rounded-full w-full mt-3 mb-2" style={{ background: 'var(--imx-border)' }}>
-      <div
-        className="h-full rounded-full transition-all duration-500"
-        style={{
-          width: `${pct}%`,
-          background: isSolde
-            ? 'linear-gradient(90deg, #16A34A, #22C55E)'
-            : 'linear-gradient(90deg, #7B3FE4, #C084FC)',
-        }}
-      />
-    </div>
-  );
-};
+interface AlertRent {
+  id: string;
+  leaseId: string;
+  propertyName: string;
+  amountDue: number;
+  status: string; // 'retard' | 'en_cours'
+}
+
+interface DashboardData {
+  totalListingsRaw: number;
+  propertiesStats: {
+    total: number;
+    occupied: number;
+    available: number;
+  };
+  currentMonth: {
+    expected: number;
+    received: number;
+    pending: number;
+  };
+  chartData: ChartData[];
+  alerts: AlertRent[];
+}
 
 const Dashboard: React.FC = () => {
   const { profile } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  
+  // NOUVEAU: Wallet
+  const { wallet } = useWallet(profile?.id);
+
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ── Court-circuit pour un locataire curieux qui clique sur "Propriétaire" ──
-  // On affiche directement l'écran d'onboarding sans chercher des données en base
   const isLocataire = profile?.role === 'locataire';
 
   const fetchData = useCallback(async () => {
     if (!profile?.id) return;
     try {
-        // Fetch listings
-        const { data: listingsData, error: listingsError } = await supabase
-          .from('listings')
-          .select('id, title, city, neighborhood')
-          .eq('owner_id', profile.id)
-          .eq('status', 'publiee');
+      // 1. Fetch properties
+      const { data: propertiesData, error: propertiesError } = await supabase
+        .from('properties')
+        .select('id, name, monthly_rent')
+        .eq('owner_id', profile.id)
+        .eq('is_active', true);
+      
+      if (propertiesError) throw propertiesError;
+      const properties = propertiesData || [];
+      const propertyIds = properties.map(p => p.id);
 
-        if (listingsError) throw listingsError;
+      // 2. Fetch all raw listings (for onboarding check)
+      const { count: listingsCount, error: listingsError } = await supabase
+        .from('listings')
+        .select('*', { count: 'exact', head: true })
+        .eq('owner_id', profile.id);
 
-        const listingIds = (listingsData || []).map(l => l.id);
-
-        let requestCountByListing: Record<string, number> = {};
-        if (listingIds.length > 0) {
-          const { data: allRequests, error: requestsError } = await supabase
-            .from('contact_requests')
-            .select('listing_id')
-            .in('listing_id', listingIds)
-            .eq('status', 'nouvelle');
-
-          if (requestsError) throw requestsError;
-          requestCountByListing = (allRequests || []).reduce((acc, r) => {
-            acc[r.listing_id] = (acc[r.listing_id] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
-        }
-
-        const listingsWithRequests: DashboardData['listings'] = (listingsData || []).map(listing => ({
-          id: listing.id,
-          title: listing.title,
-          location: listing.neighborhood || listing.city,
-          newRequests: requestCountByListing[listing.id] || 0,
-        }));
-
-        // Fetch properties
-        const { data: propertiesData, error: propertiesError } = await supabase
-          .from('properties')
-          .select('id, name, address, monthly_rent')
-          .eq('owner_id', profile.id)
-          .eq('is_active', true);
-
-        if (propertiesError) throw propertiesError;
-
-        const propertyIds = (propertiesData || []).map(p => p.id);
-        const { month, year } = getCurrentMonth();
-
-        let leaseByProperty: Record<string, string> = {};
-        if (propertyIds.length > 0) {
-          const { data: leases, error: leasesError } = await supabase
-            .from('leases')
-            .select('id, property_id')
-            .in('property_id', propertyIds)
-            .eq('status', 'actif');
-
-          if (leasesError) throw leasesError;
-          leaseByProperty = (leases || []).reduce((acc, l) => {
-            acc[l.property_id] = l.id;
-            return acc;
-          }, {} as Record<string, string>);
-        }
-
-        const leaseIds = Object.values(leaseByProperty);
-        let rentPeriodByLease: Record<string, { amount_paid: number; amount_due: number; status: string }> = {};
-        if (leaseIds.length > 0) {
-          const { data: rentPeriods, error: rentError } = await supabase
-            .from('rent_periods')
-            .select('lease_id, amount_paid, amount_due, status')
-            .in('lease_id', leaseIds)
-            .eq('period_month', month)
-            .eq('period_year', year);
-
-          if (rentError) throw rentError;
-          rentPeriodByLease = (rentPeriods || []).reduce((acc, rp) => {
-            acc[rp.lease_id] = rp;
-            return acc;
-          }, {} as Record<string, { amount_paid: number; amount_due: number; status: string }>);
-        }
-
-        const properties: DashboardData['properties'] = [];
-        let totalEncaisse = 0;
-        let soldes = 0;
-        let enCours = 0;
-        let enRetard = 0;
-
-        for (const property of propertiesData || []) {
-          const leaseId = leaseByProperty[property.id];
-          const period = leaseId ? rentPeriodByLease[leaseId] : undefined;
-          if (!period) continue;
-
-          properties.push({
-            id: property.id,
-            leaseId: leaseId,
-            name: property.name,
-            address: property.address,
-            monthlyRent: property.monthly_rent,
-            amountPaid: period.amount_paid || 0,
-            amountDue: period.amount_due || 0,
-            status: period.status,
-          });
-          totalEncaisse += period.amount_paid || 0;
-
-          if (period.status === 'solde') soldes++;
-          else if (period.status === 'en_cours') enCours++;
-          else if (period.status === 'retard') enRetard++;
-        }
-
-        // Mélanger les propriétés (shuffle) au lieu de trier, comme demandé
-        for (let i = properties.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [properties[i], properties[j]] = [properties[j], properties[i]];
-        }
-
-        setData({
-          totalEncaisse,
-          totalListingsRaw: (listingsData || []).length,  // compte brut avant filtre
-          listings: listingsWithRequests.filter(l => l.newRequests > 0),
-          properties,
-          stats: { soldes, enCours, enRetard },
-        });
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        showToast('Erreur lors du chargement des données', 'error');
-      } finally {
-        setLoading(false);
+      // 3. Fetch active leases
+      let leases: any[] = [];
+      let leaseIds: string[] = [];
+      if (propertyIds.length > 0) {
+        const { data: activeLeases, error: leasesError } = await supabase
+          .from('leases')
+          .select('id, property_id')
+          .in('property_id', propertyIds)
+          .eq('status', 'actif');
+        if (leasesError) throw leasesError;
+        leases = activeLeases || [];
+        leaseIds = leases.map(l => l.id);
       }
+
+      // Stats Properties
+      const totalProps = properties.length;
+      const occupiedProps = leases.length;
+      const availableProps = totalProps - occupiedProps;
+
+      // 4. Calculate months for chart (last 6 months including current)
+      const { month: currMonthNum, year: currYear } = getCurrentMonth();
+      
+      // Generation des 6 derniers mois (ex: [5, 4, 3, 2, 1, 12])
+      const chartMonths: {month: number, year: number, shortName: string, label: string}[] = [];
+      for (let i = 5; i >= 0; i--) {
+        let m = currMonthNum - i;
+        let y = currYear;
+        if (m <= 0) {
+          m += 12;
+          y -= 1;
+        }
+        const mName = getMonthName(m, y);
+        chartMonths.push({
+          month: m,
+          year: y,
+          shortName: mName.substring(0, 3).toUpperCase(),
+          label: mName
+        });
+      }
+
+      // 5. Fetch Rent Periods for the last 6 months
+      let currentMonthExpected = 0;
+      let currentMonthReceived = 0;
+      const rawChartData: Record<string, number> = {};
+      const alerts: AlertRent[] = [];
+
+      chartMonths.forEach(cm => rawChartData[`${cm.year}-${cm.month}`] = 0);
+
+      if (leaseIds.length > 0) {
+        // Build OR query for the 6 months
+        const orConditions = chartMonths.map(cm => `and(period_month.eq.${cm.month},period_year.eq.${cm.year})`).join(',');
+        
+        const { data: rentPeriods, error: rentError } = await supabase
+          .from('rent_periods')
+          .select('id, lease_id, period_month, period_year, amount_due, amount_paid, status')
+          .in('lease_id', leaseIds)
+          .or(orConditions);
+
+        if (rentError) throw rentError;
+
+        // Process rent periods
+        (rentPeriods || []).forEach(rp => {
+          const key = `${rp.period_year}-${rp.period_month}`;
+          
+          // Add to chart
+          if (rawChartData[key] !== undefined) {
+            rawChartData[key] += (rp.amount_paid || 0);
+          }
+
+          // Current month calculations
+          if (rp.period_month === currMonthNum && rp.period_year === currYear) {
+            currentMonthExpected += (rp.amount_due || 0);
+            currentMonthReceived += (rp.amount_paid || 0);
+          }
+
+          // Alerts (retard or en_cours with pending amount)
+          const isCurrentOrPast = (rp.period_year < currYear) || (rp.period_year === currYear && rp.period_month <= currMonthNum);
+          if (isCurrentOrPast && (rp.status === 'retard' || (rp.status === 'en_cours' && rp.amount_paid < rp.amount_due))) {
+            const lease = leases.find(l => l.id === rp.lease_id);
+            const prop = properties.find(p => p.id === lease?.property_id);
+            if (prop) {
+              alerts.push({
+                id: rp.id,
+                leaseId: rp.lease_id,
+                propertyName: prop.name,
+                amountDue: (rp.amount_due || 0) - (rp.amount_paid || 0),
+                status: rp.status
+              });
+            }
+          }
+        });
+      }
+
+      // Format Chart Data
+      const chartData: ChartData[] = chartMonths.map(cm => ({
+        month: cm.label,
+        shortName: cm.shortName,
+        total: rawChartData[`${cm.year}-${cm.month}`] || 0
+      }));
+
+      setData({
+        totalListingsRaw: listingsCount || 0,
+        propertiesStats: {
+          total: totalProps,
+          occupied: occupiedProps,
+          available: availableProps
+        },
+        currentMonth: {
+          expected: currentMonthExpected,
+          received: currentMonthReceived,
+          pending: Math.max(0, currentMonthExpected - currentMonthReceived)
+        },
+        chartData,
+        alerts
+      });
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      showToast('Erreur lors du chargement des données', 'error');
+    } finally {
+      setLoading(false);
+    }
   }, [profile?.id, showToast]);
 
   useEffect(() => {
@@ -204,30 +208,21 @@ const Dashboard: React.FC = () => {
       <div className="page-container">
         <div className="px-4 pt-6 space-y-4">
           <div className="flex items-center justify-between mb-2">
-            <div className="space-y-2">
-              <div className="h-3 bg-[var(--imx-surface-2)] rounded w-24 animate-pulse"></div>
-              <div className="h-6 bg-[var(--imx-surface-2)] rounded w-40 animate-pulse"></div>
-            </div>
+            <div className="w-32 h-6 bg-[var(--imx-surface-2)] rounded animate-pulse"></div>
             <div className="w-11 h-11 bg-[var(--imx-surface-2)] rounded-xl animate-pulse"></div>
           </div>
-          <div className="h-36 bg-[#1A3A1A] rounded-3xl animate-pulse"></div>
-          <div className="h-32 bg-[var(--imx-surface)] rounded-2xl animate-pulse"></div>
-          <div className="h-32 bg-[var(--imx-surface)] rounded-2xl animate-pulse"></div>
+          <div className="h-48 bg-[#1A3A1A] rounded-3xl animate-pulse"></div>
+          <div className="grid grid-cols-3 gap-3"><div className="h-20 bg-[var(--imx-surface-2)] rounded-2xl animate-pulse"></div><div className="h-20 bg-[var(--imx-surface-2)] rounded-2xl animate-pulse"></div><div className="h-20 bg-[var(--imx-surface-2)] rounded-2xl animate-pulse"></div></div>
+          <div className="h-40 bg-[var(--imx-surface-2)] rounded-2xl animate-pulse"></div>
         </div>
         <BottomNav />
       </div>
     );
   }
 
-  const { month, year } = getCurrentMonth();
-  const monthName = getMonthName(month, year).toUpperCase();
-  const newRequestsTotal = data?.listings.reduce((sum, l) => sum + l.newRequests, 0) || 0;
+  const hasNoProperty = (data?.totalListingsRaw || 0) === 0 && (data?.propertiesStats.total || 0) === 0;
 
-  // ── Écran d'embarquement si VRAIMENT aucun bien géré ──────────────────────
-  // On utilise totalListingsRaw (compte brut) pour ne pas confondre "pas de demandes" avec "pas d'annonces"
-  const hasNoProperty = (data?.totalListingsRaw || 0) === 0 && (data?.properties.length || 0) === 0;
-
-  // ── Locataire curieux : afficher l'écran d'invitation Propriétaire ──────────
+  // ── ONBOARDING LOCATAIRE OU NOUVEAU PROPRIO ──
   if (isLocataire || hasNoProperty) {
     return (
       <div className="page-container flex flex-col">
@@ -248,345 +243,204 @@ const Dashboard: React.FC = () => {
 
         {/* Onboarding Screen */}
         <div className="flex-1 flex flex-col items-center justify-center px-6 pb-24 text-center">
-          {/* Orb illustratif */}
           <div className="relative mb-8">
-            <div
-              className="w-24 h-24 rounded-3xl flex items-center justify-center"
-              style={{
-                background: 'var(--imx-surface-2)',
-                boxShadow: 'var(--imx-card-shadow-sm)',
-                border: '1px solid var(--imx-border)',
-              }}
-            >
+            <div className="w-24 h-24 rounded-3xl flex items-center justify-center" style={{ background: 'var(--imx-surface-2)', boxShadow: 'var(--imx-card-shadow-sm)', border: '1px solid var(--imx-border)' }}>
               <Building2 size={40} className="text-[var(--imx-accent-light)]" />
             </div>
-            <div
-              className="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: '#22C55E' }}
-            >
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl flex items-center justify-center bg-[#22C55E]">
               <Home size={16} className="text-white" />
             </div>
           </div>
-
           <h1 className="font-nunito font-900 text-[var(--imx-text-primary)] text-[24px] leading-tight mb-3">
             Vous louez un bien immobilier ?
           </h1>
-          <p className="text-[var(--imx-text-secondary)] text-[14px] leading-relaxed mb-10" style={{ fontFamily: 'Space Grotesk', maxWidth: 320 }}>
+          <p className="text-[var(--imx-text-secondary)] text-[14px] leading-relaxed mb-10 font-space-grotesk max-w-[320px]">
             Simplifiez vos encaissements MoMo, suivez vos locataires et sécurisez vos loyers sur ImoFlex.
           </p>
 
-          {/* CTA principal — adapté selon le rôle */}
           {isLocataire ? (
-            <a
-              href="https://wa.me/22960000000?text=Bonjour%20ImoFlex%20!%20Je%20suis%20locataire%20et%20souhaite%20créer%20un%20compte%20Bailleur."
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full max-w-xs flex items-center justify-center gap-2 text-white font-nunito font-900 text-[16px] rounded-3xl py-4 mb-4 transition-all hover:opacity-90 active:scale-95"
-              style={{ background: 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)' }}
-            >
+            <a href="https://wa.me/22960000000?text=Bonjour%20ImoFlex%20!%20Je%20suis%20locataire%20et%20souhaite%20créer%20un%20compte%20Bailleur." target="_blank" rel="noopener noreferrer" className="w-full max-w-xs flex items-center justify-center gap-2 text-white font-nunito font-900 text-[16px] rounded-3xl py-4 mb-4 transition-all hover:opacity-90 active:scale-95 bg-green-500">
               <MessageCircle size={18} /> Demander un compte Bailleur
             </a>
           ) : (
-            <Link
-              to="/pro/publier"
-              className="w-full max-w-xs flex items-center justify-center gap-2 text-white font-nunito font-900 text-[16px] rounded-3xl py-4 mb-4 transition-all hover:opacity-90 active:scale-95 shadow-md"
-              style={{ background: 'var(--imx-accent)' }}
-            >
-              <Plus size={20} />
-              Ajouter mon premier logement
+            <Link to="/pro/publier" className="w-full max-w-xs flex items-center justify-center gap-2 text-white font-nunito font-900 text-[16px] rounded-3xl py-4 mb-4 transition-all hover:opacity-90 active:scale-95 shadow-md bg-[var(--imx-accent)]">
+              <Plus size={20} /> Ajouter mon premier logement
             </Link>
           )}
-
-          {/* CTA secondaire */}
-          <Link
-            to="/"
-            className="flex items-center gap-1.5 text-[var(--imx-accent-light)] text-[13px] font-semibold hover:text-purple-300 transition-colors"
-            style={{ fontFamily: 'Space Grotesk' }}
-          >
-            Parcourir les annonces
-            <ArrowRight size={14} />
+          <Link to="/" className="flex items-center gap-1.5 text-[var(--imx-accent-light)] text-[13px] font-semibold hover:text-purple-300 transition-colors font-space-grotesk">
+            Parcourir les annonces <ArrowRight size={14} />
           </Link>
-
-          {/* Feature pills */}
-          <div className="flex flex-wrap justify-center gap-2 mt-10">
-            {['Paiements MoMo', 'Suivi locataires', 'Quittances PDF', 'Sécurité Supabase'].map((f) => (
-              <span
-                key={f}
-                className="text-[11px] font-semibold px-3 py-1 rounded-full"
-                style={{
-                  background: 'rgba(168,85,247,0.08)',
-                  border: '1px solid rgba(168,85,247,0.15)',
-                  color: 'var(--imx-accent-glow)',
-                  fontFamily: 'Space Grotesk',
-                }}
-              >
-                {f}
-              </span>
-            ))}
-          </div>
         </div>
         <BottomNav />
       </div>
     );
   }
 
+  // Helper render Chart
+  const maxChartVal = Math.max(...(data?.chartData.map(d => d.total) || [0]), 10000); // 10k minimum pour echelle
+
   return (
-    <div className="page-container">
+    <div className="page-container flex flex-col bg-[#F8F7FF]">
       <PullToRefresh onRefresh={fetchData}>
-        {/* ── Role Switcher ── */}
-      <div className="px-4 pt-4 flex justify-center">
-        <div className="bg-[var(--imx-surface-2)] rounded-full p-1 flex items-center border border-[var(--imx-border)] shadow-xs">
-          <button className="px-5 py-1.5 rounded-full text-[11px] font-bold text-white bg-[var(--imx-accent)] shadow-sm font-nunito transition-all">
-            Propriétaire
-          </button>
-          <button 
-            onClick={() => navigate('/dashboard')}
-            className="px-5 py-1.5 rounded-full text-[11px] font-bold text-[var(--imx-text-secondary)] hover:text-[var(--imx-text-primary)] transition-colors font-nunito"
-          >
-            Locataire
-          </button>
-        </div>
-      </div>
-
-      {/* ── Header ── */}
-      <div className="px-4 pt-3 pb-4 flex items-center justify-between">
-        <div>
-          <span
-            style={{ color: 'var(--imx-accent-light)', fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: '0.85rem' }}
-          >
-            {getGreeting()}
-          </span>
-          <h1 className="text-[22px] font-nunito font-black text-[var(--imx-text-primary)] mt-0.5 leading-tight">
-            {profile?.full_name || 'Propriétaire'}
-          </h1>
-        </div>
-
-        {/* Bell and Support buttons — using shared components */}
-        <div className="flex items-center gap-2">
-          <HeaderSupport />
-          <HeaderBell />
-        </div>
-      </div>
-
-      <div className="px-4 space-y-4 flex-1 pb-6">
-        {/* ── CARTE TOTAL ENCAISSÉ (violet premium) ── */}
-        <div
-          className="rounded-[20px] p-5 text-white relative overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, #7B3FE4 0%, #5B21B6 100%)',
-            boxShadow: '0 8px 32px rgba(123, 63, 228, 0.30)',
-            border: '1px solid rgba(255, 255, 255, 0.10)',
-          }}
-        >
-          {/* Orbe décoratif */}
-          <div
-            className="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%)' }}
-          />
-          <div
-            className="absolute bottom-0 left-0 w-24 h-24 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)' }}
-          />
-
-          {/* Label */}
-          <p
-            className="text-[10px] font-bold uppercase tracking-[0.12em] mb-2"
-            style={{ color: 'rgba(255,255,255,0.75)', fontFamily: 'Space Grotesk' }}
-          >
-            TOTAL ENCAISSÉ — {monthName}
-          </p>
-
-          {/* Amount */}
-          <h2
-            className="font-nunito font-black text-[2.2rem] leading-none mb-5 text-white"
-            style={{ letterSpacing: '-0.5px' }}
-          >
-            {new Intl.NumberFormat('fr-FR').format(data?.totalEncaisse || 0)}{' '}
-            <span className="text-[1.5rem] text-white/80">FCFA</span>
-          </h2>
-
-          {/* Stats grid */}
-          <div className="grid grid-cols-3 gap-2 text-center">
-            {/* Soldés */}
-            <div
-              className="rounded-xl py-2.5 px-1"
-              style={{ background: 'rgba(255,255,255,0.15)' }}
-            >
-              <p className="font-nunito font-black text-[22px] leading-none text-white">
-                {data?.stats.soldes || 0}
-              </p>
-              <p
-                className="text-[10px] mt-1.5 font-bold"
-                style={{ color: 'rgba(255,255,255,0.75)', fontFamily: 'Space Grotesk' }}
-              >
-                Soldés
-              </p>
-            </div>
-            {/* En cours */}
-            <div
-              className="rounded-xl py-2.5 px-1"
-              style={{ background: 'rgba(255,255,255,0.15)' }}
-            >
-              <p className="font-nunito font-black text-[22px] leading-none text-white">
-                {data?.stats.enCours || 0}
-              </p>
-              <p
-                className="text-[10px] mt-1.5 font-bold"
-                style={{ color: 'rgba(255,255,255,0.75)', fontFamily: 'Space Grotesk' }}
-              >
-                En cours
-              </p>
-            </div>
-            {/* Retard */}
-            <div
-              className="rounded-xl py-2.5 px-1"
-              style={{ background: 'rgba(255,255,255,0.15)' }}
-            >
-              <p className="font-nunito font-black text-[22px] leading-none" style={{ color: '#FCA5A5' }}>
-                {data?.stats.enRetard || 0}
-              </p>
-              <p
-                className="text-[10px] mt-1.5 font-bold"
-                style={{ color: 'rgba(255,255,255,0.75)', fontFamily: 'Space Grotesk' }}
-              >
-                Retard
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* ── DEMANDES REÇUES ── */}
-        {data?.listings && data.listings.length > 0 && (
+        
+      {/* ── HEADER & GREETING ── */}
+      <div className="bg-white px-5 pt-6 pb-6 rounded-b-[32px] shadow-sm relative z-10" style={{ borderBottom: '1px solid #E5E7EB' }}>
+        <div className="flex items-center justify-between mb-6">
           <div>
-            {/* Section header */}
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-nunito font-black text-[var(--imx-text-primary)] text-[15px]">Demandes reçues</h3>
-              {newRequestsTotal > 0 && (
-                <span
-                  className="text-[10px] font-bold rounded-md px-2.5 py-1"
-                  style={{ background: 'rgba(245,158,11,0.15)', color: '#FBBF24', fontFamily: 'Space Grotesk', letterSpacing: '0.04em' }}
-                >
-                  {newRequestsTotal} NOUVELLE{newRequestsTotal !== 1 ? 'S' : ''}
-                </span>
-              )}
-            </div>
-
-            {/* Listing cards */}
-            <div className="space-y-2.5">
-              {data.listings.map(listing => (
-                <Link
-                  key={listing.id}
-                  to="/pro/demandes"
-                  className="flex items-center justify-between px-4 py-3.5 rounded-[16px] hover:opacity-90 transition"
-                  style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}
-                >
-                  <div className="min-w-0 flex-1 pr-3">
-                    <p className="font-nunito font-bold text-[var(--imx-text-primary)] text-[14px] truncate">{listing.title}</p>
-                    <p className="text-[11px] mt-0.5 truncate flex items-center gap-1" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>
-                      <MapPin size={11} className="text-[var(--imx-text-muted)] flex-shrink-0" />
-                      {listing.location}
-                    </p>
-                  </div>
-                  <span
-                    className="text-[10px] font-bold text-white rounded-md px-2.5 py-1 flex-shrink-0"
-                    style={{ background: 'var(--imx-accent)', fontFamily: 'Space Grotesk' }}
-                  >
-                    {listing.newRequests} demande{listing.newRequests !== 1 ? 's' : ''}
-                  </span>
-                </Link>
-              ))}
-            </div>
+            <span className="text-gray-400 font-space-grotesk font-bold text-[12px] tracking-wide uppercase">
+              {getGreeting()}
+            </span>
+            <h1 className="text-[22px] font-nunito font-black text-[#17132B] mt-0.5 leading-tight">
+              {profile?.full_name?.split(' ')[0] || 'Propriétaire'}
+            </h1>
           </div>
-        )}
-
-        {/* ── MES LOGEMENTS ── */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-nunito font-black text-[var(--imx-text-primary)] text-[15px]">Mes logements</h3>
+          <div className="flex items-center gap-2">
+            <HeaderSupport className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100" />
+            <HeaderBell className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100" />
           </div>
+        </div>
 
-          {data?.properties && data.properties.length > 0 ? (
-            <div className="space-y-3">
-              {data.properties.map(property => {
-                const isSolde = property.status === 'solde' || (property.amountPaid >= property.amountDue && property.amountDue > 0);
-                const isRetard = property.status === 'retard';
-                return (
-                  <Link
-                    key={property.id}
-                    to={`/pro/bail/${property.leaseId}`}
-                    className="rounded-[16px] px-4 py-4 block hover:opacity-90 transition-opacity"
-                    style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}
-                  >
-                    {/* Top row: name + badge */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <h4 className="font-nunito font-black text-[var(--imx-text-primary)] text-[15px] leading-tight truncate">
-                          {property.name}
-                        </h4>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <svg width="10" height="12" viewBox="0 0 24 24" fill="#E11D48" className="flex-shrink-0">
-                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                          </svg>
-                          <p className="text-[11px] truncate" style={{ color: 'var(--imx-text-muted)', fontFamily: 'Space Grotesk' }}>
-                            {property.address}
-                          </p>
-                        </div>
-                      </div>
-                      {/* Status badge */}
-                      <span
-                        className="text-[9px] font-bold rounded-md px-2.5 py-1 flex-shrink-0 mt-0.5 uppercase"
-                        style={{
-                          fontFamily: 'Space Grotesk',
-                          letterSpacing: '0.04em',
-                          background: isSolde ? 'rgba(34,197,94,0.15)' : isRetard ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
-                          color: isSolde ? '#4ADE80' : isRetard ? '#F87171' : '#FBBF24',
-                        }}
-                      >
-                        {isSolde ? 'SOLDÉ' : isRetard ? 'RETARD' : 'EN COURS'}
-                      </span>
-                    </div>
+        {/* ── VOTRE ACTIVITÉ (CARTE HÉROS FINTECH) ── */}
+        <div className="rounded-[24px] p-6 text-white relative overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #7B3FE4 0%, #4C1D95 100%)', boxShadow: '0 12px 32px rgba(123, 63, 228, 0.25)' }}>
+          <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/20 rounded-full blur-xl -ml-10 -mb-10 pointer-events-none" />
 
-                    {/* Progress bar */}
-                    <ProgressBar
-                      current={property.amountPaid}
-                      total={property.amountDue}
-                      isSolde={isSolde}
-                    />
-
-                    {/* Amount row */}
-                    <div className="flex justify-between text-[11px]" style={{ fontFamily: 'Space Grotesk' }}>
-                      <span style={{ color: isSolde ? '#4ADE80' : isRetard ? '#F87171' : 'var(--imx-accent-light)' }}>
-                        {new Intl.NumberFormat('fr-FR').format(property.amountPaid)} F reçus
-                      </span>
-                      <span style={{ color: 'var(--imx-text-muted)' }}>
-                        / {new Intl.NumberFormat('fr-FR').format(property.amountDue)}
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <div
-              className="rounded-[16px] p-8 text-center flex flex-col items-center"
-              style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}
-            >
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'var(--imx-surface-2)', border: '1px solid var(--imx-border)' }}>
-                <Home size={28} color="var(--imx-accent-glow)" />
-              </div>
-              <p className="font-nunito font-bold text-[var(--imx-text-primary)] mb-1.5 text-sm">Aucun logement occupé pour l'instant</p>
-              <p
-                className="text-xs max-w-[240px] leading-relaxed mb-6"
-                style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}
-              >
-                Publiez une annonce, puis activez-la une fois louée pour suivre les loyers ici.
-              </p>
-              <Link to="/pro/publier" className="btn-primary w-full max-w-[220px]">
-                Publier une annonce
+          {/* Solde Wallet */}
+          <div className="relative z-10 mb-6">
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-space-grotesk text-[11px] font-bold uppercase tracking-widest text-white/70">Solde disponible</span>
+              <Link to="/pro/wallet" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm active:bg-white/20">
+                <ArrowUpRight size={16} className="text-white" />
               </Link>
             </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-nunito font-black text-[32px] leading-none">{formatMontant(wallet?.available_balance || 0)}</span>
+              <span className="font-space-grotesk font-semibold text-[14px] text-white/80">FCFA</span>
+            </div>
+          </div>
+
+          <div className="w-full h-[1px] bg-white/10 mb-5" />
+
+          {/* Loyers du mois */}
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-space-grotesk text-[11px] font-bold uppercase tracking-widest text-white/70">Loyers du mois</span>
+              <span className="font-space-grotesk font-bold text-[12px] bg-white/15 px-2 py-0.5 rounded-full text-white">
+                À recevoir : {formatMontant(data?.currentMonth.pending || 0)} F
+              </span>
+            </div>
+            
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="font-nunito font-bold text-[15px]">{formatMontant(data?.currentMonth.received || 0)} F</span>
+              <span className="font-nunito font-bold text-[15px] text-white/50">{formatMontant(data?.currentMonth.expected || 0)} F</span>
+            </div>
+
+            {/* Jauge */}
+            <div className="h-1.5 w-full bg-black/20 rounded-full overflow-hidden">
+              <div className="h-full bg-[#10B981] rounded-full transition-all duration-700" 
+                style={{ width: `${data?.currentMonth.expected ? Math.min((data.currentMonth.received / data.currentMonth.expected) * 100, 100) : 0}%` }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-5 py-6 space-y-6 flex-1">
+        
+        {/* ── PARC IMMOBILIER (STATS RAPIDES) ── */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white rounded-[20px] p-4 flex flex-col items-center text-center shadow-sm border border-gray-100">
+            <span className="font-space-grotesk text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1">Biens</span>
+            <span className="font-nunito font-black text-[22px] text-[#17132B] leading-none">{data?.propertiesStats.total || 0}</span>
+          </div>
+          <div className="bg-white rounded-[20px] p-4 flex flex-col items-center text-center shadow-sm border border-gray-100">
+            <span className="font-space-grotesk text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1">Occupés</span>
+            <span className="font-nunito font-black text-[22px] text-[#10B981] leading-none">{data?.propertiesStats.occupied || 0}</span>
+          </div>
+          <div className="bg-white rounded-[20px] p-4 flex flex-col items-center text-center shadow-sm border border-gray-100">
+            <span className="font-space-grotesk text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1">Libres</span>
+            <span className="font-nunito font-black text-[22px] text-gray-300 leading-none">{data?.propertiesStats.available || 0}</span>
+          </div>
+        </div>
+
+        {/* ── REVENUS DES 6 DERNIERS MOIS ── */}
+        <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-nunito font-black text-[16px] text-[#17132B]">Revenus historiques</h3>
+            <span className="font-space-grotesk text-[11px] font-bold text-gray-400">6 DERNIERS MOIS</span>
+          </div>
+          
+          <div className="flex items-end justify-between h-[120px] gap-2">
+            {data?.chartData.map((d, idx) => {
+              const heightPct = Math.max((d.total / maxChartVal) * 100, 4); // min 4% for visibility
+              const isCurrentMonth = idx === 5;
+              return (
+                <div key={idx} className="flex flex-col items-center gap-2 flex-1 group">
+                  {/* Tooltip on hover (desktop) / active (mobile) could be added here, for now just show amount in a tiny label if big enough */}
+                  <div className="w-full relative flex flex-col justify-end" style={{ height: '100px' }}>
+                    <div 
+                      className={`w-full rounded-md transition-all duration-700 ${isCurrentMonth ? 'bg-[#7B3FE4]' : 'bg-[#E5E7EB]'}`}
+                      style={{ height: `${heightPct}%` }}
+                    />
+                  </div>
+                  <span className={`font-space-grotesk text-[10px] font-bold ${isCurrentMonth ? 'text-[#7B3FE4]' : 'text-gray-400'}`}>
+                    {d.shortName}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── LOYERS À SURVEILLER ── */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-nunito font-black text-[16px] text-[#17132B]">Loyers à surveiller</h3>
+            {data?.alerts && data.alerts.length > 0 && (
+              <span className="font-space-grotesk text-[10px] font-bold bg-amber-100 text-amber-600 px-2 py-0.5 rounded-md">
+                {data.alerts.length} ACTION{data.alerts.length > 1 ? 'S' : ''}
+              </span>
+            )}
+          </div>
+
+          {data?.alerts && data.alerts.length > 0 ? (
+            <div className="space-y-3">
+              {data.alerts.map(alert => (
+                <div key={alert.id} className="bg-white rounded-[20px] p-4 flex items-center justify-between shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${alert.status === 'retard' ? 'bg-red-50' : 'bg-amber-50'}`}>
+                      <AlertTriangle size={18} className={alert.status === 'retard' ? 'text-red-500' : 'text-amber-500'} />
+                    </div>
+                    <div>
+                      <h4 className="font-nunito font-bold text-[14px] text-[#17132B] truncate max-w-[120px]">{alert.propertyName}</h4>
+                      <p className="font-space-grotesk text-[12px] font-semibold text-gray-500">{formatMontant(alert.amountDue)} F restants</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`font-space-grotesk text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${alert.status === 'retard' ? 'bg-red-500 text-white' : 'bg-amber-500 text-white'}`}>
+                      {alert.status === 'retard' ? 'En retard' : 'À venir'}
+                    </span>
+                    <a href={`https://wa.me/?text=Bonjour,%20sauf%20erreur%20de%20ma%20part,%20le%20loyer%20de%20${alert.propertyName}%20n'a%20pas%20encore%20ete%20regle.`} target="_blank" rel="noopener noreferrer" 
+                       className="text-[11px] font-space-grotesk font-bold text-[#7B3FE4] active:opacity-60 flex items-center gap-1">
+                      Relancer <ArrowRight size={12} />
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+             <div className="bg-white rounded-[20px] p-6 flex flex-col items-center text-center shadow-sm border border-gray-100">
+                <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mb-2">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <p className="font-nunito font-bold text-[14px] text-[#17132B]">Tout est à jour</p>
+                <p className="font-space-grotesk text-[12px] text-gray-400 mt-1">Aucun retard de loyer à signaler.</p>
+             </div>
           )}
         </div>
+
       </div>
 
       {/* FAB */}
@@ -596,18 +450,17 @@ const Dashboard: React.FC = () => {
         style={{
           bottom: '82px',
           right: '16px',
-          width: '48px',
-          height: '48px',
-          borderRadius: '50%',
-          background: 'var(--imx-accent)',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+          width: '52px',
+          height: '52px',
+          borderRadius: '26px',
+          background: 'linear-gradient(135deg, #7B3FE4, #5B2DC7)',
+          boxShadow: '0 8px 24px rgba(123, 63, 228, 0.4)',
           zIndex: 45,
         }}
       >
-        <Plus size={22} />
+        <Plus size={24} />
       </Link>
       </PullToRefresh>
-
       <BottomNav />
     </div>
   );
