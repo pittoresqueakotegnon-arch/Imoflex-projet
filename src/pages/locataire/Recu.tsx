@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { CheckCircle2, Building2, User, Calendar, CreditCard, Phone, Share2, ChevronLeft, Copy } from "lucide-react";
+import { CheckCircle2, Building2, User, Calendar, CreditCard, Phone, Share2, ChevronLeft, Copy, Download } from "lucide-react";
 import { Share } from "@capacitor/share";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../components/Toast";
 import { formatMontant } from "../../lib/utils";
 import { haptics } from "../../lib/haptics";
+import { generateQuittancePDF } from "../../lib/pdf";
 
 const MONTH_NAMES = [
   "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin",
@@ -151,6 +152,29 @@ export default function Recu() {
     } catch { /* ignore */ }
   };
 
+  const handleDownloadQuittance = () => {
+    if (!receipt) return;
+    haptics.light();
+    try {
+      generateQuittancePDF({
+        id: receipt.id,
+        fedapay_transaction_id: receipt.fedapay_transaction_id,
+        amount: receipt.amount,
+        date: new Date(receipt.created_at),
+        periodLabel: receipt.periodLabel,
+        propertyName: receipt.propertyName,
+        propertyLocation: receipt.propertyLocation,
+        tenantName: receipt.tenantName,
+        ownerName: receipt.ownerName,
+        operator: receipt.operator,
+      });
+      showToast("Quittance PDF téléchargée !", "success");
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      showToast("Erreur lors de la génération du PDF", "error");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -204,7 +228,7 @@ export default function Recu() {
             </div>
             <p className="font-nunito font-900 text-white text-[32px] leading-none">{formatMontant(receipt.amount)}</p>
             <p className="font-space-grotesk text-white/70 text-[13px] mt-1">FCFA</p>
-            <p className="font-space-grotesk text-white/90 text-[13px] mt-2">Loyer � {receipt.periodLabel}</p>
+            <p className="font-space-grotesk text-white/90 text-[13px] mt-2">Loyer � {receipt.periodLabel}</p>
           </div>
 
           {/* Logo ImoFlex */}
@@ -306,11 +330,22 @@ export default function Recu() {
           </div>
         </div>
 
-        {/* Bouton partager */}
-        <button onClick={handleShare}
-          className="w-full bg-[#7B3FE4] text-white font-nunito font-900 text-[15px] rounded-2xl py-4 flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg shadow-[#7B3FE4]/30">
-          <Share2 size={18} /> Partager le recu
-        </button>
+        {/* Actions : Quittance PDF & Partager */}
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={handleDownloadQuittance}
+            className="w-full bg-[#7B3FE4] text-white font-nunito font-900 text-[15px] rounded-2xl py-4 flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg shadow-[#7B3FE4]/30"
+          >
+            <Download size={18} /> Télécharger la quittance (PDF)
+          </button>
+
+          <button
+            onClick={handleShare}
+            className="w-full bg-white border border-[#7B3FE4]/20 text-[#7B3FE4] font-nunito font-800 text-[15px] rounded-2xl py-3.5 flex items-center justify-center gap-2 active:bg-[#F5F3FF] transition-all"
+          >
+            <Share2 size={18} /> Partager le reçu
+          </button>
+        </div>
 
         <p className="text-center text-gray-400 text-[11px] font-space-grotesk">
           ImoFlex - Trouvez. Choisissez. Habitez.
