@@ -1,20 +1,34 @@
-import { useState, useCallback, useMemo, cloneElement, isValidElement } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowRight, Phone, Home, Wallet, Clock,
-  AlertTriangle, CheckCircle, Bell, MessageSquare,
-  TrendingUp, ChevronRight, User, Smartphone,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Wallet,
+  MessageSquare,
+  Home,
+  CheckCheck,
+  ChevronRight,
+  X,
+  Building2,
+  Calendar,
+  Phone,
+  User,
+  ExternalLink,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotifications } from '../../hooks/useNotifications';
-import { supabase } from '../../lib/supabase';
+import { supabase, Notification } from '../../lib/supabase';
 import { BackButton } from '../../components/BackButton';
 import EmptyState from '../../components/EmptyState';
+import { formatMontant } from '../../lib/utils';
+import { haptics } from '../../lib/haptics';
 
 /* ─────────────────────────────────────────────────────────────
    Types
 ───────────────────────────────────────────────────────────── */
-type FilterTab = 'all' | 'unread' | 'demandes' | 'finances';
+type FilterTab = 'all' | 'unread' | 'finances' | 'demandes';
 
 interface NotifDetails {
   senderName?: string;
@@ -25,453 +39,418 @@ interface NotifDetails {
   operator?: string;
   destinationPhone?: string;
   period?: string;
+  paymentId?: string;
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Config par type de notification
-───────────────────────────────────────────────────────────── */
-type TypeCfg = {
-  icon: React.ReactNode;
-  color: string;         // couleur principale
-  bg: string;            // fond de l'icône
-  border: string;        // bordure gauche accent
-  label: string;
-  category: 'demandes' | 'finances' | 'system';
-};
+interface TypeConfig {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  colorClass: string;
+  bgClass: string;
+  badgeLabel: string;
+  category: 'finances' | 'demandes' | 'system';
+}
 
-const T: Record<string, TypeCfg> = {
-  rappel: {
-    icon: <Clock size={16} />,
-    color: '#F59E0B', bg: 'rgba(245,158,11,0.15)', border: '#F59E0B',
-    label: 'Rappel', category: 'finances',
+const TYPE_CONFIGS: Record<string, TypeConfig> = {
+  nouveau_versement: {
+    icon: CheckCircle2,
+    colorClass: 'text-emerald-600',
+    bgClass: 'bg-emerald-50',
+    badgeLabel: 'Loyer reçu',
+    category: 'finances',
   },
   confirmation: {
-    icon: <CheckCircle size={16} />,
-    color: '#22C55E', bg: 'rgba(34,197,94,0.15)', border: '#22C55E',
-    label: 'Confirmé', category: 'finances',
+    icon: CheckCircle2,
+    colorClass: 'text-emerald-600',
+    bgClass: 'bg-emerald-50',
+    badgeLabel: 'Paiement validé',
+    category: 'finances',
+  },
+  rappel: {
+    icon: Clock,
+    colorClass: 'text-amber-600',
+    bgClass: 'bg-amber-50',
+    badgeLabel: 'Rappel d\'échéance',
+    category: 'finances',
   },
   retard: {
-    icon: <AlertTriangle size={16} />,
-    color: '#EF4444', bg: 'rgba(239,68,68,0.15)', border: '#EF4444',
-    label: 'Retard', category: 'finances',
-  },
-  nouveau_versement: {
-    icon: <TrendingUp size={16} />,
-    color: 'var(--imx-accent-light)', bg: 'rgba(168,85,247,0.15)', border: 'var(--imx-accent-light)',
-    label: 'Versement', category: 'finances',
-  },
-  nouveau_locataire: {
-    icon: <MessageSquare size={16} />,
-    color: '#22C55E', bg: 'rgba(34,197,94,0.15)', border: '#22C55E',
-    label: 'Locataire', category: 'demandes',
-  },
-  nouvelle_demande_contact: {
-    icon: <MessageSquare size={16} />,
-    color: '#C4B5FD', bg: 'rgba(196,181,253,0.12)', border: '#C4B5FD',
-    label: 'Demande', category: 'demandes',
+    icon: AlertTriangle,
+    colorClass: 'text-rose-600',
+    bgClass: 'bg-rose-50',
+    badgeLabel: 'Loyer en retard',
+    category: 'finances',
   },
   retrait_complete: {
-    icon: <Wallet size={16} />,
-    color: '#FBBF24', bg: 'rgba(251,191,36,0.15)', border: '#FBBF24',
-    label: 'Retrait', category: 'finances',
+    icon: Wallet,
+    colorClass: 'text-[#7B3FE4]',
+    bgClass: 'bg-[#F5F3FF]',
+    badgeLabel: 'Retrait validé',
+    category: 'finances',
   },
   retrait_echoue: {
-    icon: <AlertTriangle size={16} />,
-    color: '#EF4444', bg: 'rgba(239,68,68,0.15)', border: '#EF4444',
-    label: 'Échec', category: 'finances',
+    icon: ShieldAlert,
+    colorClass: 'text-rose-600',
+    bgClass: 'bg-rose-50',
+    badgeLabel: 'Retrait échoué',
+    category: 'finances',
+  },
+  nouveau_locataire: {
+    icon: Home,
+    colorClass: 'text-indigo-600',
+    bgClass: 'bg-indigo-50',
+    badgeLabel: 'Nouveau locataire',
+    category: 'demandes',
+  },
+  nouvelle_demande_contact: {
+    icon: MessageSquare,
+    colorClass: 'text-blue-600',
+    bgClass: 'bg-blue-50',
+    badgeLabel: 'Demande de contact',
+    category: 'demandes',
+  },
+  suppression_annonce_approuvee: {
+    icon: CheckCircle2,
+    colorClass: 'text-emerald-600',
+    bgClass: 'bg-emerald-50',
+    badgeLabel: 'Annonce supprimée',
+    category: 'demandes',
+  },
+  suppression_annonce_rejetee: {
+    icon: AlertTriangle,
+    colorClass: 'text-rose-600',
+    bgClass: 'bg-rose-50',
+    badgeLabel: 'Suppression rejetée',
+    category: 'demandes',
+  },
+  suppression_annonce_demandee: {
+    icon: Clock,
+    colorClass: 'text-amber-600',
+    bgClass: 'bg-amber-50',
+    badgeLabel: 'Demande en cours',
+    category: 'demandes',
   },
 };
 
-const DEFAULT_T: TypeCfg = {
-  icon: <Bell size={16} />,
-  color: 'var(--imx-accent-light)', bg: 'rgba(168,85,247,0.12)', border: 'var(--imx-accent-light)',
-  label: 'Info', category: 'system',
+const DEFAULT_TYPE_CONFIG: TypeConfig = {
+  icon: Clock,
+  colorClass: 'text-[#7B3FE4]',
+  bgClass: 'bg-[#F5F3FF]',
+  badgeLabel: 'Information',
+  category: 'system',
 };
 
 /* ─────────────────────────────────────────────────────────────
-   Utilitaires
+   Formatage des dates relatives en français
 ───────────────────────────────────────────────────────────── */
-function relTime(dateStr: string): string {
-  const d = new Date(dateStr), now = new Date();
-  const mins = Math.floor((now.getTime() - d.getTime()) / 60000);
-  if (mins < 1)  return 'À l\'instant';
-  if (mins < 60) return `${mins} min`;
-  const h = Math.floor(mins / 60);
-  if (h < 24)    return `${h} h`;
-  const days = Math.floor(h / 24);
-  if (days === 1) return 'Hier';
-  if (days < 7)  return `${days} j`;
-  return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(d);
-}
-
-function fullDate(dateStr: string): string {
-  return new Intl.DateTimeFormat('fr-FR', {
-    weekday: 'long', day: 'numeric', month: 'long',
-    hour: '2-digit', minute: '2-digit',
-  }).format(new Date(dateStr));
-}
-
-function fmt(n: number) {
-  return new Intl.NumberFormat('fr-FR').format(n) + ' FCFA';
-}
-
-function operatorLabel(op?: string) {
-  return { mtn: 'MTN MoMo', moov: 'Moov Money', celtiis: 'Celtiis Cash' }[op ?? ''] ?? op ?? '';
-}
-
-// Groupe les notifs par date lisible
-function groupByDate(notifs: any[]): { label: string; items: any[] }[] {
-  const groups: Record<string, any[]> = {};
+function formatRelativeDate(isoDate: string): string {
+  const date = new Date(isoDate);
   const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  for (const n of notifs) {
-    const d = new Date(n.created_at);
-    const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
-    const key = diffDays === 0 ? "Aujourd'hui"
-            : diffDays === 1 ? 'Hier'
-            : diffDays < 7  ? `Il y a ${diffDays} jours`
-            : new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' }).format(d);
-
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(n);
+  if (diffMin < 2) return "À l'instant";
+  if (diffMin < 60) return `Il y a ${diffMin} min`;
+  if (diffHours < 24 && date.getDate() === now.getDate()) {
+    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   }
-
-  return Object.entries(groups).map(([label, items]) => ({ label, items }));
+  if (diffDays === 1 || (diffDays === 0 && date.getDate() !== now.getDate())) {
+    return `Hier à ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  if (diffDays < 7) {
+    return date.toLocaleDateString('fr-FR', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+  return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Bottom-sheet Détail
+   Composant NotifCard
 ───────────────────────────────────────────────────────────── */
-interface SheetProps {
-  notif: any;
-  cfg: TypeCfg;
-  details: NotifDetails | null;
-  loading: boolean;
-  onClose: () => void;
-  onNavigate: () => void;
-}
-
-function DetailSheet({ notif, cfg, details, loading, onClose, onNavigate }: SheetProps) {
-  const navLabel: Record<string, string> = {
-    nouvelle_demande_contact: 'Voir la demande',
-    nouveau_locataire:        'Voir les locataires',
-    nouveau_versement:        'Tableau de bord',
-    confirmation:             "Voir l'historique",
-    retard:                   "Voir l'historique",
-    rappel:                   "Voir l'historique",
-    retrait_complete:         'Mon portefeuille',
-    retrait_echoue:           'Mon portefeuille',
-  };
-
-  return (
-    /* Fond flou */
-    <div
-      className="fixed inset-0 z-50 flex items-end"
-      style={{ background: 'rgba(8,5,24,0.72)', backdropFilter: 'blur(8px)' }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-[390px] mx-auto rounded-t-[28px] overflow-hidden"
-        style={{ background: 'var(--imx-bg-app)', border: '1px solid var(--imx-border)', borderBottom: 'none' }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* ── Handle ── */}
-        <div className="flex justify-center pt-3">
-          <div className="w-9 h-[3px] rounded-full bg-white/20" />
-        </div>
-
-        {/* ── Icône centrale + Titre ── */}
-        <div className="px-5 pt-5 pb-4 flex flex-col items-center text-center" style={{ borderBottom: '1px solid var(--imx-border)' }}>
-          {/* Icône grande */}
-          <div
-            className="w-16 h-16 rounded-[22px] flex items-center justify-center mb-3 relative"
-            style={{ background: cfg.bg, border: `1.5px solid ${cfg.color}25` }}
-          >
-            {isValidElement(cfg.icon) ? cloneElement(cfg.icon as React.ReactElement<{ size?: number }>, { size: 28 }) : cfg.icon}
-            {/* Puce app */}
-            <div
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
-              style={{ background: cfg.color, boxShadow: `0 0 10px ${cfg.color}80` }}
-            >
-              <span className="text-[9px] text-white font-bold">i</span>
-            </div>
-          </div>
-
-          {/* Label app */}
-          <span
-            className="text-[10px] font-bold uppercase tracking-widest mb-2"
-            style={{ color: cfg.color, fontFamily: 'Space Grotesk' }}
-          >
-            ImoFlex · {cfg.label}
-          </span>
-
-          {/* Titre */}
-          <h2 className="font-nunito font-900 text-[var(--imx-text-primary)] text-lg leading-snug px-2">
-            {notif.title}
-          </h2>
-
-          {/* Date précise */}
-          <p className="text-[11px] text-[#6B5FA0] mt-1.5 capitalize" style={{ fontFamily: 'Space Grotesk' }}>
-            {fullDate(notif.created_at)}
-          </p>
-        </div>
-
-        {/* ── Corps / Aperçu ── */}
-        {notif.body && (
-          <div className="mx-5 mt-4 px-4 py-3 rounded-2xl" style={{ background: 'rgba(123,63,228,0.07)', border: '1px solid rgba(123,63,228,0.1)' }}>
-            <p className="text-sm text-[#C4B5FD] leading-relaxed" style={{ fontFamily: 'Space Grotesk' }}>
-              {notif.body}
-            </p>
-          </div>
-        )}
-
-        {/* ── Détails contextuels ── */}
-        <div className="px-5 mt-4 space-y-2 pb-2">
-          {loading ? (
-            <>
-              {[1, 2].map(i => (
-                <div key={i} className="h-13 rounded-2xl animate-pulse" style={{ background: 'var(--imx-surface)' }} />
-              ))}
-            </>
-          ) : details && (
-            <>
-              {/* Demandeur */}
-              {details.senderName && (
-                <DetailRow icon={<User size={14} color={cfg.color} />} label="Demandeur" value={details.senderName} />
-              )}
-
-              {/* Téléphone cliquable */}
-              {details.senderPhone && (
-                <a href={`tel:${details.senderPhone}`} className="block">
-                  <DetailRow icon={<Phone size={14} color="#10B981" />} label="Téléphone" value={details.senderPhone} accent="#10B981" clickable />
-                </a>
-              )}
-
-              {/* Logement */}
-              {details.listingTitle && (
-                <DetailRow icon={<Home size={14} color={cfg.color} />} label="Logement" value={details.listingTitle} />
-              )}
-
-              {/* Message */}
-              {details.message && (
-                <div className="px-4 py-3 rounded-2xl" style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}>
-                  <p className="text-[10px] text-[#6B5FA0] uppercase tracking-wider mb-1" style={{ fontFamily: 'Space Grotesk' }}>Message</p>
-                  <p className="text-sm text-[#C4B5FD] leading-relaxed italic" style={{ fontFamily: 'Space Grotesk' }}>
-                    "{details.message}"
-                  </p>
-                </div>
-              )}
-
-              {/* Montant */}
-              {details.amount && (
-                <div
-                  className="flex items-center justify-between px-4 py-3 rounded-2xl"
-                  style={{ background: `${cfg.color}10`, border: `1px solid ${cfg.color}20` }}
-                >
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: cfg.color, fontFamily: 'Space Grotesk' }}>Montant</p>
-                    <p className="font-nunito font-900 text-[var(--imx-text-primary)] text-xl">{fmt(details.amount)}</p>
-                  </div>
-                  <Wallet size={24} style={{ color: cfg.color }} className="opacity-60" />
-                </div>
-              )}
-
-              {/* Opérateur */}
-              {details.operator && (
-                <DetailRow icon={<Smartphone size={14} color={cfg.color} />} label="Opérateur" value={`${operatorLabel(details.operator)}${details.destinationPhone ? ' · ' + details.destinationPhone : ''}`} />
-              )}
-
-              {/* Période */}
-              {details.period && (
-                <DetailRow icon={<Clock size={14} color={cfg.color} />} label="Période" value={details.period} />
-              )}
-            </>
-          )}
-        </div>
-
-        {/* ── Bouton d'action ── */}
-        {navLabel[notif.type] && (
-          <div className="px-5 py-4">
-            <button
-              onClick={onNavigate}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm tracking-wide transition-all active:scale-[0.97]"
-              style={{
-                background: `linear-gradient(135deg, ${cfg.color}CC, ${cfg.color})`,
-                color: 'white',
-                fontFamily: 'Space Grotesk',
-                boxShadow: `0 8px 24px ${cfg.color}40`,
-              }}
-            >
-              {navLabel[notif.type]}
-              <ArrowRight size={16} />
-            </button>
-          </div>
-        )}
-
-        {/* Safe area bottom */}
-        <div className="h-safe-area pb-2" />
-      </div>
-    </div>
-  );
-}
-
-/* ── Ligne de détail réutilisable ── */
-function DetailRow({
-  icon, label, value, accent, clickable,
+function NotifCard({
+  notif,
+  onClick,
 }: {
-  icon: React.ReactNode | string;
-  label: string;
-  value: string;
-  accent?: string;
-  clickable?: boolean;
+  notif: Notification;
+  onClick: () => void;
 }) {
-  return (
-    <div
-      className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-      style={{
-        background: 'var(--imx-surface)',
-        border: '1px solid var(--imx-border)',
-        ...(clickable ? { borderColor: `${accent}30` } : {}),
-      }}
-    >
-      <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-base"
-        style={{ background: accent ? `${accent}18` : 'rgba(123,63,228,0.1)' }}>
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] uppercase tracking-wider text-[#6B5FA0] mb-0.5" style={{ fontFamily: 'Space Grotesk' }}>{label}</p>
-        <p className="text-sm font-semibold truncate" style={{ color: accent ?? 'var(--imx-text-primary)', fontFamily: 'Space Grotesk' }}>{value}</p>
-      </div>
-      {clickable && <ChevronRight size={14} style={{ color: accent }} className="flex-shrink-0 opacity-70" />}
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────
-   Carte de notification (style iOS/Android)
-───────────────────────────────────────────────────────────── */
-function NotifCard({ notif, onClick }: { notif: any; onClick: () => void }) {
-  const cfg = T[notif.type] ?? DEFAULT_T;
+  const config = TYPE_CONFIGS[notif.type] || DEFAULT_TYPE_CONFIG;
+  const Icon = config.icon;
   const isUnread = !notif.is_read;
 
   return (
-    <button
+    <div
       onClick={onClick}
-      className="w-full text-left flex items-start gap-3 px-3.5 py-3 rounded-2xl transition-all active:scale-[0.98] hover:brightness-110"
-      style={{
-        background: isUnread ? 'var(--imx-surface)' : 'var(--imx-bg-app)',
-        border: `1px solid ${isUnread ? cfg.color + '30' : 'var(--imx-border)'}`,
-        boxShadow: isUnread ? `0 0 0 1px ${cfg.color}15 inset` : 'none',
-      }}
+      className={`group relative rounded-2xl p-4 transition-all duration-200 cursor-pointer border ${
+        isUnread
+          ? 'bg-white border-[#7B3FE4]/20 shadow-sm shadow-[#7B3FE4]/5'
+          : 'bg-white/80 hover:bg-white border-gray-100 hover:border-gray-200'
+      } active:scale-[0.99]`}
     >
-      {/* Barre accent gauche */}
-      <div
-        className="self-stretch w-[3px] rounded-full flex-shrink-0 mt-0.5"
-        style={{ background: isUnread ? cfg.color : 'var(--imx-border)', minHeight: '36px' }}
-      />
-
-      {/* Icône / Avatar app */}
-      <div
-        className="w-10 h-10 rounded-[14px] flex items-center justify-center flex-shrink-0 text-xl"
-        style={{ background: cfg.bg, border: `1px solid ${cfg.color}20` }}
-      >
-        {cfg.icon}
-      </div>
-
-      {/* Texte */}
-      <div className="flex-1 min-w-0">
-        {/* Ligne 1 : app label + temps */}
-        <div className="flex items-center justify-between mb-0.5">
-          <span
-            className="text-[10px] font-bold uppercase tracking-wider"
-            style={{ color: cfg.color, fontFamily: 'Space Grotesk' }}
-          >
-            {cfg.label}
-          </span>
-          <span
-            className="text-[10px] flex-shrink-0 ml-2"
-            style={{ color: isUnread ? 'var(--imx-text-secondary)' : 'var(--imx-text-muted)', fontFamily: 'Space Grotesk' }}
-          >
-            {relTime(notif.created_at)}
-          </span>
+      <div className="flex items-start gap-3.5">
+        {/* Icône de type */}
+        <div
+          className={`w-11 h-11 rounded-2xl ${config.bgClass} ${config.colorClass} flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105`}
+        >
+          <Icon size={20} />
         </div>
 
-        {/* Ligne 2 : Titre */}
-        <p
-          className="text-sm leading-snug"
-          style={{
-            color: isUnread ? 'var(--imx-text-primary)' : 'var(--imx-text-secondary)',
-            fontWeight: isUnread ? 700 : 500,
-            fontFamily: 'Nunito Sans, sans-serif',
-          }}
-        >
-          {notif.title}
-        </p>
+        {/* Contenu principal */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span
+              className={`text-[11px] font-space-grotesk font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${config.bgClass} ${config.colorClass}`}
+            >
+              {config.badgeLabel}
+            </span>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="text-[11px] text-gray-400 font-space-grotesk">
+                {formatRelativeDate(notif.created_at)}
+              </span>
+              {isUnread && (
+                <span className="w-2 h-2 rounded-full bg-[#7B3FE4] flex-shrink-0" />
+              )}
+            </div>
+          </div>
 
-        {/* Ligne 3 : Corps aperçu */}
-        {notif.body && (
-          <p
-            className="text-xs mt-0.5 line-clamp-1"
-            style={{
-              color: isUnread ? 'var(--imx-text-secondary)' : 'var(--imx-text-muted)',
-              fontFamily: 'Space Grotesk',
-              lineHeight: '1.4',
-            }}
+          <h3
+            className={`font-nunito text-[14px] leading-tight mb-1 truncate ${
+              isUnread ? 'font-black text-[#17132B]' : 'font-bold text-gray-800'
+            }`}
           >
+            {notif.title}
+          </h3>
+
+          <p className="text-[12px] text-gray-500 font-space-grotesk line-clamp-2 leading-relaxed">
             {notif.body}
           </p>
-        )}
-      </div>
+        </div>
 
-      {/* Puce non-lu à droite */}
-      {isUnread && (
-        <div
-          className="w-2 h-2 rounded-full flex-shrink-0 mt-2"
-          style={{ background: cfg.color, boxShadow: `0 0 6px ${cfg.color}` }}
-        />
-      )}
-    </button>
+        {/* Flèche subtile */}
+        <div className="self-center flex-shrink-0 text-gray-300 group-hover:text-[#7B3FE4] transition-colors">
+          <ChevronRight size={16} />
+        </div>
+      </div>
+    </div>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Page principale
+   Composant DetailSheet
+───────────────────────────────────────────────────────────── */
+function DetailSheet({
+  notif,
+  config,
+  details,
+  loading,
+  onClose,
+  onAction,
+}: {
+  notif: Notification;
+  config: TypeConfig;
+  details: NotifDetails | null;
+  loading: boolean;
+  onClose: () => void;
+  onAction: () => void;
+}) {
+  const Icon = config.icon;
+
+  const getActionText = () => {
+    switch (notif.type) {
+      case 'confirmation':
+        return 'Voir le reçu & quittance';
+      case 'nouveau_versement':
+        return 'Voir le tableau de bord';
+      case 'rappel':
+      case 'retard':
+        return 'Payer mon loyer';
+      case 'retrait_complete':
+      case 'retrait_echoue':
+        return 'Voir mon solde';
+      case 'nouvelle_demande_contact':
+        return 'Voir les demandes';
+      default:
+        return 'Accéder aux détails';
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg bg-white rounded-t-[32px] p-6 shadow-2xl border-t border-gray-100 max-h-[85vh] overflow-y-auto"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Poignée de drag */}
+        <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" />
+
+        {/* En-tête */}
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div className="flex items-center gap-3">
+            <div
+              className={`w-12 h-12 rounded-2xl ${config.bgClass} ${config.colorClass} flex items-center justify-center flex-shrink-0`}
+            >
+              <Icon size={24} />
+            </div>
+            <div>
+              <span
+                className={`text-[11px] font-space-grotesk font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${config.bgClass} ${config.colorClass}`}
+              >
+                {config.badgeLabel}
+              </span>
+              <p className="text-[12px] text-gray-400 font-space-grotesk mt-1">
+                {new Date(notif.created_at).toLocaleDateString('fr-FR', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 active:bg-gray-200 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Titre & Corps */}
+        <h2 className="font-nunito font-black text-[18px] text-[#17132B] mb-2 leading-snug">
+          {notif.title}
+        </h2>
+        <p className="text-[14px] text-gray-600 font-space-grotesk leading-relaxed mb-6 whitespace-pre-line">
+          {notif.body}
+        </p>
+
+        {/* Données complémentaires chargées */}
+        {loading ? (
+          <div className="bg-gray-50 rounded-2xl p-4 animate-pulse space-y-2 mb-6">
+            <div className="h-4 bg-gray-200 rounded-md w-1/3" />
+            <div className="h-4 bg-gray-200 rounded-md w-2/3" />
+          </div>
+        ) : details ? (
+          <div className="bg-[#F8F7FF] rounded-2xl p-4 border border-[#7B3FE4]/10 space-y-3 mb-6">
+            {details.amount !== undefined && (
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] text-gray-400 font-space-grotesk">Montant</span>
+                <span className="font-nunito font-900 text-[18px] text-[#7B3FE4]">
+                  {formatMontant(details.amount)} FCFA
+                </span>
+              </div>
+            )}
+
+            {details.period && (
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-gray-400 font-space-grotesk flex items-center gap-1.5">
+                  <Calendar size={14} /> Période
+                </span>
+                <span className="font-space-grotesk font-bold text-[#17132B]">
+                  {details.period}
+                </span>
+              </div>
+            )}
+
+            {details.listingTitle && (
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-gray-400 font-space-grotesk flex items-center gap-1.5">
+                  <Building2 size={14} /> Logement
+                </span>
+                <span className="font-nunito font-bold text-[#17132B] max-w-[200px] truncate text-right">
+                  {details.listingTitle}
+                </span>
+              </div>
+            )}
+
+            {details.senderName && (
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-gray-400 font-space-grotesk flex items-center gap-1.5">
+                  <User size={14} /> Demandeur
+                </span>
+                <span className="font-space-grotesk font-bold text-[#17132B]">
+                  {details.senderName}
+                </span>
+              </div>
+            )}
+
+            {details.senderPhone && (
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-gray-400 font-space-grotesk flex items-center gap-1.5">
+                  <Phone size={14} /> Téléphone
+                </span>
+                <span className="font-mono text-[13px] font-bold text-[#17132B]">
+                  {details.senderPhone}
+                </span>
+              </div>
+            )}
+
+            {details.destinationPhone && (
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-gray-400 font-space-grotesk flex items-center gap-1.5">
+                  <Phone size={14} /> Numéro de réception
+                </span>
+                <span className="font-mono text-[13px] font-bold text-[#17132B]">
+                  {details.destinationPhone} ({details.operator?.toUpperCase() || ''})
+                </span>
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        {/* Bouton d'action contextuel */}
+        <button
+          onClick={onAction}
+          className="w-full bg-[#7B3FE4] text-white font-nunito font-900 text-[15px] rounded-2xl py-4 flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg shadow-[#7B3FE4]/25"
+        >
+          <span>{getActionText()}</span>
+          <ExternalLink size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Page principale Notifications
 ───────────────────────────────────────────────────────────── */
 export default function Notifications() {
   const navigate = useNavigate();
-  const { profile, role } = useAuth();
-  const { notifications, unreadCount, loading, markAllRead, markRead } = useNotifications(profile?.id);
+  const { profile } = useAuth();
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    markAllRead,
+    markRead,
+  } = useNotifications(profile?.id);
 
   const [tab, setTab] = useState<FilterTab>('all');
-  const [selected, setSelected] = useState<any | null>(null);
+  const [selected, setSelected] = useState<Notification | null>(null);
   const [details, setDetails] = useState<NotifDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  /* ── Filtrage ─────────────────────────────────── */
-  const filtered = useMemo(() => notifications.filter(n => {
-    const cat = (T[n.type] ?? DEFAULT_T).category;
-    if (tab === 'all')      return true;
-    if (tab === 'unread')   return !n.is_read;
-    if (tab === 'demandes') return cat === 'demandes';
-    if (tab === 'finances') return cat === 'finances';
-    return true;
-  }), [notifications, tab]);
+  const role = profile?.role || 'locataire';
 
-  /* ── Groupement par date ──────────────────────── */
-  const groups = useMemo(() => groupByDate(filtered), [filtered]);
-
-  /* ── Chargement des détails ───────────────────── */
-  const loadDetails = useCallback(async (notif: any) => {
-    if (!notif.related_id) { setDetails(null); return; }
+  /* ── Chargement des détails associés ───────────── */
+  const loadDetails = useCallback(async (notif: Notification) => {
+    if (!notif.related_id) {
+      setDetails(null);
+      return;
+    }
     setLoadingDetails(true);
     try {
       const d: NotifDetails = {};
+
       if (notif.type === 'nouvelle_demande_contact') {
         const { data } = await supabase
           .from('contact_requests')
           .select('message, contact_phone, users(full_name), listings(title)')
           .eq('id', notif.related_id)
-          .single();
+          .maybeSingle();
         if (data) {
           d.message = data.message;
           d.senderPhone = data.contact_phone;
@@ -483,120 +462,226 @@ export default function Notifications() {
           .from('withdrawals')
           .select('amount, operator, destination_phone')
           .eq('id', notif.related_id)
-          .single();
+          .maybeSingle();
         if (data) {
           d.amount = data.amount;
           d.operator = data.operator;
           d.destinationPhone = data.destination_phone;
         }
-      } else if (['nouveau_versement', 'confirmation', 'retard', 'rappel'].includes(notif.type)) {
-        const { data } = await supabase
+      } else if (['nouveau_versement', 'confirmation'].includes(notif.type)) {
+        // Tenter d'abord de récupérer le paiement associé
+        const { data: pay } = await supabase
+          .from('payments')
+          .select(`
+            id, amount, operator,
+            rent_periods:rent_period_id (
+              period_month, period_year,
+              leases:lease_id (properties:property_id (name))
+            )
+          `)
+          .eq('id', notif.related_id)
+          .maybeSingle();
+
+        if (pay) {
+          d.amount = pay.amount;
+          d.operator = pay.operator;
+          d.paymentId = pay.id;
+          const rp = (pay as any).rent_periods;
+          if (rp) {
+            const months = ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+            d.period = `${months[(rp.period_month ?? 1) - 1]} ${rp.period_year}`;
+            d.listingTitle = rp.leases?.properties?.name;
+          }
+        } else {
+          // Fallback sur rent_periods
+          const { data: rp } = await supabase
+            .from('rent_periods')
+            .select('amount_due, period_month, period_year, leases(properties(name))')
+            .eq('id', notif.related_id)
+            .maybeSingle();
+          if (rp) {
+            d.amount = rp.amount_due;
+            const months = ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+            d.period = `${months[(rp.period_month ?? 1) - 1]} ${rp.period_year}`;
+            d.listingTitle = (rp.leases as any)?.properties?.name;
+          }
+        }
+      } else if (['rappel', 'retard'].includes(notif.type)) {
+        const { data: rp } = await supabase
           .from('rent_periods')
           .select('amount_due, period_month, period_year, leases(properties(name))')
           .eq('id', notif.related_id)
-          .single();
-        if (data) {
-          d.amount = data.amount_due;
-          const months = ['Janv','Févr','Mars','Avr','Mai','Juin','Juil','Août','Sept','Oct','Nov','Déc'];
-          d.period = `${months[(data.period_month ?? 1) - 1]} ${data.period_year}`;
-          d.listingTitle = (data.leases as any)?.properties?.name;
+          .maybeSingle();
+        if (rp) {
+          d.amount = rp.amount_due;
+          const months = ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+          d.period = `${months[(rp.period_month ?? 1) - 1]} ${rp.period_year}`;
+          d.listingTitle = (rp.leases as any)?.properties?.name;
         }
       }
       setDetails(d);
-    } catch { setDetails(null); }
-    finally { setLoadingDetails(false); }
+    } catch (e) {
+      console.warn('Error loading notif details:', e);
+      setDetails(null);
+    } finally {
+      setLoadingDetails(false);
+    }
   }, []);
 
-  /* ── Clic sur une carte ───────────────────────── */
-  const handleClick = async (notif: any) => {
-    if (!notif.is_read) await markRead(notif.id);
+  /* ── Clic sur une notification ─────────────────── */
+  const handleClick = async (notif: Notification) => {
+    haptics.light();
+    if (!notif.is_read) {
+      await markRead(notif.id);
+    }
     setDetails(null);
     setSelected(notif);
     loadDetails(notif);
   };
 
-  /* ── Navigation depuis sheet ──────────────────── */
-  const handleNavigate = () => {
+  /* ── Action contextuelle depuis le sheet ───────── */
+  const handleAction = () => {
     if (!selected) return;
+    const notif = selected;
     setSelected(null);
-    const { type } = selected;
-    if (['nouveau_versement','confirmation','retard','rappel'].includes(type)) {
+
+    if (notif.type === 'confirmation') {
+      if (details?.paymentId || notif.related_id) {
+        navigate(`/recu/${details?.paymentId || notif.related_id}`);
+      } else {
+        navigate('/historique');
+      }
+    } else if (notif.type === 'nouveau_versement') {
       navigate(role === 'proprietaire' ? '/pro/dashboard' : '/historique');
-    } else if (type === 'nouvelle_demande_contact') {
-      navigate(role === 'proprietaire' ? '/pro/demandes' : '/mes-demandes');
-    } else if (['retrait_complete','retrait_echoue'].includes(type)) {
+    } else if (['rappel', 'retard'].includes(notif.type)) {
+      navigate('/payer');
+    } else if (['retrait_complete', 'retrait_echoue'].includes(notif.type)) {
       navigate('/pro/wallet');
-    } else if (type === 'nouveau_locataire') {
-      navigate('/pro/dashboard');
+    } else if (notif.type === 'nouvelle_demande_contact') {
+      navigate(role === 'proprietaire' ? '/pro/demandes' : '/mes-demandes');
+    } else {
+      navigate(role === 'proprietaire' ? '/pro/dashboard' : '/');
     }
   };
 
+  /* ── Filtrage ─────────────────────────────────── */
+  const filtered = useMemo(() => {
+    return notifications.filter((n) => {
+      if (tab === 'unread') return !n.is_read;
+      if (tab === 'finances') {
+        const cfg = TYPE_CONFIGS[n.type] || DEFAULT_TYPE_CONFIG;
+        return cfg.category === 'finances';
+      }
+      if (tab === 'demandes') {
+        const cfg = TYPE_CONFIGS[n.type] || DEFAULT_TYPE_CONFIG;
+        return cfg.category === 'demandes';
+      }
+      return true;
+    });
+  }, [notifications, tab]);
+
+  /* ── Regroupement temporel ────────────────────── */
+  const groups = useMemo(() => {
+    const today: Notification[] = [];
+    const thisWeek: Notification[] = [];
+    const older: Notification[] = [];
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfWeek = startOfToday - 6 * 24 * 60 * 60 * 1000;
+
+    filtered.forEach((n) => {
+      const time = new Date(n.created_at).getTime();
+      if (time >= startOfToday) {
+        today.push(n);
+      } else if (time >= startOfWeek) {
+        thisWeek.push(n);
+      } else {
+        older.push(n);
+      }
+    });
+
+    const list: { label: string; items: Notification[] }[] = [];
+    if (today.length > 0) list.push({ label: "Aujourd'hui", items: today });
+    if (thisWeek.length > 0) list.push({ label: 'Cette semaine', items: thisWeek });
+    if (older.length > 0) list.push({ label: 'Plus ancien', items: older });
+
+    return list;
+  }, [filtered]);
+
   const tabs: { key: FilterTab; label: string; count?: number }[] = [
-    { key: 'all',      label: 'Toutes',   count: notifications.length },
-    { key: 'unread',   label: 'Non lues', count: unreadCount || undefined },
-    { key: 'demandes', label: 'Demandes' },
+    { key: 'all', label: 'Toutes', count: notifications.length },
+    { key: 'unread', label: 'Non lues', count: unreadCount || undefined },
     { key: 'finances', label: 'Finances' },
+    { key: 'demandes', label: 'Demandes' },
   ];
 
-  const selectedCfg = selected ? (T[selected.type] ?? DEFAULT_T) : DEFAULT_T;
-
   return (
-    <>
-      <div className="page-container" style={{ paddingBottom: '24px' }}>
-
-        {/* ── Header ─────────────────────────────────────── */}
-        <header className="sticky-header px-4 py-4 flex items-center justify-between">
+    <div
+      className="min-h-screen bg-[#F8F7FF] flex flex-col"
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 32px)' }}
+    >
+      {/* ── Header ────────────────────────────────────── */}
+      <header
+        className="sticky top-0 z-30 bg-white/95 backdrop-blur-md px-5 pb-3 border-b border-gray-100"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
+      >
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <BackButton />
             <div>
-              <h1 className="font-nunito font-900 text-lg text-[var(--imx-text-primary)] leading-none">Notifications</h1>
-              {unreadCount > 0 && (
-                <p className="text-[11px] text-[var(--imx-accent-light)] mt-0.5" style={{ fontFamily: 'Space Grotesk' }}>
+              <h1 className="font-nunito font-900 text-xl text-[#17132B] leading-none">
+                Notifications
+              </h1>
+              {unreadCount > 0 ? (
+                <p className="text-[12px] text-[#7B3FE4] font-space-grotesk font-semibold mt-0.5">
                   {unreadCount} non lue{unreadCount > 1 ? 's' : ''}
+                </p>
+              ) : (
+                <p className="text-[12px] text-gray-400 font-space-grotesk mt-0.5">
+                  Toutes vos alertes
                 </p>
               )}
             </div>
           </div>
+
           {unreadCount > 0 && (
             <button
-              onClick={markAllRead}
-              className="text-xs font-semibold px-3 py-1.5 rounded-full transition-all active:scale-95"
-              style={{
-                background: 'rgba(168,85,247,0.1)',
-                color: 'var(--imx-accent-light)',
-                border: '1px solid rgba(168,85,247,0.22)',
-                fontFamily: 'Space Grotesk',
+              onClick={() => {
+                haptics.light();
+                markAllRead();
               }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-space-grotesk font-bold bg-[#F5F3FF] text-[#7B3FE4] active:bg-[#EDE9FE] transition-colors"
             >
-              Tout lire
+              <CheckCheck size={14} />
+              <span>Tout lire</span>
             </button>
           )}
-        </header>
+        </div>
 
-        {/* ── Onglets ─────────────────────────────────────── */}
-        <div className="px-4 pb-2 flex gap-2 overflow-x-auto scrollbar-hide">
-          {tabs.map(t => {
+        {/* ── Onglets de filtres ──────────────────────── */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pt-1">
+          {tabs.map((t) => {
             const active = tab === t.key;
             return (
               <button
                 key={t.key}
-                onClick={() => setTab(t.key)}
-                className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95"
-                style={{
-                  fontFamily: 'Space Grotesk',
-                  background: active ? 'var(--imx-accent)' : 'var(--imx-border)',
-                  color: active ? 'white' : '#6B5FA0',
-                  border: active ? 'none' : '1px solid var(--imx-border)',
+                onClick={() => {
+                  haptics.light();
+                  setTab(t.key);
                 }}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-space-grotesk font-bold transition-all active:scale-95 ${
+                  active
+                    ? 'bg-[#7B3FE4] text-white shadow-sm shadow-[#7B3FE4]/20'
+                    : 'bg-gray-50 text-gray-600 border border-gray-100'
+                }`}
               >
-                {t.label}
+                <span>{t.label}</span>
                 {t.count !== undefined && t.count > 0 && (
                   <span
-                    className="text-[9px] font-bold px-1 py-0.5 rounded-full min-w-[16px] text-center"
-                    style={{
-                      background: active ? 'rgba(255,255,255,0.2)' : 'rgba(168,85,247,0.25)',
-                      color: active ? 'white' : '#C4B5FD',
-                    }}
+                    className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full min-w-[16px] text-center ${
+                      active ? 'bg-white/25 text-white' : 'bg-[#7B3FE4]/10 text-[#7B3FE4]'
+                    }`}
                   >
                     {t.count}
                   </span>
@@ -605,69 +690,74 @@ export default function Notifications() {
             );
           })}
         </div>
+      </header>
 
-        {/* ── Séparateur ── */}
-        <div style={{ height: '1px', background: 'rgba(123,63,228,0.08)', margin: '0 0 8px 0' }} />
-
-        {/* ── Liste groupée ────────────────────────────────── */}
+      {/* ── Contenu / Liste ───────────────────────────── */}
+      <main className="flex-1 px-4 py-4 max-w-lg mx-auto w-full">
         {loading ? (
-          <div className="px-4 space-y-1 pt-2">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="flex items-start gap-3 py-3">
-                <div className="w-10 h-10 rounded-[14px] animate-pulse flex-shrink-0" style={{ background: 'var(--imx-surface)' }} />
-                <div className="flex-1 space-y-2 pt-1">
-                  <div className="h-3 rounded-full animate-pulse w-1/3" style={{ background: 'var(--imx-surface)' }} />
-                  <div className="h-3.5 rounded-full animate-pulse w-3/4" style={{ background: 'var(--imx-surface)' }} />
-                  <div className="h-3 rounded-full animate-pulse w-1/2" style={{ background: 'var(--imx-surface)' }} />
+          <div className="space-y-3 pt-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="bg-white rounded-2xl p-4 flex items-center gap-3 animate-pulse border border-gray-100"
+              >
+                <div className="w-11 h-11 rounded-2xl bg-gray-100 flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 bg-gray-100 rounded-md w-1/4" />
+                  <div className="h-4 bg-gray-100 rounded-md w-3/4" />
+                  <div className="h-3 bg-gray-100 rounded-md w-1/2" />
                 </div>
               </div>
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <EmptyState
-            title="Aucune notification"
-            description={tab === 'unread' ? 'Vous avez tout lu ✓' : 'Vos alertes apparaîtront ici.'}
-          />
+          <div className="pt-12">
+            <EmptyState
+              title={tab === 'unread' ? 'Aucune notification non lue' : 'Aucune notification'}
+              description={
+                tab === 'unread'
+                  ? 'Vous êtes à jour ! Toutes vos alertes ont été consultées.'
+                  : 'Vos alertes et mises à jour de loyer apparaîtront ici.'
+              }
+            />
+          </div>
         ) : (
-          <div className="px-4 space-y-2">
+          <div className="space-y-6">
             {groups.map(({ label, items }) => (
               <div key={label}>
-                {/* Titre du groupe */}
-                <div className="flex items-center gap-2 mb-2 mt-1">
-                  <span
-                    className="text-[10px] font-bold uppercase tracking-widest"
-                    style={{ color: 'var(--imx-text-muted)', fontFamily: 'Space Grotesk' }}
-                  >
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[11px] font-space-grotesk font-bold uppercase tracking-wider text-gray-400">
                     {label}
                   </span>
-                  <div className="flex-1 h-px" style={{ background: 'var(--imx-border)' }} />
+                  <div className="flex-1 h-px bg-gray-200" />
                 </div>
 
-                {/* Cartes individuelles */}
-                <div className="space-y-2">
-                  {items.map(notif => (
-                    <NotifCard key={notif.id} notif={notif} onClick={() => handleClick(notif)} />
+                <div className="space-y-2.5">
+                  {items.map((notif) => (
+                    <NotifCard
+                      key={notif.id}
+                      notif={notif}
+                      onClick={() => handleClick(notif)}
+                    />
                   ))}
                 </div>
-
-                <div className="h-1" />
               </div>
             ))}
           </div>
         )}
-      </div>
+      </main>
 
-      {/* ── Sheet de détail ─────────────────────────────── */}
+      {/* ── Bottom Sheet de détail ─────────────────────── */}
       {selected && (
         <DetailSheet
           notif={selected}
-          cfg={selectedCfg}
+          config={TYPE_CONFIGS[selected.type] || DEFAULT_TYPE_CONFIG}
           details={details}
           loading={loadingDetails}
           onClose={() => setSelected(null)}
-          onNavigate={handleNavigate}
+          onAction={handleAction}
         />
       )}
-    </>
+    </div>
   );
 }

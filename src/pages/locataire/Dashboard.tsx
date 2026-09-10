@@ -7,6 +7,7 @@ import { daysUntilDeadline } from '../../lib/utils';
 import { getGreeting } from '../../utils/greeting';
 import BottomNav from '../../components/BottomNav';
 import { HeaderSupport } from '../../components/HeaderSupport';
+import { HeaderBell } from '../../components/HeaderBell';
 import { PullToRefresh } from '../../components/PullToRefresh';
 
 interface LeaseWithPeriod {
@@ -195,10 +196,7 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-2">
           <HeaderSupport className="relative w-9 h-9 flex items-center justify-center text-[#17132B] rounded-full bg-gray-50 border border-gray-100 active:bg-gray-100 transition-colors flex-shrink-0" style={{}} />
-          <Link to="/notifications" className="relative w-9 h-9 flex items-center justify-center text-[#17132B] rounded-full bg-gray-50 border border-gray-100 active:bg-gray-100 transition-colors flex-shrink-0">
-            <Bell size={20} />
-            <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FBBF24] rounded-full"></div>
-          </Link>
+          <HeaderBell />
         </div>
       </div>
 

@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-// ── Helper : envoyer une notification push (best-effort) ─────────────────────
+// ── Helper : envoyer une notification push (best-effort) ──
 async function sendPush(userId: string, title: string, body: string) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -51,13 +51,13 @@ Deno.serve(async (req: Request) => {
     // Date du jour au format YYYY-MM-DD (UTC)
     const today = new Date().toISOString().split("T")[0];
 
-    // Récupérer les périodes à mettre en retard + l'id du locataire associé
+    // 1. Récupérer les périodes à passer en retard + locataire et propriétaire
     const { data, error } = await supabase
       .from("rent_periods")
       .update({ status: "retard" })
       .eq("status", "en_cours")
       .lt("deadline_date", today)
-      .select("id, lease_id, leases!inner(tenant_id)");
+      .select("id, amount_due, lease_id, leases!inner(tenant_id, properties!inner(name, owner_id))");
 
     if (error) {
       console.error("update-overdue-rent-periods error:", error.message);
@@ -73,34 +73,121 @@ Deno.serve(async (req: Request) => {
     const updatedCount = data?.length || 0;
     console.log(`update-overdue-rent-periods: ${updatedCount} période(s) passée(s) en retard.`);
 
-    // Envoyer une notification push + in-app pour chaque locataire concerné
+    // Envoyer une notification in-app + push pour locataire ET propriétaire
     if (updatedCount > 0 && data) {
-      type RentPeriodRow = { id: string; lease_id: string; leases: { tenant_id: string } | { tenant_id: string }[] };
+      type RentPeriodRow = {
+        id: string;
+        amount_due: number;
+        lease_id: string;
+        leases: {
+          tenant_id: string;
+          properties: { name: string; owner_id: string } | { name: string; owner_id: string }[];
+        } | {
+          tenant_id: string;
+          properties: { name: string; owner_id: string } | { name: string; owner_id: string }[];
+        }[];
+      };
+
       for (const period of data as RentPeriodRow[]) {
         const leaseData = Array.isArray(period.leases) ? period.leases[0] : period.leases;
         const tenantId = leaseData?.tenant_id;
+        const prop = Array.isArray(leaseData?.properties) ? leaseData?.properties[0] : leaseData?.properties;
+        const propName = prop?.name || "votre logement";
+        const ownerId = prop?.owner_id;
+
+        // Notification locataire
+        if (tenantId) {
+          await supabase.from("notifications").insert({
+            user_id: tenantId,
+            type: "retard",
+            related_id: period.id,
+            title: "Loyer en retard",
+            body: `Votre loyer pour ${propName} est en retard. Veuillez régulariser votre situation dans l'application.`,
+          });
+
+          await sendPush(
+            tenantId,
+            "⚠️ Loyer en retard",
+            `Votre loyer pour ${propName} est en retard. Régularisez votre situation sur ImoFlex.`
+          );
+        }
+
+        // Notification propriétaire
+        if (ownerId) {
+          await supabase.from("notifications").insert({
+            user_id: ownerId,
+            type: "retard",
+            related_id: period.id,
+            title: "Retard de loyer signalé",
+            body: `Le loyer pour ${propName} n'a pas été réglé à l'échéance.`,
+          });
+
+          await sendPush(
+            ownerId,
+            "⚠️ Retard de loyer",
+            `Le loyer pour ${propName} n'a pas été réglé à l'échéance.`
+          );
+        }
+      }
+    }
+
+    // 2. Rappels automatiques d'échéance (J-3 avant la date limite)
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + 3);
+    const inThreeDays = targetDate.toISOString().split("T")[0];
+
+    const { data: upcomingPeriods } = await supabase
+      .from("rent_periods")
+      .select("id, amount_due, deadline_date, lease_id, leases!inner(tenant_id, properties!inner(name))")
+      .eq("status", "en_cours")
+      .eq("deadline_date", inThreeDays);
+
+    let remindersCount = 0;
+
+    if (upcomingPeriods && upcomingPeriods.length > 0) {
+      const periodIds = upcomingPeriods.map((p) => p.id);
+      const { data: existingRappels } = await supabase
+        .from("notifications")
+        .select("related_id")
+        .eq("type", "rappel")
+        .in("related_id", periodIds);
+
+      const alreadyNotified = new Set((existingRappels || []).map((r) => r.related_id));
+
+      for (const period of upcomingPeriods as any[]) {
+        if (alreadyNotified.has(period.id)) continue;
+
+        const leaseData = Array.isArray(period.leases) ? period.leases[0] : period.leases;
+        const tenantId = leaseData?.tenant_id;
+        const prop = Array.isArray(leaseData?.properties) ? leaseData?.properties[0] : leaseData?.properties;
+        const propName = prop?.name || "votre logement";
+
         if (!tenantId) continue;
 
-        // Notification in-app
         await supabase.from("notifications").insert({
           user_id: tenantId,
-          type: "retard",
+          type: "rappel",
           related_id: period.id,
-          title: "Loyer en retard",
-          body: "Votre loyer du mois est en retard. Veuillez régulariser votre situation dans l'application.",
+          title: "Rappel d'échéance de loyer",
+          body: `Votre loyer de ${Number(period.amount_due || 0).toLocaleString("fr-FR")} FCFA pour ${propName} arrive à échéance dans 3 jours.`,
         });
 
-        // Notification push native
         await sendPush(
           tenantId,
-          "⚠️ Loyer en retard",
-          "Votre loyer est en retard. Régularisez votre situation sur ImoFlex."
+          "⏰ Rappel de loyer",
+          `Votre loyer pour ${propName} arrive à échéance dans 3 jours.`
         );
+
+        remindersCount++;
       }
     }
 
     return new Response(
-      JSON.stringify({ updated: updatedCount, date_checked: today }),
+      JSON.stringify({
+        updated_overdue: updatedCount,
+        reminders_sent: remindersCount,
+        date_checked: today,
+      }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
