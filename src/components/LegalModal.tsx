@@ -35,12 +35,12 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, initial
 
   return (
     <div
-      className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-[150] flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg max-h-[88vh] sm:rounded-3xl rounded-t-3xl flex flex-col overflow-hidden shadow-2xl animate-slide-up"
+        className="w-full max-w-lg max-h-[88vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl my-auto animate-in zoom-in-95"
         style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}
         onClick={(e) => e.stopPropagation()}
       >

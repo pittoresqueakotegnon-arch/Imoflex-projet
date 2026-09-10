@@ -272,12 +272,17 @@ const Marketplace: React.FC = () => {
     <div className="page-container bg-white min-h-screen flex flex-col">
       {showSplash && <SplashScreen onComplete={() => { sessionStorage.setItem('hasSeenSplash', 'true'); setShowSplash(false); }} />}
 
-      {/* City Drawer */}
+      {/* City Modal */}
       {showCityDrawer && (
-        <>
-          <Backdrop onClose={() => { setShowCityDrawer(false); setSelectedCityInDrawer(null); }} />
-          <div className="fixed bottom-0 z-50 bg-white rounded-t-[28px] shadow-2xl max-h-[70vh] flex flex-col w-full" style={{ maxWidth: 430, left: '50%', transform: 'translateX(-50%)' }}>
-            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
+          onClick={() => { setShowCityDrawer(false); setSelectedCityInDrawer(null); }}
+        >
+          <div
+            className="bg-white rounded-[28px] shadow-2xl max-h-[80vh] flex flex-col w-full max-w-md my-auto border border-gray-100 animate-in zoom-in-95 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 flex-shrink-0">
               <h3 className="font-nunito font-900 text-[17px] text-[#17132B]">
                 {selectedCityInDrawer ? `${selectedCityInDrawer} — Quartier` : 'Choisir une ville'}
               </h3>
@@ -285,7 +290,7 @@ const Marketplace: React.FC = () => {
                 <X size={16} className="text-gray-500" />
               </button>
             </div>
-            <div className="overflow-y-auto flex-1 px-4 py-3 pb-8">
+            <div className="overflow-y-auto flex-1 px-4 py-3 pb-6">
               {citiesLoading ? (
                 <div className="flex justify-center py-8"><div className="w-8 h-8 rounded-full border-2 border-[#7B3FE4] border-t-transparent animate-spin" /></div>
               ) : selectedCityInDrawer ? (
@@ -325,19 +330,24 @@ const Marketplace: React.FC = () => {
               )}
             </div>
           </div>
-        </>
+        </div>
       )}
 
-      {/* Type Drawer */}
+      {/* Type Modal */}
       {showTypeDrawer && (
-        <>
-          <Backdrop onClose={() => setShowTypeDrawer(false)} />
-          <div className="fixed bottom-0 z-50 bg-white rounded-t-[28px] shadow-2xl w-full" style={{ maxWidth: 430, left: '50%', transform: 'translateX(-50%)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
+          onClick={() => setShowTypeDrawer(false)}
+        >
+          <div
+            className="bg-white rounded-[28px] shadow-2xl w-full max-w-md my-auto border border-gray-100 animate-in zoom-in-95 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
               <h3 className="font-nunito font-900 text-[17px] text-[#17132B]">Type de bien</h3>
               <button onClick={() => setShowTypeDrawer(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100"><X size={16} className="text-gray-500" /></button>
             </div>
-            <div className="px-4 py-4 pb-8">
+            <div className="px-4 py-4 pb-6">
               {filterTypes.length > 0 && (
                 <button onClick={() => { const p = new URLSearchParams(searchParams); p.delete('types'); setSearchParams(p); setShowTypeDrawer(false); }}
                   className="w-full text-[13px] font-space-grotesk text-red-500 font-semibold flex items-center gap-2 px-4 py-2 mb-2">
@@ -358,19 +368,24 @@ const Marketplace: React.FC = () => {
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
 
-      {/* Price Drawer */}
+      {/* Price Modal */}
       {showPriceDrawer && (
-        <>
-          <Backdrop onClose={() => setShowPriceDrawer(false)} />
-          <div className="fixed bottom-0 z-50 bg-white rounded-t-[28px] shadow-2xl w-full" style={{ maxWidth: 430, left: '50%', transform: 'translateX(-50%)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in"
+          onClick={() => setShowPriceDrawer(false)}
+        >
+          <div
+            className="bg-white rounded-[28px] shadow-2xl w-full max-w-md my-auto border border-gray-100 animate-in zoom-in-95 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
               <h3 className="font-nunito font-900 text-[17px] text-[#17132B]">Prix maximum / mois</h3>
               <button onClick={() => setShowPriceDrawer(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100"><X size={16} className="text-gray-500" /></button>
             </div>
-            <div className="px-4 py-4 pb-8">
+            <div className="px-4 py-4 pb-6">
               {filterMaxRent && (
                 <button onClick={() => { const p = new URLSearchParams(searchParams); p.delete('maxRent'); setSearchParams(p); setShowPriceDrawer(false); }}
                   className="w-full text-[13px] font-space-grotesk text-red-500 font-semibold flex items-center gap-2 px-4 py-2 mb-2">
@@ -390,7 +405,7 @@ const Marketplace: React.FC = () => {
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* ── HEADER ────────────────────────────────────────────── */}
@@ -407,7 +422,7 @@ const Marketplace: React.FC = () => {
         </div>
 
         <button onClick={() => { setSelectedCityInDrawer(null); setShowCityDrawer(true); }}
-          className="flex items-center gap-1.5 active:scale-95 transition-transform absolute left-1/2 -translate-x-1/2 z-0">
+          className="flex items-center gap-1.5 active:scale-95 transition-transform absolute left-1/2 -translate-x-1/2 z-10">
           <MapPin size={16} className="text-[#7B3FE4] flex-shrink-0" />
           <span className="text-[14px] font-bold text-[#17132B] font-space-grotesk whitespace-nowrap">
             {filterCity || 'Cotonou'}

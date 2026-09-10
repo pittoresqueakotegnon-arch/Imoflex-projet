@@ -40,6 +40,7 @@ interface NotifDetails {
   destinationPhone?: string;
   period?: string;
   paymentId?: string;
+  leaseId?: string; // Pour la navigation vers /payer/:leaseId
 }
 
 interface TypeConfig {
@@ -275,17 +276,13 @@ function DetailSheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity animate-in fade-in"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg bg-white rounded-t-[32px] p-6 shadow-2xl border-t border-gray-100 max-h-[85vh] overflow-y-auto"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
+        className="w-full max-w-md bg-white rounded-[28px] p-6 shadow-2xl border border-gray-100 max-h-[88vh] overflow-y-auto my-auto animate-in zoom-in-95"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Poignée de drag */}
-        <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" />
-
         {/* En-tête */}
         <div className="flex items-start justify-between gap-4 mb-5">
           <div className="flex items-center gap-3">
@@ -509,7 +506,7 @@ export default function Notifications() {
       } else if (['rappel', 'retard'].includes(notif.type)) {
         const { data: rp } = await supabase
           .from('rent_periods')
-          .select('amount_due, period_month, period_year, leases(properties(name))')
+          .select('id, amount_due, period_month, period_year, lease_id, leases(id, properties(name))')
           .eq('id', notif.related_id)
           .maybeSingle();
         if (rp) {
@@ -517,6 +514,8 @@ export default function Notifications() {
           const months = ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
           d.period = `${months[(rp.period_month ?? 1) - 1]} ${rp.period_year}`;
           d.listingTitle = (rp.leases as any)?.properties?.name;
+          // Récupérer le lease_id pour naviguer vers /payer/:leaseId
+          d.leaseId = (rp as any).lease_id || (rp.leases as any)?.id;
         }
       }
       setDetails(d);
@@ -554,7 +553,12 @@ export default function Notifications() {
     } else if (notif.type === 'nouveau_versement') {
       navigate(role === 'proprietaire' ? '/pro/dashboard' : '/historique');
     } else if (['rappel', 'retard'].includes(notif.type)) {
-      navigate('/payer');
+      // Naviguer vers /payer/:leaseId si on a le lease_id, sinon vers le dashboard
+      if (details?.leaseId) {
+        navigate(`/payer/${details.leaseId}`);
+      } else {
+        navigate('/dashboard');
+      }
     } else if (['retrait_complete', 'retrait_echoue'].includes(notif.type)) {
       navigate('/pro/wallet');
     } else if (notif.type === 'nouvelle_demande_contact') {
