@@ -74,15 +74,31 @@ export default function AdminSupport() {
 
   const fetchConversations = async () => {
     try {
+      // 1. Fetch conversations without the invalid FK join
       const { data, error } = await supabase
         .from('support_conversations')
-        .select(`*, users:user_id (full_name, phone)`)
+        .select('*')
         .order('last_message_at', { ascending: false });
 
       if (error) throw error;
 
-      // For each conversation, fetch the last message
-      const convWithLastMsg = await Promise.all((data || []).map(async (conv) => {
+      // 2. Fetch user info separately for conversations that have a user_id
+      const userIds = [...new Set((data || []).map(c => c.user_id).filter(Boolean))];
+      let userMap: Record<string, { full_name: string; phone: string }> = {};
+
+      if (userIds.length > 0) {
+        const { data: usersData } = await supabase
+          .from('users')
+          .select('id, full_name, phone')
+          .in('id', userIds);
+        
+        (usersData || []).forEach(u => {
+          userMap[u.id] = { full_name: u.full_name, phone: u.phone };
+        });
+      }
+
+      // 3. For each conversation, fetch last message and unread count
+      const convWithMeta = await Promise.all((data || []).map(async (conv) => {
         const { data: lastMsgData } = await supabase
           .from('support_messages')
           .select('message, sender_type')
@@ -100,12 +116,13 @@ export default function AdminSupport() {
 
         return {
           ...conv,
+          users: conv.user_id ? userMap[conv.user_id] || null : null,
           last_message: lastMsgData?.message,
           unread_count: count || 0,
         };
       }));
 
-      setConversations(convWithLastMsg as Conversation[]);
+      setConversations(convWithMeta as Conversation[]);
     } catch (err) {
       console.error('Erreur chargement conversations:', err);
       toast.error('Impossible de charger les conversations');
@@ -113,6 +130,7 @@ export default function AdminSupport() {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchConversations();

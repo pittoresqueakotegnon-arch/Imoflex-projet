@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Bell, SlidersHorizontal, MapPin, Building2, Home, Grid, ChevronRight, User, ChevronDown, Heart, Store, Bed, Plus, ShieldCheck, X, Check, Tag } from 'lucide-react';
+import { Search, Bell, SlidersHorizontal, MapPin, Building2, Home, Grid, ChevronRight, User, ChevronDown, Heart, Store, Bed, Bath, Maximize, Plus, ShieldCheck, X, Check, Tag } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useListings } from '../../hooks/useListings';
 import { useAuthGate } from '../../hooks/useAuthGate';
@@ -206,54 +206,45 @@ const Marketplace: React.FC = () => {
     const photoUrl = coverPhoto?.photo_url;
     const isNew = listing.created_at && new Date(listing.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
     const isFav = favorites.includes(listing.id);
+
     return (
-      <Link key={listing.id} to={`/annonce/${listing.id}`} className={`block ${isHorizontal ? 'w-[150px] flex-shrink-0 snap-start' : 'w-full mb-4'}`}>
-        <div className="bg-white rounded-[16px] overflow-hidden border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.04)] h-full flex flex-col">
-          <div className={`relative ${isHorizontal ? 'h-[110px]' : 'h-[180px]'} w-full bg-gray-100 overflow-hidden`}>
+      <Link key={listing.id} to={`/annonce/${listing.id}`} className={`block ${isHorizontal ? 'w-[160px] flex-shrink-0 snap-start' : 'w-full mb-5'}`}>
+        <div className={`bg-white rounded-[20px] overflow-hidden border border-gray-100 shadow-[0_4px_16px_rgba(23,19,43,0.04)] h-full flex flex-col`}>
+          <div className={`relative ${isHorizontal ? 'h-[140px]' : 'h-[200px]'} w-full bg-gray-100 overflow-hidden`}>
             {photoUrl ? (
-              <OptimizedImage
-                src={photoUrl}
-                alt={listing.title}
-                className="w-full h-full object-cover"
-                loading={priority ? "eager" : "lazy"}
-              />
+              <OptimizedImage src={photoUrl} alt={listing.title} className="w-full h-full object-cover" loading={priority ? "eager" : "lazy"} />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-300"><Building2 size={36} /></div>
+              <div className="w-full h-full flex items-center justify-center text-gray-300"><Building2 size={32} /></div>
             )}
-            <button onClick={(e) => handleToggleFavorite(listing.id, e)}
-              className="absolute top-2.5 right-2.5 w-8 h-8 flex items-center justify-center rounded-full bg-white/90 shadow-md z-10 active:scale-95 transition-transform backdrop-blur-sm">
-              <Heart size={16} className={isFav ? 'fill-[#7B3FE4] text-[#7B3FE4]' : 'text-gray-400'} />
+            
+            <button onClick={(e) => handleToggleFavorite(listing.id, e)} className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full bg-white shadow-md z-10 active:scale-95 transition-transform">
+              <Heart size={14} className={isFav ? 'fill-[#7B3FE4] text-[#7B3FE4]' : 'text-gray-600'} />
             </button>
-            <div className="absolute bottom-2.5 left-2.5 z-10">
+            
+            <div className="absolute bottom-2 left-2 z-10 flex gap-1.5">
               {isNew ? (
-                <span className="bg-[#10B981] text-white font-bold text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                  <Check size={11} strokeWidth={3} /> Nouveau</span>
+                <span className="bg-[#10B981] text-white font-bold text-[9px] px-2 py-1 rounded-full flex items-center gap-1 shadow-sm"><Check size={10} strokeWidth={3} /> Nouveau</span>
               ) : (
-                <span className="bg-[#7B3FE4] text-white font-bold text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                  <ShieldCheck size={12} /> Vérifié</span>
+                <span className="bg-[#7B3FE4] text-white font-bold text-[9px] px-2 py-1 rounded-full flex items-center gap-1 shadow-sm"><ShieldCheck size={10} /> Vérifié</span>
               )}
             </div>
           </div>
+          
           <div className="p-3 flex flex-col flex-1">
-            <div className="font-nunito font-900 text-[14px] text-[#7B3FE4] mb-0.5">
-              {formatMontant(listing.monthly_rent)} <span className="text-[10px] font-bold text-gray-400 lowercase">/ mois</span>
+            <div className="font-nunito font-900 text-[13px] text-[#7B3FE4] mb-0.5">
+              {formatMontant(listing.monthly_rent)} <span className="text-[10px] font-bold text-[#17132B]/60 lowercase">/ mois</span>
             </div>
-            <h3 className="font-nunito font-800 text-[13px] text-[#17132B] line-clamp-1 mb-1" title={listing.title}>
-              {listing.title}
-            </h3>
-            <div className="flex items-center gap-1 text-gray-400 mb-2">
-              <MapPin size={12} className="flex-shrink-0 text-gray-400" />
-              <span className="text-[11px] font-space-grotesk truncate">{listing.city}{listing.neighborhood ? `, ${listing.neighborhood}` : ''}</span>
+            <h3 className="font-nunito font-800 text-[12px] text-[#17132B] line-clamp-1 mb-1" title={listing.title}>{listing.title}</h3>
+            
+            <div className="flex items-center gap-1 text-gray-500 mb-2">
+              <MapPin size={10} className="flex-shrink-0" />
+              <span className="text-[10px] font-space-grotesk truncate">{listing.city}{listing.neighborhood ? `, ${listing.neighborhood}` : ''}</span>
             </div>
-            <div className="mt-auto flex items-center gap-2 border-t border-gray-100 pt-2 text-[11px] font-space-grotesk text-gray-400 font-medium">
-              {listing.bedrooms ? (
-                <div className="flex items-center gap-1">
-                  <Bed size={12} className="text-gray-400" /> {listing.bedrooms} ch.
-                </div>
-              ) : null}
-              {listing.accepts_progressive_payment && (
-                <span className="ml-auto text-[#10B981] font-bold text-[9px] bg-[#10B981]/10 px-2 py-0.5 rounded-full">Échelonné</span>
-              )}
+            
+            <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-2 border-t border-gray-100 text-[9px] font-space-grotesk text-[#17132B]/70 font-medium">
+              {listing.bedrooms ? <div className="flex items-center gap-1"><Bed size={10} className="text-[#17132B]/50" /> {listing.bedrooms} ch.</div> : null}
+              {listing.bathrooms ? <div className="flex items-center gap-1"><Bath size={10} className="text-[#17132B]/50" /> {listing.bathrooms} sdb</div> : null}
+              {listing.area ? <div className="flex items-center gap-1"><Maximize size={10} className="text-[#17132B]/50" /> {listing.area} m²</div> : null}
             </div>
           </div>
         </div>
@@ -265,8 +256,20 @@ const Marketplace: React.FC = () => {
     ? availableCities.find(c => c.city === selectedCityInDrawer)?.neighborhoods || []
     : [];
 
+  const isSearchActive = 
+    searchQuery.trim().length > 0 || 
+    filterCity !== null || 
+    filterNeighborhood !== null ||
+    filterTypes.length > 0 || 
+    filterMaxRent !== null || 
+    filterBedrooms !== undefined ||
+    selectedType !== 'a_louer';
+
+  const featuredListings = sortedListings.slice(0, 3);
+  const recentListings = sortedListings.slice(3, 8);
+
   return (
-    <div className="page-container bg-white h-screen overflow-y-auto">
+    <div className="page-container bg-white min-h-screen flex flex-col">
       {showSplash && <SplashScreen onComplete={() => { sessionStorage.setItem('hasSeenSplash', 'true'); setShowSplash(false); }} />}
 
       {/* City Drawer */}
@@ -392,38 +395,40 @@ const Marketplace: React.FC = () => {
 
       {/* ── HEADER ────────────────────────────────────────────── */}
       <header
-        className="px-6 pb-3 bg-white flex items-center justify-between sticky top-0 z-30"
+        className="px-6 pb-2 bg-white flex items-center justify-between sticky top-0 z-30"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 20px)' }}
       >
-        <div className="flex items-center flex-shrink-0">
-          <span className="font-nunito font-black text-[22px] leading-none">
-            <span className="text-[#17132B]">Imo</span><span className="text-[#7B3FE4]">Flex</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <button onClick={() => { setSelectedCityInDrawer(null); setShowCityDrawer(true); }}
-            className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 active:bg-gray-100 transition-colors">
-            <MapPin size={13} className="text-[#7B3FE4] flex-shrink-0" />
-            <span className="text-[12.5px] font-bold text-[#17132B] font-space-grotesk whitespace-nowrap">
-              {filterCity || 'Cotonou'}
+        <div className="flex flex-col flex-shrink-0 relative z-10">
+          <div className="flex items-center">
+            <span className="font-nunito font-black text-[22px] leading-none">
+              <span className="text-[#17132B]">Imo</span><span className="text-[#7B3FE4]">Flex</span>
             </span>
-            <ChevronDown size={13} className="text-gray-400 flex-shrink-0" />
-          </button>
+          </div>
+        </div>
+
+        <button onClick={() => { setSelectedCityInDrawer(null); setShowCityDrawer(true); }}
+          className="flex items-center gap-1.5 active:scale-95 transition-transform absolute left-1/2 -translate-x-1/2 z-0">
+          <MapPin size={16} className="text-[#7B3FE4] flex-shrink-0" />
+          <span className="text-[14px] font-bold text-[#17132B] font-space-grotesk whitespace-nowrap">
+            {filterCity || 'Cotonou'}
+          </span>
+          <ChevronDown size={14} className="text-[#17132B] flex-shrink-0" />
+        </button>
           
+        <div className="flex items-center gap-4 relative z-10">
           <HeaderSupport 
-            className="relative w-9 h-9 flex items-center justify-center text-[#17132B] rounded-full bg-gray-50 border border-gray-100 active:bg-gray-100 transition-colors flex-shrink-0"
+            className="relative flex items-center justify-center text-[#17132B] transition-colors flex-shrink-0"
             style={{}}
           />
-
-          <button onClick={() => navigate('/notifications')} className="relative w-9 h-9 flex items-center justify-center text-[#17132B] rounded-full bg-gray-50 border border-gray-100 active:bg-gray-100 transition-colors flex-shrink-0">
-            <Bell size={18} />
-            <div className="absolute top-2 right-2 w-2 h-2 bg-[#7B3FE4] rounded-full border border-white" />
+          <button onClick={() => navigate('/notifications')} className="relative flex items-center justify-center text-[#17132B] transition-colors flex-shrink-0">
+            <Bell size={20} className="text-[#17132B]" />
+            <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#7B3FE4] rounded-full border-2 border-white" />
           </button>
           <div className="relative cursor-pointer flex-shrink-0" onClick={() => navigate(user ? '/profil' : '/login')}>
-            <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-100 border border-gray-100 flex items-center justify-center">
-              {profile?.avatar_url ? <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" /> : <User size={18} className="text-gray-400" />}
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+              {profile?.avatar_url ? <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" /> : <User size={20} className="text-gray-400" />}
             </div>
-            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#7B3FE4] rounded-full border-2 border-white" />
+            <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#7B3FE4] rounded-full border-[2px] border-white" />
           </div>
         </div>
       </header>
@@ -432,132 +437,194 @@ const Marketplace: React.FC = () => {
         <div className="flex-1 bg-white pb-32">
 
           {/* ── SEARCH AREA ─────────────────────────────────────── */}
-          <div className="px-6 pt-3 pb-2">
-            <div className="relative mb-3.5 shadow-[0_2px_10px_rgba(23,19,43,0.06)] rounded-2xl border border-gray-200 bg-white flex items-center h-[50px]">
-              <Search size={18} className="text-gray-400 ml-4 flex-shrink-0" />
+          <div className="px-6 pt-4 pb-4 sticky top-[55px] bg-white z-20">
+            <div className="relative rounded-[32px] border border-gray-200 bg-white flex items-center h-[54px] shadow-sm">
+              <Search size={20} className="text-gray-400 ml-5 flex-shrink-0" />
               <input type="text" placeholder="Où souhaitez-vous habiter ?"
                 value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent border-none py-3 px-3 text-[14px] outline-none text-[#17132B] placeholder-gray-400 font-space-grotesk" />
-              <button onClick={() => navigate('/filtres')} className="mr-2 w-8 h-8 flex items-center justify-center text-gray-500 flex-shrink-0 rounded-xl bg-gray-50 active:bg-gray-100 transition-colors" aria-label="Filtres avancés">
-                <SlidersHorizontal size={16} />
+                className="w-full bg-transparent border-none py-3 px-3 text-[15px] outline-none text-[#17132B] placeholder-gray-400 font-space-grotesk font-medium" />
+              <button onClick={() => navigate('/filtres')} className="mr-4 flex items-center justify-center text-[#17132B] flex-shrink-0 active:scale-95 transition-transform" aria-label="Filtres avancés">
+                <SlidersHorizontal size={20} />
               </button>
             </div>
-
-            {/* QUICK PILLS */}
-            <div className="relative -mx-6">
-              <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-2 px-6 snap-x">
-                {PROPERTY_TYPES_QUICK.map((type) => (
-                  <button key={type.id} onClick={() => {
-                    haptics.light();
-                    if (type.id === 'filtres') navigate('/filtres');
-                    else setSelectedType(type.id);
-                  }}
-                    className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-space-grotesk text-[13px] font-bold whitespace-nowrap transition-all border flex-shrink-0 snap-start ${
-                      selectedType === type.id
-                        ? 'bg-[#7B3FE4] text-white border-[#7B3FE4] shadow-md shadow-[#7B3FE4]/20'
-                        : 'bg-white text-[#17132B] border-gray-200 active:bg-gray-50'
-                    }`}>
-                    {type.icon} {type.label}
-                  </button>
-                ))}
-              </div>
-              {/* Fondu droit : indique qu'il y a d'autres options au lieu de couper le dernier bouton net */}
-              <div className="pointer-events-none absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-white to-transparent" />
-            </div>
           </div>
 
-          {/* ── HERO + CAROUSEL ──────────────────────────────────── */}
-          <div className="pt-4 pb-2">
-            <div className="px-6 mb-4">
-              <h1 className="font-nunito font-900 text-[23px] leading-tight text-[#17132B]">
-                Trouvez votre <span className="text-[#7B3FE4]">prochain chez-vous</span>
-              </h1>
-              <p className="text-[12.5px] text-gray-400 font-space-grotesk mt-1 font-medium">
-                {loading ? 'Chargement...' : sortedListings.length > 0
-                  ? `${sortedListings.length}${hasMore ? '+' : ''} annonces vérifiées`
-                  : 'Aucune annonce correspondante'}
-              </p>
-            </div>
+          {!isSearchActive ? (
+            /* ════════════════════════════════════════════════════════════════════════ */
+            /* 1. MODE DÉCOUVERTE (VITRINE)                                             */
+            /* ════════════════════════════════════════════════════════════════════════ */
+            <div className="animate-fadeIn">
+              
+              {/* ── QUICK PILLS ─────────────────────────────────────── */}
+              <div className="mb-6 overflow-x-auto scrollbar-hide">
+                <div className="flex gap-2 pb-2 px-6" style={{ width: 'max-content', minWidth: '100%' }}>
+                  {PROPERTY_TYPES_QUICK.map((type) => (
+                    <button key={type.id} onClick={() => {
+                      haptics.light();
+                      if (type.id === 'filtres') navigate('/filtres');
+                      else setSelectedType(type.id);
+                    }}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-space-grotesk text-[12px] font-bold whitespace-nowrap transition-all border flex-shrink-0 shadow-sm ${
+                        selectedType === type.id
+                          ? 'bg-[#7B3FE4] text-white border-[#7B3FE4]'
+                          : 'bg-white text-[#17132B] border-gray-200 active:bg-gray-50'
+                      }`}>
+                      {React.cloneElement(type.icon as React.ReactElement, { size: 14 })} {type.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-            {/* Horizontal Carousel */}
-            <div className="relative">
-              <div className="flex gap-4 overflow-x-auto scrollbar-hide px-6 pb-4 snap-x snap-mandatory">
-                {loading ? (
-                  [1, 2, 3, 4].map(i => <div key={i} className="w-[150px] flex-shrink-0 snap-start"><ListingCardSkeleton /></div>)
-                ) : horizontalListings.length > 0 ? (
-                  horizontalListings.map((l, i) => renderListingCard(l, true, i < 3))
-                ) : (
-                  <div className="w-full px-6"><EmptyState title="Aucune annonce" description="Modifiez vos critères pour voir des résultats." /></div>
+              {/* ── TROUVEZ VOTRE PROCHAIN CHEZ-VOUS ────────────────────────────── */}
+              <div className="px-6 pb-6">
+                <div className="mb-4">
+                  <h1 className="font-nunito font-900 text-[24px] leading-[1.1] text-[#17132B] tracking-tight">
+                    Trouvez votre<br/>
+                    <span className="text-[#7B3FE4]">prochain chez-vous</span>
+                  </h1>
+                  <p className="font-space-grotesk text-[13px] text-gray-500 mt-1 font-medium">
+                    Des milliers d'annonces vérifiées
+                  </p>
+                </div>
+
+                <div className="relative -mx-6">
+                  <div className="flex gap-4 overflow-x-auto scrollbar-hide pl-6 pb-4 pt-2 snap-x snap-mandatory">
+                    {loading ? (
+                      [1, 2, 3].map(i => <div key={i} className="w-[160px] h-[220px] rounded-[20px] bg-gray-100 animate-pulse flex-shrink-0 snap-start" />)
+                    ) : horizontalListings.length > 0 ? (
+                      horizontalListings.map((l) => renderListingCard(l, true))
+                    ) : (
+                      <EmptyState title="Aucune annonce" description="Revenez plus tard pour voir nos sélections." />
+                    )}
+                    <div className="w-6 flex-shrink-0" />
+                  </div>
+                </div>
+              </div>
+
+              {/* ── EXPLORER PAR TYPE ────────────────────────────────── */}
+              <div className="pb-8">
+                <div className="mb-4 px-6">
+                  <h2 className="font-nunito font-900 text-[18px] text-[#17132B]">Explorer par type</h2>
+                </div>
+                <div className="flex gap-3 overflow-x-auto scrollbar-hide pl-6 pb-2 snap-x">
+                  {EXPLORE_CATEGORIES_BASE.map(cat => {
+                    const count = categoryCounts[cat.id] ?? 0;
+                    return (
+                      <button key={cat.id} onClick={() => { haptics.light(); setSelectedType(cat.id); }}
+                        className={`rounded-[18px] p-4 flex flex-col items-center justify-center cursor-pointer active:scale-[0.98] transition-transform flex-shrink-0 w-[130px] h-[120px] border border-gray-100/50 snap-start ${cat.bg}`}>
+                        <div className="mb-2 opacity-90">{cat.icon}</div>
+                        <h3 className="font-nunito font-900 text-[13px] text-[#17132B] text-center leading-tight">{cat.label}</h3>
+                        <span className="text-[10px] font-space-grotesk text-[#17132B]/50 font-medium mt-1">{count} annonces</span>
+                      </button>
+                    );
+                  })}
+                  <div className="w-6 flex-shrink-0" />
+                </div>
+              </div>
+
+              {/* ── CTA BANNER ───────────────────────────────────────── */}
+              {showCtaBanner && (
+                <div className="px-6 mb-8">
+                  <div className="bg-[#7B3FE4] rounded-[24px] p-5 relative overflow-hidden shadow-xl shadow-[#7B3FE4]/20 flex items-center min-h-[145px]">
+                    <button onClick={() => { sessionStorage.setItem('ctaBannerDismissed', 'true'); setShowCtaBanner(false); }}
+                      className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full bg-white/20 text-white z-10 active:bg-white/30">
+                      <X size={14} />
+                    </button>
+                    <div className="absolute -left-4 bottom-[-10px] opacity-20 flex-shrink-0">
+                      <Home size={100} className="text-white" />
+                    </div>
+                    <div className="relative z-10 pl-[70px] flex flex-col justify-center flex-1">
+                      <h3 className="font-nunito font-900 text-[14px] text-white mb-1.5 leading-tight">Vous avez un bien immobilier ?</h3>
+                      <p className="font-space-grotesk text-[10px] text-white/90 mb-3.5 font-medium leading-[1.3]">
+                        Publiez votre annonce et trouvez rapidement des acheteurs ou locataires.
+                      </p>
+                      <button onClick={handleCtaPublish}
+                        className="bg-white text-[#7B3FE4] font-nunito font-900 rounded-full pl-4 pr-1.5 py-1.5 text-[11px] flex items-center gap-2 shadow-lg active:scale-95 transition-transform w-fit self-start">
+                        Publier une annonce
+                        <div className="w-6 h-6 rounded-full bg-[#7B3FE4] flex items-center justify-center"><Plus size={13} className="text-white" /></div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── AUTRES ANNONCES (VERTICALES) ───────────────────────── */}
+              {verticalListings.length > 0 && (
+                <div className="px-6 pb-8">
+                  <div className="mb-4">
+                    <h2 className="font-nunito font-900 text-[18px] text-[#17132B]">D'autres annonces</h2>
+                  </div>
+                  <div className="flex flex-col">
+                    {verticalListings.map((l) => renderListingCard(l, false))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          ) : (
+            /* ════════════════════════════════════════════════════════════════════════ */
+            /* 2. MODE RECHERCHE                                                        */
+            /* ════════════════════════════════════════════════════════════════════════ */
+            <div className="animate-fadeIn px-6 pb-8 pt-2">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-nunito font-900 text-[20px] text-[#17132B]">
+                  Résultats de recherche
+                </h2>
+                <span className="text-[12px] font-space-grotesk text-[#7B3FE4] font-bold bg-[#7B3FE4]/10 px-3 py-1 rounded-full">
+                  {loading ? '...' : sortedListings.length} {sortedListings.length > 1 ? 'annonces' : 'annonce'}
+                </span>
+              </div>
+
+              {/* Filtres Actifs (Pills) */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                {selectedType !== 'a_louer' && (
+                  <div className="flex items-center gap-1.5 bg-gray-100 text-[#17132B] px-3 py-1.5 rounded-xl font-space-grotesk text-[12px] font-semibold border border-gray-200">
+                    Type: {PROPERTY_TYPES_QUICK.find(t => t.id === selectedType)?.label || selectedType}
+                    <button onClick={() => setSelectedType('a_louer')} className="ml-1 text-gray-500 hover:text-red-500"><X size={14}/></button>
+                  </div>
+                )}
+                {filterTypes.length > 0 && filterTypes.map(ft => (
+                  <div key={ft} className="flex items-center gap-1.5 bg-[#7B3FE4]/10 text-[#7B3FE4] px-3 py-1.5 rounded-xl font-space-grotesk text-[12px] font-semibold border border-[#7B3FE4]/20">
+                    {PROPERTY_TYPE_OPTIONS.find(t => t.value === ft)?.label || ft}
+                    <button onClick={() => { const p = new URLSearchParams(searchParams); p.set('types', filterTypes.filter(t => t !== ft).join(',')); setSearchParams(p); }} className="ml-1 opacity-70 hover:opacity-100"><X size={14}/></button>
+                  </div>
+                ))}
+                {filterCity && (
+                  <div className="flex items-center gap-1.5 bg-[#7B3FE4]/10 text-[#7B3FE4] px-3 py-1.5 rounded-xl font-space-grotesk text-[12px] font-semibold border border-[#7B3FE4]/20">
+                    <MapPin size={12} /> {filterCity} {filterNeighborhood ? `(${filterNeighborhood})` : ''}
+                    <button onClick={() => { applyQuickFilter('city', null); applyQuickFilter('neighborhood', null); }} className="ml-1 opacity-70 hover:opacity-100"><X size={14}/></button>
+                  </div>
+                )}
+                {filterMaxRent && (
+                  <div className="flex items-center gap-1.5 bg-[#10B981]/10 text-[#10B981] px-3 py-1.5 rounded-xl font-space-grotesk text-[12px] font-semibold border border-[#10B981]/20">
+                    Max {formatMontant(filterMaxRent)}
+                    <button onClick={() => applyQuickFilter('maxRent', null)} className="ml-1 opacity-70 hover:opacity-100"><X size={14}/></button>
+                  </div>
                 )}
               </div>
-              {!loading && horizontalListings.length > 0 && (
-                <div className="pointer-events-none absolute top-0 right-0 h-[calc(100%-16px)] w-10 bg-gradient-to-l from-white to-transparent" />
-              )}
-            </div>
-          </div>
 
-          {/* ── EXPLORER PAR TYPE ────────────────────────────────── */}
-          <div className="px-6 pt-3 pb-6">
-            <div className="mb-5">
-              <h2 className="font-nunito font-900 text-[20px] text-[#17132B]">Explorer par type</h2>
-            </div>
-            <div className="relative -mx-6">
-              <div className="flex gap-3.5 overflow-x-auto scrollbar-hide pb-2 px-6 snap-x">
-                {EXPLORE_CATEGORIES_BASE.map(cat => {
-                  const count = categoryCounts[cat.id] ?? 0;
-                  return (
-                    <button key={cat.id} onClick={() => { haptics.light(); setSelectedType(cat.id); }}
-                      className="bg-white rounded-[24px] p-4 flex flex-col items-center justify-center text-center cursor-pointer active:scale-95 transition-transform w-[140px] flex-shrink-0 snap-start h-[155px] border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-                      <div className={`w-14 h-14 rounded-[20px] ${cat.bg} flex items-center justify-center mb-3`}>{cat.icon}</div>
-                      <h3 className="font-nunito font-900 text-[13px] text-[#17132B] leading-tight mb-1">{cat.label}</h3>
-                      <span className="text-[11px] font-space-grotesk text-gray-500 font-medium">{count} annonce{count > 1 ? 's' : ''}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="pointer-events-none absolute top-0 right-0 h-[155px] w-10 bg-gradient-to-l from-white to-transparent" />
-            </div>
-          </div>
-
-          {/* ── CTA BANNER ───────────────────────────────────────── */}
-          {showCtaBanner && (
-            <div className="px-6 mb-8">
-              <div className="bg-[#6D28D9] rounded-[24px] p-5 relative overflow-hidden shadow-xl shadow-[#6D28D9]/20 flex items-center min-h-[135px]">
-                <button onClick={() => { sessionStorage.setItem('ctaBannerDismissed', 'true'); setShowCtaBanner(false); }}
-                  className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full bg-white/20 text-white z-10 active:bg-white/30">
-                  <X size={14} />
-                </button>
-                <div className="w-24 h-24 absolute -left-1 bottom-1 pointer-events-none opacity-95 flex-shrink-0">
-                  <img src="/assets/house-3d.png" alt="" className="w-full h-full object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-                </div>
-                <div className="relative z-10 pl-[84px] pr-2 flex flex-col justify-center flex-1">
-                  <h3 className="font-nunito font-900 text-[14px] text-white mb-1 leading-tight">Vous avez un bien immobilier ?</h3>
-                  <p className="font-space-grotesk text-[10px] text-white/80 mb-3 font-medium leading-tight">
-                    Publiez votre annonce et trouvez rapidement des acheteurs ou locataires.
-                  </p>
-                  <button onClick={handleCtaPublish}
-                    className="bg-white text-[#6D28D9] font-nunito font-800 rounded-full pl-4 pr-1.5 py-1.5 text-[12px] flex items-center gap-2 shadow-lg active:scale-95 transition-transform w-fit self-end">
-                    Publier une annonce
-                    <div className="w-6 h-6 rounded-full bg-[#6D28D9] flex items-center justify-center"><Plus size={13} className="text-white" /></div>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── FLUX VERTICAL ────────────────────────────────────── */}
-          {(verticalListings.length > 0 || hasMore) && (
-            <div className="px-6 pb-8">
-              <h2 className="font-nunito font-900 text-[20px] text-[#17132B] mb-5">Toutes les annonces</h2>
               <div className="flex flex-col gap-4">
-                {verticalListings.map((l, i) => renderListingCard(l, false, i < 3))}
+                {loading ? (
+                  [1, 2, 3].map(i => <ListingCardSkeleton key={i} />)
+                ) : sortedListings.length > 0 ? (
+                  sortedListings.map((l, i) => renderListingCard(l, false, i < 2))
+                ) : (
+                  <div className="py-10">
+                    <EmptyState title="Aucun résultat" description="Modifiez vos filtres pour voir d'autres annonces." />
+                    <button onClick={() => { setSearchParams(new URLSearchParams()); setSelectedType('a_louer'); setSearchQuery(''); }}
+                      className="mx-auto mt-6 block text-[#7B3FE4] font-space-grotesk font-bold underline">
+                      Réinitialiser la recherche
+                    </button>
+                  </div>
+                )}
               </div>
+              
               {hasMore && (
                 <button
                   type="button"
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="mt-5 w-full rounded-2xl border border-[#7B3FE4]/25 py-3.5 text-sm font-bold text-[#7B3FE4] transition-colors hover:bg-[#F5F3FF] disabled:opacity-60"
+                  className="mt-6 w-full rounded-2xl border border-[#7B3FE4]/25 py-3.5 text-[14px] font-space-grotesk font-bold text-[#7B3FE4] transition-colors hover:bg-[#F5F3FF] disabled:opacity-60"
                 >
                   {loadingMore ? 'Chargement…' : 'Charger plus d’annonces'}
                 </button>

@@ -96,10 +96,10 @@ export const BottomNav: React.FC = () => {
         WebkitBackdropFilter: 'blur(20px)',
         borderTop: '1px solid var(--imx-border)',
         boxShadow: '0 -4px 20px rgba(23, 19, 43, 0.05)',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)'
       }}
     >
-      <div className="flex justify-around items-center h-[68px] px-2 relative">
+      <div className="flex justify-around items-center h-[68px] px-2 relative pt-1">
         {navItemsDef.map((item) => {
           const active = isActive(item.path);
           const IconComponent = item.icon;

@@ -43,6 +43,7 @@ const LogementDetail     = lazy(() => import('./pages/locataire/LogementDetail')
 const Rejoindre          = lazy(() => import('./pages/locataire/Rejoindre'));
 const Payer              = lazy(() => import('./pages/locataire/Payer'));
 const Historique         = lazy(() => import('./pages/locataire/Historique'));
+const Recu               = lazy(() => import('./pages/locataire/Recu'));
 
 // Propriétaire
 const ProprietaireDashboard = lazy(() => import('./pages/proprietaire/Dashboard'));
@@ -230,6 +231,16 @@ function AppRoutes() {
                   <MobileFrame>
                     <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
                       <Historique />
+                    </RoleGuard>
+                  </MobileFrame>
+                }
+              />
+              <Route
+                path="/recu/:paymentId"
+                element={
+                  <MobileFrame>
+                    <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
+                      <Recu />
                     </RoleGuard>
                   </MobileFrame>
                 }
