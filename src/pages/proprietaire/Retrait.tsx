@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Check, ArrowRight, Wallet2, Phone, AlertTriangle, Copy } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
@@ -85,7 +85,7 @@ const Retrait: React.FC = () => {
   const validateForm = (): string | null => {
     if (parsedAmount < 100) return "Le montant minimum est 100 FCFA";
     if (!wallet) return "Wallet non trouve";
-    if (parsedAmount > availableBalance) return `Solde insuffisant. Disponible : ${formatMontant(availableBalance)} FCFA`;
+    if (parsedAmount > availableBalance) return `Solde insuffisant. Disponible : ${formatMontant(availableBalance)}`;
     const cleanPhone = normalizeBjPhone(phoneNumber);
     if (!cleanPhone || cleanPhone.length !== 10) return "Numero invalide. Entrez 10 chiffres locaux (ex: 01 97 00 00 00)";
     return null;
@@ -157,7 +157,7 @@ const Retrait: React.FC = () => {
             Retrait demande avec succes
           </h1>
           <p className="font-space-grotesk text-white/80 text-[14px] text-center px-8">
-            <strong className="text-white">{formatMontant(successData.amount)} FCFA</strong> en cours de traitement vers {opCfg.label}
+            <strong className="text-white">{formatMontant(successData.amount)}</strong> en cours de traitement vers {opCfg.label}
           </p>
           <div className="absolute -bottom-1 left-0 right-0 h-10">
             <svg viewBox="0 0 500 40" preserveAspectRatio="none" className="w-full h-full fill-white">
@@ -180,7 +180,7 @@ const Retrait: React.FC = () => {
           <div className="bg-[#FAFAFA] rounded-[20px] border border-gray-100 p-5 mb-8">
             <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
               <span className="font-space-grotesk text-[12px] text-gray-500">Montant</span>
-              <span className="font-space-grotesk font-900 text-[13px] text-[#7B3FE4]">{formatMontant(successData.amount)} FCFA</span>
+              <span className="font-space-grotesk font-900 text-[13px] text-[#7B3FE4]">{formatMontant(successData.amount)}</span>
             </div>
             <div className="flex items-center justify-between py-2.5 border-b border-gray-100">
               <span className="font-space-grotesk text-[12px] text-gray-500">Statut</span>
@@ -234,7 +234,6 @@ const Retrait: React.FC = () => {
           <div className="bg-[#7B3FE4] rounded-[24px] p-6 text-center shadow-xl shadow-[#7B3FE4]/20">
             <p className="font-space-grotesk text-white/70 text-[11px] font-bold uppercase tracking-widest mb-2">Vous allez retirer</p>
             <p className="font-nunito font-900 text-white text-[38px] leading-none">{formatMontant(parsedAmount)}</p>
-            <p className="font-space-grotesk text-white/80 text-[14px] mt-1">FCFA</p>
           </div>
 
           <div className="bg-[#FAFAFA] rounded-[20px] border border-gray-100 overflow-hidden">
@@ -258,7 +257,7 @@ const Retrait: React.FC = () => {
             </div>
             <div className="px-5 py-3 border-b border-gray-100 flex justify-between items-center">
               <span className="text-[12px] text-gray-400 font-space-grotesk">Montant demande</span>
-              <span className="font-nunito font-900 text-[15px] text-[#17132B]">{formatMontant(parsedAmount)} FCFA</span>
+              <span className="font-nunito font-900 text-[15px] text-[#17132B]">{formatMontant(parsedAmount)}</span>
             </div>
             <div className="px-5 py-3 border-b border-gray-100 flex justify-between items-center">
               <span className="text-[12px] text-gray-400 font-space-grotesk">Frais de retrait</span>
@@ -266,7 +265,7 @@ const Retrait: React.FC = () => {
             </div>
             <div className="px-5 py-3 flex justify-between items-center">
               <span className="font-space-grotesk font-semibold text-[13px] text-[#17132B]">Vous recevrez</span>
-              <span className="font-nunito font-900 text-[16px] text-[#7B3FE4]">{formatMontant(amountReceived)} FCFA</span>
+              <span className="font-nunito font-900 text-[16px] text-[#7B3FE4]">{formatMontant(amountReceived)}</span>
             </div>
           </div>
 
@@ -319,7 +318,7 @@ const Retrait: React.FC = () => {
             </div>
             <div>
               <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Solde disponible</p>
-              <p className="font-nunito font-900 text-[22px] text-[#17132B] leading-tight">{formatMontant(availableBalance)} <span className="text-[14px] text-gray-400 font-space-grotesk font-medium">FCFA</span></p>
+              <p className="font-nunito font-900 text-[22px] text-[#17132B] leading-tight">{formatMontant(availableBalance)}</p>
             </div>
           </div>
           <p className="font-space-grotesk text-[11px] text-gray-400">Montant disponible pour retrait immediat</p>
@@ -329,7 +328,6 @@ const Retrait: React.FC = () => {
         <div className="bg-white rounded-[24px] p-5 border border-gray-100 shadow-sm">
           <p className="font-space-grotesk text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-4">Combien souhaitez-vous retirer ?</p>
           <div className="flex items-baseline justify-center gap-2 mb-4">
-            <span className="font-nunito font-900 text-[18px] text-[#7B3FE4]">FCFA</span>
             {(() => {
               const displayValue = parsedAmount ? new Intl.NumberFormat("fr-FR").format(parsedAmount) : "";
               return (
@@ -345,6 +343,7 @@ const Retrait: React.FC = () => {
                 />
               );
             })()}
+            <span className="font-nunito font-900 text-[18px] text-[#7B3FE4]">FCFA</span>
           </div>
 
           {/* Feedback */}
@@ -355,7 +354,7 @@ const Retrait: React.FC = () => {
           )}
           {parsedAmount > 0 && parsedAmount <= availableBalance && (
             <p className="text-[#10B981] text-[12px] font-space-grotesk font-semibold text-center mb-3">
-              Solde apres retrait : {formatMontant(availableBalance - parsedAmount)} FCFA
+              Solde apres retrait : {formatMontant(availableBalance - parsedAmount)}
             </p>
           )}
 
@@ -421,7 +420,7 @@ const Retrait: React.FC = () => {
         <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-3 border-b border-gray-50 flex justify-between items-center">
             <span className="font-space-grotesk text-[12px] text-gray-500">Montant demande</span>
-            <span className="font-nunito font-900 text-[14px] text-[#17132B]">{parsedAmount > 0 ? `${formatMontant(parsedAmount)} FCFA` : "—"}</span>
+            <span className="font-nunito font-900 text-[14px] text-[#17132B]">{parsedAmount > 0 ? formatMontant(parsedAmount) : "—"}</span>
           </div>
           <div className="px-5 py-3 border-b border-gray-50 flex justify-between items-center">
             <span className="font-space-grotesk text-[12px] text-gray-500">Frais de retrait</span>
@@ -429,7 +428,7 @@ const Retrait: React.FC = () => {
           </div>
           <div className="px-5 py-3 flex justify-between items-center">
             <span className="font-space-grotesk font-semibold text-[13px] text-[#17132B]">Vous recevrez</span>
-            <span className="font-nunito font-900 text-[16px] text-[#7B3FE4]">{parsedAmount > 0 ? `${formatMontant(amountReceived)} FCFA` : "—"}</span>
+            <span className="font-nunito font-900 text-[16px] text-[#7B3FE4]">{parsedAmount > 0 ? formatMontant(amountReceived) : "—"}</span>
           </div>
         </div>
 

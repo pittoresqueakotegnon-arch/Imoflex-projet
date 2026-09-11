@@ -351,22 +351,27 @@ export default function Dashboard() {
                   </Link>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {recentPayments.slice(0, 3).map((payment) => (
-                    <div key={payment.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--imx-surface)' }}>
-                          <div className="w-4 h-4 rounded-full" style={{ background: '#FBBF24' }}></div>
-                        </div>
-                        <div>
-                          <p className="text-[14px] font-bold text-[var(--imx-text-primary)] mb-0.5 font-nunito">{payment.propertyName || 'Logement'}</p>
-                          <p className="text-[var(--imx-text-secondary)] text-[11px]" style={{ fontFamily: 'Space Grotesk' }}>
-                            {new Date(payment.created_at).toLocaleDateString('fr-FR')}
-                          </p>
-                        </div>
+                    <div key={payment.id} className="flex items-center gap-3 rounded-2xl px-4 py-3"
+                      style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'rgba(251, 191, 36, 0.12)' }}>
+                        <div className="w-3 h-3 rounded-full" style={{ background: '#FBBF24' }} />
                       </div>
-                      <div className="text-right">
-                        <p className="text-[var(--imx-text-primary)] font-black text-[15px] font-nunito">- {new Intl.NumberFormat('fr-FR').format(payment.amount)}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-bold text-[var(--imx-text-primary)] font-nunito truncate">
+                          {payment.propertyName || 'Logement'}
+                        </p>
+                        <p className="text-[var(--imx-text-secondary)] text-[11px]" style={{ fontFamily: 'Space Grotesk' }}>
+                          {new Date(payment.created_at).toLocaleDateString('fr-FR')}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="font-nunito font-black text-[14px]" style={{ color: 'var(--imx-text-primary)' }}>
+                          {new Intl.NumberFormat('fr-FR').format(payment.amount)}
+                        </p>
+                        <p className="text-[10px] font-semibold" style={{ color: '#22C55E', fontFamily: 'Space Grotesk' }}>FCFA</p>
                       </div>
                     </div>
                   ))}

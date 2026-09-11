@@ -253,17 +253,22 @@ const Publier: React.FC = () => {
                   />
                   <label
                     htmlFor="photo-upload-new"
-                    className={`w-full h-full rounded-2xl border-2 border-dashed transition flex items-center justify-center bg-[var(--imx-surface-2)] ${
+                    className={`w-full h-full rounded-2xl border-2 border-dashed transition flex flex-col items-center justify-center bg-[var(--imx-accent)]/5 ${
                       uploadingImage 
-                        ? 'border-[var(--imx-accent-light)]/10 opacity-70 cursor-not-allowed' 
-                        : 'border-[var(--imx-accent-light)]/30 hover:border-[var(--imx-accent-light)]/60 cursor-pointer'
+                        ? 'border-[var(--imx-accent)]/20 opacity-70 cursor-not-allowed' 
+                        : 'border-[var(--imx-accent)]/40 hover:border-[var(--imx-accent)] hover:bg-[var(--imx-accent)]/10 cursor-pointer'
                     }`}
                   >
                     {uploadingImage ? (
-                      <div className="w-5 h-5 border-2 border-[var(--imx-accent-light)] border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-6 h-6 border-2 border-[var(--imx-accent)] border-t-transparent rounded-full animate-spin mb-1"></div>
                     ) : (
-                      <Plus size={20} className="text-[var(--imx-text-secondary)]" />
+                      <div className="bg-white shadow-sm p-2 rounded-full mb-2">
+                        <Plus size={18} className="text-[var(--imx-accent)]" />
+                      </div>
                     )}
+                    <span className="text-[9px] font-bold text-[var(--imx-accent)] uppercase tracking-wider font-space-grotesk text-center px-1">
+                      {uploadingImage ? 'Envoi...' : 'Ajouter'}
+                    </span>
                   </label>
                 </div>
               )}

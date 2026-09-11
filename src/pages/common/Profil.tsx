@@ -2,10 +2,9 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
-import { useTheme } from '../../contexts/ThemeContext';
 import { useToast } from '../../components/Toast';
 import BottomNav from '../../components/BottomNav';
-import { ShieldCheck, Receipt, Wallet, MessageCircle, HelpCircle, ChevronRight, KeyRound, Home, Sun, Moon, Monitor, User, Camera, Trash2, ClipboardList, Heart, Bell, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Receipt, Wallet, MessageCircle, HelpCircle, ChevronRight, KeyRound, Home, User, Camera, Trash2, ClipboardList, Heart, Bell, AlertTriangle } from 'lucide-react';
 import { LegalModal } from '../../components/LegalModal';
 
 const compressImage = (file: File): Promise<Blob> => {
@@ -110,7 +109,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export default function Profil() {
   const { profile, signOut, refreshProfile } = useAuth();
-  const { mode, setMode } = useTheme();
   const navigate = useNavigate();
   const { showToast } = useToast();
 
@@ -335,41 +333,6 @@ export default function Profil() {
           </div>
         </div>
 
-        {/* ── Paramètres & Apparence ── */}
-        <div>
-          <SectionLabel>Paramètres &amp; Apparence</SectionLabel>
-          <div className="card divide-y divide-[var(--imx-border)] overflow-hidden mb-3">
-            <ProfilRow
-              icon={<Bell size={16} />}
-              iconColor="var(--imx-accent-light)"
-              label="Notifications"
-              to="/notifications"
-            />
-          </div>
-          <div className="card p-2 flex gap-1.5">
-            {([
-              { key: 'dark' as const, label: 'Sombre', icon: Moon },
-              { key: 'light' as const, label: 'Clair', icon: Sun },
-              { key: 'auto' as const, label: 'Auto', icon: Monitor },
-            ]).map(({ key, label, icon: Icon }) => {
-              const active = mode === key;
-              return (
-                <button
-                  key={key}
-                  onClick={() => setMode(key)}
-                  className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl transition-all"
-                  style={{
-                    background: active ? 'var(--imx-accent)' : 'transparent',
-                    color: active ? '#FFFFFF' : 'var(--imx-text-secondary)',
-                  }}
-                >
-                  <Icon size={17} />
-                  <span className="text-[11px] font-bold" style={{ fontFamily: 'Space Grotesk' }}>{label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
         {/* ── Sécurité ── */}
         <div>

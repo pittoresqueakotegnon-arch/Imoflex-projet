@@ -77,7 +77,7 @@ export const WalletCard: React.FC<WalletCardProps> = ({ wallet, loading = false 
             className="font-nunito font-black text-white leading-none block"
             style={{ fontSize: 'clamp(2rem, 9vw, 2.8rem)', letterSpacing: '-1px' }}
           >
-            {showBalance ? formatMontant(wallet.available_balance || 0) : '•••  •••'}
+            {showBalance ? formatMontant(wallet.available_balance || 0) : '*** ***'}
           </span>
         </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Download, X, Printer, FileText, Share2, CheckCircle2 } from 'lucide-react';
+import { Download, X, Printer, FileText, Share2, CheckCircle, CheckCircle2 } from 'lucide-react';
 import { Share } from '@capacitor/share';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, Payment } from '../../lib/supabase';
@@ -297,54 +297,118 @@ export default function Historique() {
 
       {/* ── Modale Reçu de Paiement (PDF Print) ── */}
       {selectedReceipt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setSelectedReceipt(null)}>
           <div
-            className="rounded-[24px] w-full max-w-sm overflow-hidden flex flex-col relative printable-receipt"
-            style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}
+            className="w-full max-w-sm rounded-t-[28px] overflow-hidden flex flex-col printable-receipt"
+            style={{ background: '#FFFFFF', maxHeight: '92vh' }}
+            onClick={e => e.stopPropagation()}
           >
-            <button
-              onClick={() => setSelectedReceipt(null)}
-              className="absolute top-4 right-4 p-2 z-10 no-print transition-colors"
-              style={{ color: 'var(--imx-text-muted)' }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--imx-text-primary)'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--imx-text-muted)'}
-            >
-              <X size={20} />
-            </button>
-            <div className="p-6 text-center border-b" style={{ borderColor: 'var(--imx-border)', background: 'var(--imx-surface-2)' }}>
-              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(34,197,94,0.12)', color: '#22C55E' }}>
-                <Printer size={20} />
+            {/* ── HEADER HERO ── */}
+            <div className="relative px-6 pt-6 pb-5 text-center"
+              style={{ background: 'linear-gradient(145deg, #7B3FE4 0%, #3D1884 100%)' }}>
+              {/* Pill handle */}
+              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-white/20" />
+
+              {/* Fermer */}
+              <button
+                onClick={() => setSelectedReceipt(null)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center no-print"
+                style={{ background: 'rgba(255,255,255,0.15)' }}
+              >
+                <X size={16} className="text-white" />
+              </button>
+
+              {/* Logo ImoFlex Print-Only / Modal Header */}
+              <div className="mb-4 text-white">
+                <span className="font-nunito font-900 text-[22px] tracking-tight">Imo</span>
+                <span className="font-nunito font-900 text-[22px] tracking-tight text-[#D8B4FE]">Flex</span>
               </div>
-              <h2 className="font-nunito font-black text-xl" style={{ color: 'var(--imx-text-primary)' }}>Reçu Officiel</h2>
-              <p className="text-sm mt-1" style={{ fontFamily: 'Space Grotesk', color: 'var(--imx-text-secondary)' }}>ImoFlex Paiements</p>
+
+              {/* Icone succès */}
+              <div className="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center"
+                style={{ background: 'rgba(255,255,255,0.15)' }}>
+                <CheckCircle size={26} className="text-white" strokeWidth={2} />
+              </div>
+
+              {/* Montant */}
+              <div className="flex items-baseline justify-center mb-1">
+                <span className="font-nunito font-black text-[36px] leading-none text-white">
+                  {formatMontant(selectedReceipt.amount)}
+                </span>
+              </div>
+
+              {/* Badge Payé */}
+              <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full"
+                style={{ background: 'rgba(16, 185, 129, 0.25)' }}>
+                <div className="w-2 h-2 rounded-full bg-[#4ADE80]" />
+                <span className="font-space-grotesk font-bold text-[11px] text-[#6EE7B7] uppercase tracking-wider">Payé</span>
+              </div>
             </div>
-            <div className="p-6 space-y-4" style={{ fontFamily: 'Space Grotesk' }}>
-              <div className="flex justify-between items-center text-sm">
-                <span style={{ color: 'var(--imx-text-secondary)' }}>Date</span>
-                <span className="font-medium" style={{ color: 'var(--imx-text-primary)' }}>{new Date(selectedReceipt.created_at).toLocaleString('fr-FR')}</span>
+
+            {/* ── DÉTAILS ── */}
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+
+              {/* Titre + sous-titre */}
+              <div className="text-center mb-4">
+                <h2 className="font-nunito font-black text-[17px] text-[#17132B]">Reçu Officiel</h2>
+                <p className="font-space-grotesk text-[12px] text-gray-400">ImoFlex Paiements sécurisés</p>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span style={{ color: 'var(--imx-text-secondary)' }}>Montant</span>
-                <span className="font-bold text-base" style={{ color: 'var(--imx-text-primary)' }}>{formatMontant(selectedReceipt.amount)}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span style={{ color: 'var(--imx-text-secondary)' }}>Logement</span>
-                <span className="font-medium" style={{ color: 'var(--imx-text-primary)' }}>{selectedReceipt.propertyName || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span style={{ color: 'var(--imx-text-secondary)' }}>Référence</span>
-                <span className="font-mono text-xs px-2 py-1 rounded" style={{ color: 'var(--imx-text-primary)', background: 'var(--imx-surface-2)', border: '1px solid var(--imx-border)' }}>{selectedReceipt.fedapay_transaction_id}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span style={{ color: 'var(--imx-text-secondary)' }}>Opérateur</span>
-                <span className="font-medium capitalize" style={{ color: 'var(--imx-text-primary)' }}>{selectedReceipt.operator}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span style={{ color: 'var(--imx-text-secondary)' }}>Statut</span>
-                <span className="font-bold uppercase tracking-wide text-xs" style={{ color: '#22C55E' }}>PAYÉ</span>
+
+              {/* Lignes de détail */}
+              <div className="space-y-1">
+                {[
+                  {
+                    label: 'Date',
+                    value: new Date(selectedReceipt.created_at).toLocaleString('fr-FR', {
+                      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                    }),
+                    mono: false,
+                  },
+                  {
+                    label: 'Logement',
+                    value: selectedReceipt.propertyName || 'N/A',
+                    mono: false,
+                    truncate: true,
+                  },
+                  {
+                    label: 'Référence',
+                    value: selectedReceipt.fedapay_transaction_id || '—',
+                    mono: true,
+                  },
+                  {
+                    label: 'Opérateur',
+                    value: (() => {
+                      const op = selectedReceipt.operator?.toLowerCase() || '';
+                      if (op === 'mtn') return 'MTN Mobile Money';
+                      if (op === 'moov') return 'Moov Africa';
+                      if (op === 'celtiis') return 'Celtiis Pay';
+                      return selectedReceipt.operator || '—';
+                    })(),
+                    mono: false,
+                  },
+                  { label: 'Frais', value: '0 FCFA (Gratuit)', mono: false, green: true },
+                ].map((row, i) => (
+                  <div key={i} className="flex items-center justify-between py-3 border-b border-gray-50">
+                    <span className="font-space-grotesk text-[12px] text-gray-400 font-semibold flex-shrink-0 w-24">{row.label}</span>
+                    <span
+                      className={`text-right flex-1 min-w-0 ${row.truncate ? 'truncate' : ''} ${row.mono ? 'font-mono text-[11px]' : 'font-space-grotesk font-semibold text-[13px]'}`}
+                      style={{ color: row.green ? '#10B981' : '#17132B' }}
+                    >
+                      {row.value}
+                    </span>
+                  </div>
+                ))}
+
+                {/* Statut */}
+                <div className="flex items-center justify-between py-3">
+                  <span className="font-space-grotesk text-[12px] text-gray-400 font-semibold">Statut</span>
+                  <span className="font-space-grotesk font-bold text-[11px] uppercase tracking-widest px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600">PAYÉ</span>
+                </div>
               </div>
             </div>
-            <div className="p-6 border-t no-print space-y-3" style={{ borderColor: 'var(--imx-border)', background: 'var(--imx-surface-2)' }}>
+
+            {/* ── ACTIONS ── */}
+            <div className="px-5 pb-6 pt-3 space-y-2.5 no-print border-t border-gray-100">
               <button
                 onClick={async () => {
                   haptics.light();
@@ -360,7 +424,8 @@ export default function Historique() {
                     showToast('Détails du reçu copiés !', 'success');
                   }
                 }}
-                className="w-full bg-[#FBBF24] hover:bg-[#F59E0B] text-slate-900 font-bold py-3.5 rounded-xl transition-colors font-nunito flex items-center justify-center gap-2"
+                className="w-full font-nunito font-black text-[15px] rounded-2xl py-4 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                style={{ background: 'linear-gradient(135deg, #7B3FE4, #5B2DC7)', color: 'white', boxShadow: '0 8px 24px rgba(123,63,228,0.3)' }}
               >
                 <Share2 size={18} />
                 Partager le reçu
@@ -368,7 +433,8 @@ export default function Historique() {
 
               <button
                 onClick={() => window.print()}
-                className="w-full bg-[var(--imx-accent)] hover:opacity-90 text-white font-bold py-3.5 rounded-xl transition-colors font-nunito flex items-center justify-center gap-2"
+                className="w-full border font-nunito font-bold text-[15px] rounded-2xl py-3.5 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform text-[#7B3FE4]"
+                style={{ borderColor: 'rgba(123,63,228,0.2)', background: '#F5F3FF' }}
               >
                 <Download size={18} />
                 Imprimer / Sauvegarder PDF
@@ -378,7 +444,11 @@ export default function Historique() {
           <style>{`
             @media print {
               body * { visibility: hidden; }
-              .printable-receipt, .printable-receipt * { visibility: visible; }
+              .printable-receipt, .printable-receipt * { 
+                visibility: visible; 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+              }
               .printable-receipt { position: absolute; left: 0; top: 0; width: 100%; border-radius: 0; box-shadow: none; }
               .no-print { display: none !important; }
             }
@@ -388,3 +458,6 @@ export default function Historique() {
     </div>
   );
 }
+
+
+

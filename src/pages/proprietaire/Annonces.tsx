@@ -142,11 +142,11 @@ const Annonces: React.FC = () => {
             const isRejected = (listing as any).status === 'rejetee';
 
             return (
-              <div key={listing.id} className="card p-3.5 flex flex-col gap-3">
+              <div key={listing.id} className="bg-white rounded-[24px] p-4 flex flex-col gap-4 shadow-sm border border-gray-100 overflow-hidden relative">
                 {/* Main Row */}
-                <div className="flex gap-3.5">
+                <div className="flex gap-4">
                   {/* Cover Photo */}
-                  <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-[var(--imx-surface-2)]">
+                  <div className="w-20 h-20 rounded-[16px] overflow-hidden flex-shrink-0 bg-gray-50 shadow-inner">
                     {coverPhoto?.photo_url ? (
                       <img
                         src={coverPhoto.photo_url}
@@ -154,68 +154,73 @@ const Annonces: React.FC = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[var(--imx-text-muted)]">
-                        <Home size={24} />
+                      <div className="w-full h-full flex items-center justify-center text-gray-300">
+                        <Home size={28} />
                       </div>
                     )}
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 min-w-0 flex flex-col justify-between">
+                  <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                     <div className="flex items-start justify-between gap-1">
                       <div className="min-w-0">
-                        <h3 className="font-nunito font-700 text-[var(--imx-text-primary)] text-sm truncate leading-tight">
+                        <h3 className="font-nunito font-900 text-[#17132B] text-[15px] truncate leading-tight">
                           {listing.title}
                         </h3>
-                        <p className="text-[10px] text-[var(--imx-text-secondary)] mt-0.5 truncate" style={{ fontFamily: 'Space Grotesk' }}>
+                        <p className="text-[11px] text-gray-400 mt-1 truncate font-space-grotesk font-medium">
                           {listing.neighborhood || listing.city}
                         </p>
                       </div>
-                      {/* Prix loyer mensuel */}
-                      {(listing as any).monthly_rent && (
-                        <span className="text-[10px] font-bold text-[var(--imx-accent-light)] whitespace-nowrap flex-shrink-0" style={{ fontFamily: 'Space Grotesk' }}>
-                          {new Intl.NumberFormat('fr-FR').format((listing as any).monthly_rent)} FCFA/mois
-                        </span>
-                      )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      <StatusBadge status={listing.availability_status} />
-                      
-                      {/* Status Badges */}
-                      {isPublished && (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
-                          <CheckCircle2 size={10} /> Active
-                        </span>
-                      )}
+                    <div className="flex items-center justify-between mt-auto">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {isPublished && (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-500">
+                            <CheckCircle2 size={10} /> Active
+                          </span>
+                        )}
 
-                      {isDeletionPending && (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                          <Clock size={10} /> Suppression en attente
-                        </span>
-                      )}
+                        {isDeletionPending && (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-500">
+                            <Clock size={10} /> Suppression en attente
+                          </span>
+                        )}
 
-                      {isDeleted && (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-400 border border-slate-500/20">
-                          <Archive size={10} /> Archivée
-                        </span>
-                      )}
+                        {isDeleted && (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-md bg-gray-50 text-gray-500">
+                            <Archive size={10} /> Archivée
+                          </span>
+                        )}
 
-                      {isWaitingMod && (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">
-                          <Clock size={10} /> En attente de validation
-                        </span>
-                      )}
+                        {isWaitingMod && (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-500">
+                            <Clock size={10} /> En attente de validation
+                          </span>
+                        )}
 
-                      {isRejected && (
-                        <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20"
-                          title={(listing as any).rejection_reason || ''}
-                        >
-                          <AlertCircle size={10} /> Rejetée
-                        </span>
-                      )}
+                        {isRejected && (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-md bg-red-50 text-red-500"
+                            title={(listing as any).rejection_reason || ''}
+                          >
+                            <AlertCircle size={10} /> Rejetée
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Prix & Statut */}
+                <div className="flex items-center justify-between pt-2 border-t border-gray-50">
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={listing.availability_status} />
+                  </div>
+                  {(listing as any).monthly_rent && (
+                    <span className="text-[12px] font-space-grotesk font-bold text-[#7B3FE4] whitespace-nowrap bg-[#7B3FE4]/10 px-2.5 py-1 rounded-lg">
+                      {new Intl.NumberFormat('fr-FR').format((listing as any).monthly_rent)} FCFA<span className="text-[10px] font-semibold text-[#7B3FE4]/70">/mois</span>
+                    </span>
+                  )}
                 </div>
 
                 {/* Status explainer banner */}
@@ -347,8 +352,8 @@ const Annonces: React.FC = () => {
                 )}
 
                 {/* Actions Footer */}
-                <div className="flex items-center justify-between pt-2 border-t border-[var(--imx-surface-2)]">
-                  <div className="text-[10px] text-[var(--imx-text-secondary)] font-semibold" style={{ fontFamily: 'Space Grotesk' }}>
+                <div className="flex items-center justify-between pt-3">
+                  <div className="text-[11px] text-gray-500 font-semibold font-space-grotesk">
                     {listing.contactRequestsCount} demande{listing.contactRequestsCount !== 1 ? 's' : ''}
                   </div>
 
@@ -356,9 +361,9 @@ const Annonces: React.FC = () => {
                     {/* Voir l'annonce */}
                     <Link
                       to={`/annonce/${listing.id}`}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-[var(--imx-surface-2)] text-[var(--imx-text-primary)] hover:bg-white/10 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
                     >
-                      <Eye size={11} />
+                      <Eye size={12} />
                       Voir
                     </Link>
 
@@ -366,7 +371,7 @@ const Annonces: React.FC = () => {
                     {listing.availability_status === 'disponible' && isPublished && (
                       <Link
                         to={`/pro/activer/${listing.id}`}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-purple-500/15 text-[var(--imx-accent-light)] hover:bg-purple-500/25 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#7B3FE4]/10 text-[#7B3FE4] hover:bg-[#7B3FE4]/20 transition-colors"
                       >
                         Demandes
                       </Link>
@@ -390,15 +395,15 @@ const Annonces: React.FC = () => {
                           ? 'Annonce déjà archivée'
                           : 'Demander la suppression de cette annonce'
                       }
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all ${
                         isDeletionPending
-                          ? 'bg-amber-500/10 text-amber-400/60 cursor-not-allowed border border-amber-500/20'
+                          ? 'bg-amber-50 text-amber-500/60 cursor-not-allowed'
                           : isDeleted
-                          ? 'bg-slate-500/10 text-slate-500 cursor-not-allowed'
-                          : 'bg-red-500/10 text-red-400 hover:bg-red-500/20 active:scale-95 border border-red-500/20'
+                          ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                          : 'bg-red-50 text-red-500 hover:bg-red-100 active:scale-95'
                       }`}
                     >
-                      <Trash2 size={11} />
+                      <Trash2 size={12} />
                       {isDeletionPending ? 'En attente' : isDeleted ? 'Archivée' : 'Supprimer'}
                     </button>
                   </div>
