@@ -84,10 +84,11 @@ const Retrait: React.FC = () => {
 
   const validateForm = (): string | null => {
     if (parsedAmount < 100) return "Le montant minimum est 100 FCFA";
-    if (!wallet) return "Wallet non trouve";
+    if (!wallet) return "Wallet non trouvé";
     if (parsedAmount > availableBalance) return `Solde insuffisant. Disponible : ${formatMontant(availableBalance)}`;
+    if (!selectedOperator) return "Veuillez choisir un opérateur de réception";
     const cleanPhone = normalizeBjPhone(phoneNumber);
-    if (!cleanPhone || cleanPhone.length !== 10) return "Numero invalide. Entrez 10 chiffres locaux (ex: 01 97 00 00 00)";
+    if (!cleanPhone || cleanPhone.length !== 10) return "Numéro invalide. Entrez 10 chiffres locaux (ex: 01 97 00 00 00)";
     return null;
   };
 
@@ -444,8 +445,7 @@ const Retrait: React.FC = () => {
       {/* Bouton principal */}
       <div className="px-5 pt-3">
         <button onClick={handleContinue}
-          disabled={parsedAmount < 100 || parsedAmount > availableBalance || !phoneNumber}
-          className="w-full rounded-[18px] py-4 font-nunito font-900 text-[16px] text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-40 shadow-lg shadow-[#7B3FE4]/30"
+          className="w-full rounded-[18px] py-4 font-nunito font-900 text-[16px] text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-[#7B3FE4]/30"
           style={{ background: "linear-gradient(135deg, #7B3FE4, #5B2DC7)" }}>
           Continuer <ArrowRight size={18} />
         </button>

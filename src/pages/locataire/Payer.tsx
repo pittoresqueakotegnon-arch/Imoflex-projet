@@ -109,11 +109,12 @@ export default function Payer() {
           try {
             const { data: ownerData } = await supabase
               .from("users").select("full_name").eq("id", prop.owner_id).maybeSingle();
-            if (ownerData?.full_name) setOwnerName(ownerData.full_name);
+            setOwnerName(ownerData?.full_name || "Propriétaire");
           } catch {
-            // RLS fallback
             setOwnerName("Propriétaire");
           }
+        } else {
+          setOwnerName("Propriétaire");
         }
 
         // 1. Chercher la période non soldée (priorité à la plus ancienne en retard ou en cours)
@@ -297,60 +298,70 @@ export default function Payer() {
       day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
     });
     return (
-      <div className="min-h-screen bg-white flex flex-col" style={{ paddingBottom: "calc(env(safe-area-inset-bottom,0px)+32px)" }}>
-        <div className="relative bg-[#7B3FE4] flex flex-col items-center" style={{ paddingTop: "calc(env(safe-area-inset-top,0px)+56px)", paddingBottom: "80px" }}>
-          <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mb-4 shadow-lg">
-            <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center">
-              <Check size={28} className="text-[#7B3FE4]" strokeWidth={3} />
+      <div className="min-h-screen flex flex-col bg-[#F8F7FC]" style={{ paddingBottom: "calc(env(safe-area-inset-bottom,0px)+32px)" }}>
+        {/* Header Hero */}
+        <div className="relative flex flex-col items-center shadow-lg" style={{ paddingTop: "calc(env(safe-area-inset-top,0px)+56px)", paddingBottom: "80px", background: 'linear-gradient(135deg, #3B0E8C 0%, #7B3FE4 60%, #A855F7 100%)' }}>
+          <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%)' }} />
+          <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.25), transparent 70%)' }} />
+          
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4" style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)' }}>
+              <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-sm">
+                <Check size={28} className="text-[#10B981]" strokeWidth={3} />
+              </div>
             </div>
+            <h1 className="font-nunito font-900 text-white text-[24px] text-center leading-tight mb-2 px-6">
+              Versement réussi !
+            </h1>
+            <p className="font-space-grotesk text-white/80 text-[14px] text-center px-8">
+              Votre paiement de <strong className="text-white">{formatMontant(successData.amount)}</strong> a bien été traité.
+            </p>
           </div>
-          <h1 className="font-nunito font-900 text-white text-[24px] text-center leading-tight mb-2 px-6">
-            Versement effectue avec succes
-          </h1>
-          <p className="font-space-grotesk text-white/80 text-[14px] text-center px-8">
-            Votre loyer de <strong className="text-white">{formatMontant(successData.amount)} FCFA</strong> pour <strong className="text-white">{successData.periodLabel}</strong> a ete paye avec succes.
-          </p>
           <div className="absolute -bottom-1 left-0 right-0 h-10">
-            <svg viewBox="0 0 500 40" preserveAspectRatio="none" className="w-full h-full fill-white">
+            <svg viewBox="0 0 500 40" preserveAspectRatio="none" className="w-full h-full fill-[#F8F7FC]">
               <path d="M0,40 C125,0 375,0 500,40 Z" />
             </svg>
           </div>
         </div>
 
-        <div className="flex-1 px-6 pt-4">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-xl bg-[#F5F3FF] flex items-center justify-center flex-shrink-0">
-              <Building2 size={20} className="text-[#7B3FE4]" />
+        <div className="flex-1 px-5 pt-2">
+          {/* Bien card */}
+          <div className="flex items-center gap-3 mb-5 px-2">
+            <div className="w-12 h-12 rounded-[14px] bg-white shadow-sm flex items-center justify-center flex-shrink-0 border border-gray-100">
+              <Building2 size={22} className="text-[#7B3FE4]" />
             </div>
             <div>
-              <p className="font-nunito font-900 text-[#17132B] text-[15px]">{successData.propertyName}</p>
+              <p className="font-nunito font-900 text-[#17132B] text-[16px]">{successData.propertyName}</p>
               {propertyLocation ? <p className="text-gray-500 text-[12px] font-space-grotesk">{propertyLocation}</p> : null}
             </div>
           </div>
 
-          <div className="bg-[#FAFAFA] rounded-[20px] border border-gray-100 p-5 mb-8">
+          {/* Details */}
+          <div className="bg-white rounded-[24px] border border-gray-100 p-5 mb-8 shadow-sm">
             {[
-              { label: "Reference", value: successData.paymentId.slice(0, 8).toUpperCase(), mono: true },
+              { label: "Période", value: successData.periodLabel },
+              { label: "Référence", value: successData.paymentId.slice(0, 8).toUpperCase(), mono: true },
               { label: "Date", value: formattedDate },
-              { label: "Operateur", value: opCfg.label },
-              { label: "Montant", value: `${formatMontant(successData.amount)} FCFA`, bold: true },
+              { label: "Opérateur", value: opCfg.label },
+              { label: "Montant", value: formatMontant(successData.amount), bold: true },
             ].map(({ label, value, mono, bold }) => (
-              <div key={label} className="flex items-center justify-between py-2.5 border-b border-gray-100 last:border-0">
-                <span className="font-space-grotesk text-[12px] text-gray-500 font-medium">{label}</span>
-                <span className={`font-space-grotesk text-[13px] text-[#17132B] ${bold ? "font-900 text-[#7B3FE4]" : "font-semibold"} ${mono ? "font-mono" : ""}`}>{value}</span>
+              <div key={label} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
+                <span className="font-space-grotesk text-[12px] text-gray-400 font-medium">{label}</span>
+                <span className={`font-space-grotesk text-[13px] text-[#17132B] ${bold ? "font-900 text-[#7B3FE4] text-[15px]" : "font-semibold"} ${mono ? "font-mono" : ""}`}>{value}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="px-6 flex flex-col gap-3">
+        <div className="px-5 flex flex-col gap-3">
           <button onClick={() => { haptics.light(); navigate(`/recu/${successData.paymentId}`); }}
-            className="w-full border-2 border-[#7B3FE4] text-[#7B3FE4] font-nunito font-900 text-[15px] rounded-2xl py-4 flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
-            Voir le recu <ArrowRight size={18} />
+            className="w-full bg-white border border-gray-100 text-[#17132B] shadow-sm font-nunito font-800 text-[15px] rounded-[20px] py-4 flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+            Voir le reçu <ArrowRight size={18} className="text-[#7B3FE4]" />
           </button>
           <button onClick={() => { haptics.medium(); navigate("/dashboard"); }}
-            className="w-full bg-[#7B3FE4] text-white font-nunito font-900 text-[15px] rounded-2xl py-4 active:scale-[0.98] transition-all shadow-lg shadow-[#7B3FE4]/30">
-            Retour a mon espace
+            className="w-full text-white font-nunito font-900 text-[16px] rounded-[20px] py-4 active:scale-[0.98] transition-all shadow-xl"
+            style={{ background: "linear-gradient(135deg, #7B3FE4, #5B2DC7)", boxShadow: '0 8px 32px rgba(123,63,228,0.35)' }}>
+            Retour à mon espace
           </button>
         </div>
       </div>
@@ -371,82 +382,98 @@ export default function Payer() {
           <h1 className="font-nunito font-900 text-[18px] text-[#17132B]">Confirmation du versement</h1>
         </div>
 
-        <div className="flex-1 px-6 py-6 flex flex-col gap-4 overflow-y-auto">
-          <div className="bg-[#7B3FE4] rounded-[24px] p-6 text-center shadow-xl shadow-[#7B3FE4]/20">
-            <p className="font-space-grotesk text-white/70 text-[11px] font-bold uppercase tracking-widest mb-2">Total a payer</p>
-            <p className="font-nunito font-900 text-white text-[38px] leading-none">{formatMontant(amount)}</p>
-            <p className="font-space-grotesk text-white/80 text-[14px] mt-1">FCFA</p>
-          </div>
-
-          <div className="bg-[#FAFAFA] rounded-[20px] border border-gray-100 overflow-hidden">
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#F5F3FF] flex items-center justify-center flex-shrink-0">
-                <User size={15} className="text-[#7B3FE4]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Proprietaire</p>
-                <p className="font-nunito font-800 text-[14px] text-[#17132B] truncate">{ownerName || "�"}</p>
-              </div>
-            </div>
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#EFF6FF] flex items-center justify-center flex-shrink-0">
-                <Building2 size={15} className="text-[#3B82F6]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Bien</p>
-                <p className="font-nunito font-800 text-[14px] text-[#17132B] truncate">{propertyName || "�"}</p>
-                {propertyLocation ? <p className="text-[11px] text-gray-500 font-space-grotesk">{propertyLocation}</p> : null}
+        <div className="flex-1 px-5 flex flex-col gap-4 overflow-y-auto py-4">
+          <div className="rounded-[28px] p-6 text-center relative overflow-hidden shadow-lg"
+            style={{ background: 'linear-gradient(135deg, #3B0E8C 0%, #7B3FE4 60%, #A855F7 100%)' }}>
+            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none"
+              style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%)' }} />
+            <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full pointer-events-none"
+              style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.25), transparent 70%)' }} />
+            <div className="relative z-10">
+              <p className="font-space-grotesk text-white/60 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">Total à payer</p>
+              <p className="font-nunito font-900 text-white leading-none mb-1" style={{ fontSize: 'clamp(2.2rem, 12vw, 3rem)', letterSpacing: '-1px' }}>
+                {formatMontant(amount)}
+              </p>
+              <div className="mt-3 inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-white/90 text-[11px] font-space-grotesk font-semibold">Paiement sécurisé</span>
               </div>
             </div>
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#ECFDF5] flex items-center justify-center flex-shrink-0">
-                <Calendar size={15} className="text-[#10B981]" />
+                 <div className="bg-white rounded-[24px] border border-gray-100 overflow-hidden" style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
+            <div className="px-5 py-4 flex items-center gap-3 border-b border-gray-50">
+              <div className="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: '#F5F3FF' }}>
+                <User size={16} className="text-[#7B3FE4]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Periode</p>
+                <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wider">Propriétaire</p>
+                <p className="font-nunito font-800 text-[14px] text-[#17132B] truncate">{ownerName || "Propriétaire"}</p>
+              </div>
+            </div>
+            <div className="px-5 py-4 flex items-center gap-3 border-b border-gray-50">
+              <div className="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: '#EFF6FF' }}>
+                <Building2 size={16} className="text-[#3B82F6]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wider">Bien</p>
+                <p className="font-nunito font-800 text-[14px] text-[#17132B] truncate">{propertyName || "Logement"}</p>
+                {propertyLocation ? <p className="text-[11px] text-gray-400 font-space-grotesk truncate">{propertyLocation}</p> : null}
+              </div>
+            </div>
+            <div className="px-5 py-4 flex items-center gap-3 border-b border-gray-50">
+              <div className="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: '#ECFDF5' }}>
+                <Calendar size={16} className="text-[#10B981]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wider">Période</p>
                 <p className="font-nunito font-800 text-[14px] text-[#17132B]">{periodLabel}</p>
               </div>
             </div>
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between gap-3">
+            <div className="px-5 py-4 flex items-center justify-between gap-3 border-b border-gray-50">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#FFFBEB] flex items-center justify-center flex-shrink-0">
-                  <CreditCard size={15} className="text-[#F59E0B]" />
+                <div className="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: '#FFFBEB' }}>
+                  <CreditCard size={16} className="text-[#F59E0B]" />
                 </div>
-                <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Versement</p>
+                <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wider">Versement</p>
               </div>
-              <p className="font-nunito font-900 text-[16px] text-[#17132B]">{formatMontant(amount)} FCFA</p>
+              <p className="font-nunito font-900 text-[16px] text-[#7B3FE4]">{formatMontant(amount)}</p>
             </div>
-            <div className="px-5 py-3 flex items-center justify-between gap-3">
+            <div className="px-5 py-4 flex items-center justify-between">
               <p className="text-[12px] text-gray-400 font-space-grotesk font-medium">Frais de transaction</p>
-              <span className="text-[#10B981] font-space-grotesk font-bold text-[12px]">Gratuit</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                <span className="text-[#10B981] font-space-grotesk font-bold text-[13px]">Gratuit</span>
+              </div>
             </div>
           </div>
 
           {opCfg && (
-            <div className="rounded-[20px] border border-gray-100 overflow-hidden" style={{ background: opCfg.bg }}>
-              <div className="px-5 py-3 flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: opCfg.color }} />
+            <div className="bg-white rounded-[24px] border border-gray-100 overflow-hidden" style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
+              <div className="px-5 py-4 flex items-center gap-3 border-b border-gray-50">
+                <div className="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: opCfg.bg }}>
+                  <div className="w-3 h-3 rounded-full" style={{ background: opCfg.color }} />
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Moyen de paiement</p>
+                  <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wider">Moyen de paiement</p>
                   <p className="font-nunito font-800 text-[14px] text-[#17132B]">{opCfg.label}</p>
                 </div>
               </div>
-              <div className="px-5 py-3 border-t border-gray-100/50 flex items-center gap-3">
+              <div className="px-5 py-4 flex items-center gap-3">
                 <Phone size={15} className="text-gray-400 flex-shrink-0" />
                 <p className="font-space-grotesk text-[13px] text-[#17132B] font-semibold">+229 {maskPhone(cleanPhone)}</p>
               </div>
             </div>
           )}
 
-          <div className="px-5 py-3 rounded-[16px] bg-gray-50 border border-gray-100">
-            <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide mb-1">Reference periode</p>
-            <p className="font-mono text-[12px] text-gray-500">{currentRentPeriod.id.slice(0, 16)}...</p>
+          <div className="bg-white rounded-[18px] border border-gray-100 px-5 py-3.5 shadow-sm">
+            <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wider mb-1">Référence période</p>
+            <p className="font-mono text-[11px] text-gray-400 truncate">{currentRentPeriod.id}</p>
           </div>
         </div>
 
-        <div className="px-6 flex flex-col gap-3">
+        <div className="px-5 pt-3 flex flex-col gap-3">
           <button onClick={() => { haptics.medium(); handlePay(); }} disabled={processing}
-            className="w-full bg-[#7B3FE4] text-white font-nunito font-900 text-[16px] rounded-2xl py-4 flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg shadow-[#7B3FE4]/30 disabled:opacity-60">
+            className="w-full text-white font-nunito font-900 text-[16px] rounded-[20px] py-4 flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg shadow-[#7B3FE4]/30 disabled:opacity-60"
+            style={{ background: "linear-gradient(135deg, #7B3FE4, #5B2DC7)" }}>
             {processing ? (
               <>
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -456,13 +483,13 @@ export default function Payer() {
           </button>
           {pollingPaymentId && (
             <p className="text-gray-500 text-[11px] font-space-grotesk text-center flex items-center justify-center gap-1.5 animate-pulse">
-              <Smartphone size={13} /> Verifiez votre telephone et entrez votre code PIN Mobile Money
+              <Smartphone size={13} /> Vérifiez votre téléphone et entrez votre code PIN Mobile Money
             </p>
           )}
           {!processing && (
             <button onClick={() => { haptics.light(); setStep("form"); }}
-              className="w-full text-[#17132B] font-nunito font-800 text-[15px] rounded-2xl py-3 active:opacity-60 transition-opacity text-center">
-              Modifier
+              className="w-full text-gray-500 font-nunito font-800 text-[14px] rounded-2xl py-2 active:opacity-60 transition-opacity text-center">
+              ← Modifier
             </button>
           )}
         </div>
