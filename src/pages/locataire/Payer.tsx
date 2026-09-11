@@ -399,6 +399,7 @@ export default function Payer() {
                 <span className="text-white/90 text-[11px] font-space-grotesk font-semibold">Paiement sécurisé</span>
               </div>
             </div>
+          </div>
                  <div className="bg-white rounded-[24px] border border-gray-100 overflow-hidden" style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
             <div className="px-5 py-4 flex items-center gap-3 border-b border-gray-50">
               <div className="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: '#F5F3FF' }}>
