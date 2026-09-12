@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS public.support_conversations (
 );
 
 -- Ensure a conversation belongs to either a user or a visitor
+ALTER TABLE public.support_conversations DROP CONSTRAINT IF EXISTS conversation_owner_check;
 ALTER TABLE public.support_conversations
 ADD CONSTRAINT conversation_owner_check 
 CHECK (user_id IS NOT NULL OR visitor_id IS NOT NULL);
@@ -40,6 +41,7 @@ ALTER TABLE public.support_messages ENABLE ROW LEVEL SECURITY;
 
 -- 5. Policies for support_conversations
 -- Users/visitors can insert their own conversations
+DROP POLICY IF EXISTS "Users can create conversations" ON public.support_conversations;
 CREATE POLICY "Users can create conversations" 
 ON public.support_conversations FOR INSERT 
 WITH CHECK (
@@ -48,6 +50,7 @@ WITH CHECK (
 );
 
 -- Users/visitors can read their own conversations
+DROP POLICY IF EXISTS "Users can read own conversations" ON public.support_conversations;
 CREATE POLICY "Users can read own conversations" 
 ON public.support_conversations FOR SELECT 
 USING (
@@ -57,6 +60,7 @@ USING (
 );
 
 -- Admins can update conversations
+DROP POLICY IF EXISTS "Admins can update conversations" ON public.support_conversations;
 CREATE POLICY "Admins can update conversations" 
 ON public.support_conversations FOR UPDATE 
 USING (
@@ -67,6 +71,7 @@ WITH CHECK (
 );
 
 -- Users/visitors can also update their own conversations (e.g., update last_message_at)
+DROP POLICY IF EXISTS "Users can update own conversations" ON public.support_conversations;
 CREATE POLICY "Users can update own conversations" 
 ON public.support_conversations FOR UPDATE 
 USING (
@@ -81,6 +86,7 @@ WITH CHECK (
 
 -- 6. Policies for support_messages
 -- Users/visitors can insert messages in their own conversations
+DROP POLICY IF EXISTS "Users can insert messages" ON public.support_messages;
 CREATE POLICY "Users can insert messages" 
 ON public.support_messages FOR INSERT 
 WITH CHECK (
@@ -95,6 +101,7 @@ WITH CHECK (
 );
 
 -- Users/visitors can read messages in their own conversations
+DROP POLICY IF EXISTS "Users can read messages" ON public.support_messages;
 CREATE POLICY "Users can read messages" 
 ON public.support_messages FOR SELECT 
 USING (
@@ -109,6 +116,7 @@ USING (
 );
 
 -- Admins can update messages (e.g. read_at)
+DROP POLICY IF EXISTS "Admins can update messages" ON public.support_messages;
 CREATE POLICY "Admins can update messages" 
 ON public.support_messages FOR UPDATE 
 USING (
@@ -119,6 +127,7 @@ WITH CHECK (
 );
 
 -- Users can update messages (e.g. read_at for admin messages)
+DROP POLICY IF EXISTS "Users can update messages" ON public.support_messages;
 CREATE POLICY "Users can update messages" 
 ON public.support_messages FOR UPDATE 
 USING (
@@ -141,6 +150,7 @@ WITH CHECK (
 );
 
 -- 7. Setup triggers for updated_at
+DROP TRIGGER IF EXISTS update_support_conversations_updated_at ON public.support_conversations;
 CREATE TRIGGER update_support_conversations_updated_at
 BEFORE UPDATE ON public.support_conversations
 FOR EACH ROW
@@ -168,10 +178,12 @@ VALUES ('support_attachments', 'support_attachments', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- RLS for Storage (Insert allowed for everyone, read allowed for everyone because the URL will be unpredictable UUIDs)
+DROP POLICY IF EXISTS "Allow public insert on support_attachments" ON storage.objects;
 CREATE POLICY "Allow public insert on support_attachments" 
 ON storage.objects FOR INSERT 
 WITH CHECK (bucket_id = 'support_attachments');
 
+DROP POLICY IF EXISTS "Allow public select on support_attachments" ON storage.objects;
 CREATE POLICY "Allow public select on support_attachments" 
 ON storage.objects FOR SELECT 
 USING (bucket_id = 'support_attachments');
