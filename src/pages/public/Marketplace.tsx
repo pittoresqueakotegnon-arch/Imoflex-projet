@@ -44,10 +44,6 @@ const EXPLORE_CATEGORIES_BASE = [
   { id: 'bureau', label: 'Locaux commerciaux', icon: <Store size={30} className="text-[#F59E0B]" />, bg: 'bg-[#FFFBEB]' },
 ];
 
-const Backdrop: React.FC<{ onClose: () => void }> = ({ onClose }) => (
-  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={onClose} />
-);
-
 const Marketplace: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -264,9 +260,6 @@ const Marketplace: React.FC = () => {
     filterMaxRent !== null || 
     filterBedrooms !== undefined ||
     selectedType !== 'a_louer';
-
-  const featuredListings = sortedListings.slice(0, 3);
-  const recentListings = sortedListings.slice(3, 8);
 
   return (
     <div className="page-container bg-white min-h-screen flex flex-col">

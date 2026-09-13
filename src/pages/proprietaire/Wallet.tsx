@@ -5,7 +5,7 @@ import { useWallet } from '../../hooks/useWallet';
 import BottomNav from '../../components/BottomNav';
 import WalletCard from '../../components/WalletCard';
 import { useToast } from '../../components/Toast';
-import { ArrowDownLeft, Clock, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
+import { ArrowDownLeft, Clock, CheckCircle2, XCircle } from 'lucide-react';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
   complete: {
@@ -73,7 +73,7 @@ const Wallet: React.FC = () => {
   }
 
   const totalWithdrawn = withdrawals.reduce((sum, w) => sum + (w.amount || 0), 0);
-  const completedCount = withdrawals.filter(w => w.status === 'completed').length;
+  const completedCount = withdrawals.filter(w => w.status === 'complete').length;
 
   return (
     <div className="page-container bg-[var(--imx-bg-app)]">

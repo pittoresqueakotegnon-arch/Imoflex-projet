@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, ChevronRight, AlertCircle, Clock, CheckCircle2, KeyRound } from 'lucide-react';
+import { ChevronRight, AlertCircle, Clock, CheckCircle2, KeyRound } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, Payment } from '../../lib/supabase';
 import { daysUntilDeadline } from '../../lib/utils';

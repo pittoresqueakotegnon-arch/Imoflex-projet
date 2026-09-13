@@ -5,6 +5,11 @@ import { Headset, CheckCircle2, MessageSquare, Send, Image as ImageIcon, Refresh
 import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import {
+  assertSupportedSupportImage,
+  resolveSupportMessageAttachments,
+  uploadSupportAttachment,
+} from '../../lib/supportAttachments';
 
 interface Conversation {
   id: string;
@@ -84,7 +89,7 @@ export default function AdminSupport() {
 
       // 2. Fetch user info separately for conversations that have a user_id
       const userIds = [...new Set((data || []).map(c => c.user_id).filter(Boolean))];
-      let userMap: Record<string, { full_name: string; phone: string }> = {};
+      const userMap: Record<string, { full_name: string; phone: string }> = {};
 
       if (userIds.length > 0) {
         const { data: usersData } = await supabase
@@ -142,22 +147,24 @@ export default function AdminSupport() {
         fetchConversations();
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, (payload) => {
-        const newMsg = payload.new as Message;
-        // If it's from a user (not admin), show notification
-        if (newMsg.sender_type === 'user') {
-          toast(`Nouveau message`, { description: newMsg.message.slice(0, 60), icon: <MessageSquare size={16} className="text-[#7B3FE4]" /> });
-        }
-        // If we're viewing that conversation, add the message
-        setActiveConversation(prev => {
-          if (prev && prev.id === newMsg.conversation_id) {
-            setMessages(msgs => {
-              if (msgs.find(m => m.id === newMsg.id)) return msgs;
-              return [...msgs, newMsg];
-            });
+        const received = payload.new as Message;
+        void resolveSupportMessageAttachments([received]).then(([newMsg]) => {
+          // If it's from a user (not admin), show notification
+          if (newMsg.sender_type === 'user') {
+            toast(`Nouveau message`, { description: newMsg.message.slice(0, 60), icon: <MessageSquare size={16} className="text-[#7B3FE4]" /> });
           }
-          return prev;
+          // If we're viewing that conversation, add the message
+          setActiveConversation(prev => {
+            if (prev && prev.id === newMsg.conversation_id) {
+              setMessages(msgs => {
+                if (msgs.find(m => m.id === newMsg.id)) return msgs;
+                return [...msgs, newMsg];
+              });
+            }
+            return prev;
+          });
+          fetchConversations();
         });
-        fetchConversations();
       })
       .subscribe();
 
@@ -177,7 +184,7 @@ export default function AdminSupport() {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      setMessages(await resolveSupportMessageAttachments((data || []) as Message[]));
 
       // Mark user messages as read
       const unreadIds = (data || [])
@@ -213,17 +220,18 @@ export default function AdminSupport() {
     setIsSending(true);
 
     try {
-      const { error } = await supabase.from('support_messages').insert({
-        conversation_id: activeConversation.id,
-        sender_type: 'admin',
-        sender_id: user.id,
-        message: text,
-      });
+      const { data: inserted, error } = await supabase.from('support_messages')
+        .insert({
+          conversation_id: activeConversation.id,
+          sender_type: 'admin',
+          sender_id: user.id,
+          message: text,
+        })
+        .select()
+        .single();
       if (error) throw error;
-
-      await supabase.from('support_conversations')
-        .update({ last_message_at: new Date().toISOString() })
-        .eq('id', activeConversation.id);
+      const [message] = await resolveSupportMessageAttachments([inserted as Message]);
+      setMessages(prev => prev.some(m => m.id === message.id) ? prev : [...prev, message]);
     } catch (err) {
       console.error('Erreur envoi message admin:', err);
       toast.error("Erreur lors de l'envoi");
@@ -240,34 +248,34 @@ export default function AdminSupport() {
       return;
     }
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `admin_${activeConversation.id}_${Date.now()}.${fileExt}`;
-
+    let uploadedPath: string | null = null;
+    let messageCreated = false;
     try {
-      const { error: uploadError } = await supabase.storage
-        .from('support_attachments')
-        .upload(fileName, file);
-      if (uploadError) throw uploadError;
+      const extension = assertSupportedSupportImage(file);
+      const path = `admin/${activeConversation.id}/${crypto.randomUUID()}.${extension}`;
+      await uploadSupportAttachment(path, file);
+      uploadedPath = path;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('support_attachments')
-        .getPublicUrl(fileName);
-
-      const { error: msgError } = await supabase.from('support_messages').insert({
-        conversation_id: activeConversation.id,
-        sender_type: 'admin',
-        sender_id: user.id,
-        message: 'Image partagée',
-        screenshot_url: publicUrl,
-      });
+      const { data: inserted, error: msgError } = await supabase.from('support_messages')
+        .insert({
+          conversation_id: activeConversation.id,
+          sender_type: 'admin',
+          sender_id: user.id,
+          message: 'Image partagée',
+          screenshot_url: path,
+      })
+        .select()
+        .single();
       if (msgError) throw msgError;
-
-      await supabase.from('support_conversations')
-        .update({ last_message_at: new Date().toISOString() })
-        .eq('id', activeConversation.id);
+      messageCreated = true;
+      const [message] = await resolveSupportMessageAttachments([inserted as Message]);
+      setMessages(prev => prev.some(m => m.id === message.id) ? prev : [...prev, message]);
     } catch (err) {
+      if (uploadedPath && !messageCreated) {
+        await supabase.storage.from('support_attachments').remove([uploadedPath]);
+      }
       console.error('Erreur upload admin:', err);
-      toast.error("Erreur lors de l'envoi de l'image.");
+      toast.error(err instanceof Error ? err.message : "Erreur lors de l'envoi de l'image.");
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -283,7 +291,7 @@ export default function AdminSupport() {
       setActiveConversation(prev => prev ? { ...prev, status: newStatus as any } : prev);
       toast.success('Statut mis à jour');
       fetchConversations();
-    } catch (err) {
+    } catch {
       toast.error('Erreur mise à jour statut');
     }
   };

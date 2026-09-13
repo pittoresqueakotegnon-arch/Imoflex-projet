@@ -194,7 +194,7 @@ const Retrait: React.FC = () => {
               <span className="font-space-grotesk text-[12px] text-gray-500">Reference</span>
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[12px] text-[#17132B] font-semibold">{cleanRef}</span>
-                <button onClick={async () => { try { await navigator.clipboard.writeText(successData.withdrawalId); showToast("Reference copiee", "success"); } catch {} }}
+                <button onClick={async () => { try { await navigator.clipboard.writeText(successData.withdrawalId); showToast("Reference copiee", "success"); } catch { showToast("Copie impossible", "error"); } }}
                   className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center active:bg-gray-200">
                   <Copy size={11} className="text-gray-500" />
                 </button>

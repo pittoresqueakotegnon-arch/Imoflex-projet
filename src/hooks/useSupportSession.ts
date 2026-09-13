@@ -1,38 +1,22 @@
-import { useState, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
 
-const VISITOR_SESSION_KEY = 'imx_support_visitor_id';
-
-export const useSupportSession = () => {
-  const [visitorId, setVisitorId] = useState<string | null>(null);
-
-  useEffect(() => {
-    let storedId = localStorage.getItem(VISITOR_SESSION_KEY);
-    if (!storedId) {
-      storedId = uuidv4();
-      localStorage.setItem(VISITOR_SESSION_KEY, storedId);
-    }
-    setVisitorId(storedId);
-  }, []);
-
-  return { visitorId };
-};
-
 export const useUnreadSupportMessages = () => {
   const { user } = useAuth();
-  const { visitorId } = useSupportSession();
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (!user && !visitorId) return;
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
 
     let conversationId: string | null = null;
 
     const fetchUnread = async () => {
       let q = supabase.from('support_conversations').select('id');
-      q = user ? q.eq('user_id', user.id) : q.eq('visitor_id', visitorId);
+      q = q.eq('user_id', user.id);
       const { data: convs } = await q.neq('status', 'resolue').order('created_at', { ascending: false }).limit(1);
 
       if (convs && convs.length > 0) {
@@ -65,7 +49,7 @@ export const useUnreadSupportMessages = () => {
     return () => {
       if (cleanup) cleanup();
     };
-  }, [user, visitorId]);
+  }, [user]);
 
   return { unreadCount };
 };

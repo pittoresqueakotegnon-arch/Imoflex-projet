@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { isServiceRoleCaller } from "../_shared/security.ts";
 
 /**
  * send-push-notification — Edge Function ImoFlex
@@ -99,6 +100,12 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Méthode non autorisée" }), {
       status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  if (!isServiceRoleCaller(req)) {
+    return new Response(JSON.stringify({ error: "Accès réservé au service interne" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 

@@ -17,6 +17,7 @@ import {
   ExternalLink,
   ShieldAlert,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotifications } from '../../hooks/useNotifications';
 import { supabase, Notification } from '../../lib/supabase';
@@ -44,7 +45,7 @@ interface NotifDetails {
 }
 
 interface TypeConfig {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   colorClass: string;
   bgClass: string;
   badgeLabel: string;

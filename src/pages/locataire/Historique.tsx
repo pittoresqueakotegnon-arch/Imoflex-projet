@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Download, X, Printer, FileText, Share2, CheckCircle, CheckCircle2 } from 'lucide-react';
+import { Download, X, FileText, Share2, CheckCircle, CheckCircle2 } from 'lucide-react';
 import { Share } from '@capacitor/share';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, Payment } from '../../lib/supabase';

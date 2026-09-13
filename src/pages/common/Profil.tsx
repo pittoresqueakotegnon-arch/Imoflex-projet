@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
 import BottomNav from '../../components/BottomNav';
-import { ShieldCheck, Receipt, Wallet, MessageCircle, HelpCircle, ChevronRight, KeyRound, Home, User, Camera, Trash2, ClipboardList, Heart, Bell, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Receipt, Wallet, MessageCircle, HelpCircle, ChevronRight, KeyRound, Home, User, Camera, Trash2, ClipboardList, Heart, AlertTriangle } from 'lucide-react';
 import { LegalModal } from '../../components/LegalModal';
 
 const compressImage = (file: File): Promise<Blob> => {

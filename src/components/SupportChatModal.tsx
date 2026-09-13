@@ -3,11 +3,16 @@ import { createPortal } from 'react-dom';
 import { Send, CheckCheck, ChevronDown, Paperclip, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { useSupportSession, getSupportStatus } from '../hooks/useSupportSession';
+import { getSupportStatus } from '../hooks/useSupportSession';
 import { haptics } from '../lib/haptics';
 import { useToast } from './Toast';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import {
+  assertSupportedSupportImage,
+  resolveSupportMessageAttachments,
+  uploadSupportAttachment,
+} from '../lib/supportAttachments';
 
 interface SupportChatModalProps {
   isOpen: boolean;
@@ -25,7 +30,6 @@ interface Message {
 
 export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-  const { visitorId } = useSupportSession();
   const { showToast } = useToast();
 
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -56,8 +60,13 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
   };
 
   useEffect(() => {
-    if (isOpen && visitorId !== null) loadOrCreateConversation();
-  }, [isOpen, user, visitorId]);
+    if (isOpen && user) {
+      loadOrCreateConversation();
+    } else if (!user) {
+      setConversationId(null);
+      setMessages([]);
+    }
+  }, [isOpen, user]);
 
   // Ensure we scroll to bottom when messages change
   useEffect(() => {
@@ -75,39 +84,48 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
         event: 'INSERT', schema: 'public', table: 'support_messages',
         filter: `conversation_id=eq.${conversationId}`,
       }, (payload) => {
-        const msg = payload.new as Message;
-        setMessages(prev => {
-          if (prev.find(m => m.id === msg.id)) return prev;
-          return [...prev, msg];
+        const received = payload.new as Message;
+        void resolveSupportMessageAttachments([received]).then(([msg]) => {
+          setMessages(prev => {
+            if (prev.find(m => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
+          if (msg.sender_type === 'admin') haptics.success();
         });
-        if (msg.sender_type === 'admin') haptics.success();
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [conversationId, isOpen]);
 
   const loadOrCreateConversation = async () => {
-    if (!user && !visitorId) return;
+    if (!user) return;
     setIsLoading(true);
     try {
-      let q = supabase.from('support_conversations').select('*');
-      q = user ? q.eq('user_id', user.id) : q.eq('visitor_id', visitorId);
-      const { data: convs } = await q.neq('status', 'resolue').order('created_at', { ascending: false }).limit(1);
+      const { data: convs, error: conversationsError } = await supabase
+        .from('support_conversations')
+        .select('*')
+        .eq('user_id', user.id)
+        .neq('status', 'resolue')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (conversationsError) throw conversationsError;
 
       if (convs && convs.length > 0) {
         setConversationId(convs[0].id);
-        const { data: msgs } = await supabase
+        const { data: msgs, error: messagesError } = await supabase
           .from('support_messages').select('*')
           .eq('conversation_id', convs[0].id).order('created_at', { ascending: true });
-        setMessages(msgs || []);
+        if (messagesError) throw messagesError;
+        setMessages(await resolveSupportMessageAttachments((msgs || []) as Message[]));
         setTimeout(() => scrollToBottom(false), 150);
       } else {
-        const { data: newConv } = await supabase.from('support_conversations')
-          .insert({ user_id: user?.id || null, visitor_id: user ? null : visitorId, status: 'ouverte' })
+        const { data: newConv, error: createError } = await supabase.from('support_conversations')
+          .insert({ user_id: user.id, status: 'ouverte' })
           .select().single();
+        if (createError) throw createError;
         if (newConv) { setConversationId(newConv.id); setMessages([]); }
       }
-    } catch (e) {
+    } catch {
       showToast('Erreur de connexion au support.', 'error');
     } finally { setIsLoading(false); }
   };
@@ -115,7 +133,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
   const handleSendMessage = async (e?: React.FormEvent, directMessage?: string) => {
     if (e) e.preventDefault();
     const textToSend = directMessage || newMessage.trim();
-    if (!textToSend || !conversationId || isSending) return;
+    if (!textToSend || !conversationId || !user || isSending) return;
     
     if (!directMessage) setNewMessage('');
     setIsSending(true);
@@ -128,10 +146,12 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
     setTimeout(() => scrollToBottom(true), 50);
 
     try {
-      await supabase.from('support_messages').insert({ conversation_id: conversationId, sender_type: 'user', sender_id: user?.id || null, message: textToSend });
-      await supabase.from('support_conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conversationId);
-      // Remove temp message, real one will come via realtime or we can just update it
-      setMessages(prev => prev.filter(m => m.id !== tempId));
+      const { data: inserted, error } = await supabase.from('support_messages')
+        .insert({ conversation_id: conversationId, sender_type: 'user', sender_id: user.id, message: textToSend })
+        .select().single();
+      if (error) throw error;
+      const [message] = await resolveSupportMessageAttachments([inserted as Message]);
+      setMessages(prev => [...prev.filter(m => m.id !== tempId), message]);
     } catch { 
       setMessages(prev => prev.filter(m => m.id !== tempId)); 
       showToast("Erreur d'envoi.", 'error'); 
@@ -144,24 +164,34 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !conversationId) return;
-    if (!file.type.startsWith('image/')) { showToast('Images uniquement.', 'error'); return; }
+    if (!file || !conversationId || !user) return;
+    let uploadedPath: string | null = null;
+    let previewUrl: string | null = null;
     setIsUploading(true);
     try {
-      const ext = file.name.split('.').pop();
-      const name = `${conversationId}_${Date.now()}.${ext}`;
-      await supabase.storage.from('support_attachments').upload(name, file);
-      const { data: { publicUrl } } = supabase.storage.from('support_attachments').getPublicUrl(name);
+      const extension = assertSupportedSupportImage(file);
+      const path = `${user.id}/${conversationId}/${crypto.randomUUID()}.${extension}`;
+      await uploadSupportAttachment(path, file);
+      uploadedPath = path;
       
       const tempId = `temp_${Date.now()}`;
-      setMessages(prev => [...prev, { id: tempId, sender_type: 'user', message: "Capture d'écran", screenshot_url: publicUrl, created_at: new Date().toISOString() }]);
+      previewUrl = URL.createObjectURL(file);
+      setMessages(prev => [...prev, { id: tempId, sender_type: 'user', message: "Capture d'écran", screenshot_url: previewUrl!, created_at: new Date().toISOString() }]);
       setTimeout(() => scrollToBottom(true), 100);
 
-      await supabase.from('support_messages').insert({ conversation_id: conversationId, sender_type: 'user', sender_id: user?.id || null, message: "Capture d'écran", screenshot_url: publicUrl });
-      await supabase.from('support_conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conversationId);
-      
-      setMessages(prev => prev.filter(m => m.id !== tempId));
-    } catch { showToast("Erreur d'envoi de l'image.", 'error'); }
+      const { data: inserted, error } = await supabase.from('support_messages')
+        .insert({ conversation_id: conversationId, sender_type: 'user', sender_id: user.id, message: "Capture d'écran", screenshot_url: path })
+        .select().single();
+      if (error) throw error;
+      const [message] = await resolveSupportMessageAttachments([inserted as Message]);
+      URL.revokeObjectURL(previewUrl);
+      previewUrl = null;
+      setMessages(prev => [...prev.filter(m => m.id !== tempId), message]);
+    } catch (error) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (uploadedPath) await supabase.storage.from('support_attachments').remove([uploadedPath]);
+      showToast(error instanceof Error ? error.message : "Erreur d'envoi de l'image.", 'error');
+    }
     finally { setIsUploading(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
   };
 
@@ -346,7 +376,16 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
           className="imx-messages-area"
           style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}
         >
-          {isLoading ? (
+          {!user ? (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', minHeight: '200px', textAlign: 'center', padding: '24px' }}>
+              <h3 style={{ color: '#111827', fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: '20px', margin: 0 }}>
+                Connectez-vous pour contacter le support
+              </h3>
+              <p style={{ color: '#4B5563', fontSize: '14px', margin: 0, lineHeight: 1.5, maxWidth: '280px', fontFamily: 'Space Grotesk, sans-serif' }}>
+                Votre compte protège la confidentialité de vos échanges et de vos pièces jointes.
+              </p>
+            </div>
+          ) : isLoading ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', minHeight: '200px' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '3px solid #E5E7EB', borderTopColor: '#7B3FE4', animation: 'spin 0.8s linear infinite' }} />
               <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
@@ -455,7 +494,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
         </div>
 
         {/* ═══════ INPUT ═══════ */}
-        <div className="imx-input-area" style={{ padding: '12px 16px', flexShrink: 0 }}>
+        {user && <div className="imx-input-area" style={{ padding: '12px 16px', flexShrink: 0 }}>
           <form onSubmit={handleSendMessage} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button type="button" className="imx-attach-btn" onClick={() => fileInputRef.current?.click()} disabled={isUploading} style={{ border: 'none', cursor: 'pointer' }}>
               {isUploading
@@ -482,7 +521,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
               }
             </button>
           </form>
-        </div>
+        </div>}
       </div>
     </>
   );

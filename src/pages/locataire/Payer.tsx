@@ -107,9 +107,10 @@ export default function Payer() {
 
         if (prop?.owner_id) {
           try {
-            const { data: ownerData } = await supabase
-              .from("users").select("full_name").eq("id", prop.owner_id).maybeSingle();
-            setOwnerName(ownerData?.full_name || "Propriétaire");
+            const { data: ownerNameData } = await supabase.rpc("get_active_lease_owner_name", {
+              p_lease_id: leaseData.id,
+            });
+            setOwnerName(ownerNameData || "Propriétaire");
           } catch {
             setOwnerName("Propriétaire");
           }
@@ -118,7 +119,7 @@ export default function Payer() {
         }
 
         // 1. Chercher la période non soldée (priorité à la plus ancienne en retard ou en cours)
-        let { data: periodData, error: periodError } = await supabase
+        const { data: firstPeriod, error: periodError } = await supabase
           .from("rent_periods")
           .select("*")
           .eq("lease_id", leaseData.id)
@@ -127,6 +128,7 @@ export default function Payer() {
           .order("period_month", { ascending: true })
           .limit(1)
           .maybeSingle();
+        let periodData = firstPeriod;
 
         if (periodError && periodError.code !== "PGRST116") {
           console.warn("Period query warning:", periodError);

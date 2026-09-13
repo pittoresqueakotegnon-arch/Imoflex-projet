@@ -58,7 +58,7 @@ export default function Recu() {
             rent_periods:rent_period_id (
               period_month, period_year,
               leases:lease_id (
-                tenant_id,
+                id, tenant_id,
                 properties:property_id (
                   name, address, owner_id
                 )
@@ -78,9 +78,11 @@ export default function Recu() {
         let ownerName = "Proprietaire";
         if (prop?.owner_id) {
           try {
-            const { data: ownerData } = await supabase
-              .from("users").select("full_name").eq("id", prop.owner_id).maybeSingle();
-            if (ownerData?.full_name) ownerName = ownerData.full_name;
+            const { data: ownerNameData } = await supabase.rpc(
+              "get_active_lease_owner_name",
+              { p_lease_id: lease?.id },
+            );
+            if (ownerNameData) ownerName = ownerNameData;
           } catch {
             // fallback
           }
