@@ -231,13 +231,6 @@ const Dashboard: React.FC = () => {
   const collectionRate = data?.currentMonth.expected
     ? Math.round((data.currentMonth.received / data.currentMonth.expected) * 100)
     : 0;
-  const priorityAlerts = [...(data?.alerts || [])]
-    .sort((a, b) => {
-      const statusPriority = (status: string) => status === 'retard' ? 0 : 1;
-      return statusPriority(a.status) - statusPriority(b.status) || b.amountDue - a.amountDue;
-    })
-    .filter((alert, index, alerts) => alerts.findIndex((item) => item.leaseId === alert.leaseId) === index)
-    .slice(0, 3);
 
   return (
     <div className="page-container premium-page flex flex-col">

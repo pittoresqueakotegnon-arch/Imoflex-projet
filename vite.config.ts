@@ -1,11 +1,21 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  build: {
+    sourcemap: true, // Required for Sentry to map errors correctly
+  },
   plugins: [
     react(),
+    sentryVitePlugin({
+      org: process.env.SENTRY_ORG || "imoflex",
+      project: process.env.SENTRY_PROJECT || "imoflex-web",
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      disable: !process.env.SENTRY_AUTH_TOKEN,
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
