@@ -35,7 +35,7 @@ export default function ForgotPassword() {
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-[var(--imx-bg-app)]"
+      className="min-h-screen premium-page flex flex-col"
     >
       {/* Header */}
       <div className="px-5 pt-safe" style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}>

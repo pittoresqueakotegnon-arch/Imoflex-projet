@@ -57,7 +57,7 @@ const Wallet: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="page-container bg-[var(--imx-bg-app)]">
+      <div className="page-container premium-page">
         <div className="px-5 space-y-5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 60px)' }}>
           <div className="rounded-[28px] animate-pulse" style={{ height: 200, background: 'linear-gradient(135deg, #2D1B69 0%, #17132B 100%)' }} />
           <div className="space-y-3">
@@ -76,10 +76,10 @@ const Wallet: React.FC = () => {
   const completedCount = withdrawals.filter(w => w.status === 'complete').length;
 
   return (
-    <div className="page-container bg-[var(--imx-bg-app)]">
+    <div className="page-container premium-page">
       {/* Header */}
       <header
-        className="sticky top-0 z-30 px-5 pb-3 bg-[var(--imx-bg-app)]"
+        className="premium-header px-5 pb-3"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 18px)' }}
       >
         <h1 className="font-nunito font-black text-[22px] text-[var(--imx-text-primary)]">Mon Wallet</h1>

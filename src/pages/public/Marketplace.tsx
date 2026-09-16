@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Bell, SlidersHorizontal, MapPin, Building2, Home, Grid, ChevronRight, User, ChevronDown, Heart, Store, Bed, Bath, Maximize, Plus, ShieldCheck, X, Check, Tag } from 'lucide-react';
+import { Search, SlidersHorizontal, MapPin, Building2, Home, Grid, ChevronRight, User, ChevronDown, Heart, Store, Bed, Bath, Maximize, Plus, ShieldCheck, X, Check, Tag } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useListings } from '../../hooks/useListings';
 import { useAuthGate } from '../../hooks/useAuthGate';
 import { AuthGateModal } from '../../components/AuthGateModal';
 import BottomNav from '../../components/BottomNav';
 import { HeaderSupport } from '../../components/HeaderSupport';
+import { HeaderBell } from '../../components/HeaderBell';
 import EmptyState from '../../components/EmptyState';
 import { SplashScreen } from '../../components/SplashScreen';
 import { PullToRefresh } from '../../components/PullToRefresh';
@@ -262,7 +263,7 @@ const Marketplace: React.FC = () => {
     selectedType !== 'a_louer';
 
   return (
-    <div className="page-container bg-white min-h-screen flex flex-col">
+    <div className="page-container premium-page min-h-screen flex flex-col">
       {showSplash && <SplashScreen onComplete={() => { sessionStorage.setItem('hasSeenSplash', 'true'); setShowSplash(false); }} />}
 
       {/* City Modal */}
@@ -403,7 +404,7 @@ const Marketplace: React.FC = () => {
 
       {/* ── HEADER ────────────────────────────────────────────── */}
       <header
-        className="px-6 pb-2 bg-white flex items-center justify-between sticky top-0 z-30"
+        className="premium-header px-6 pb-2 flex items-center justify-between"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 20px)' }}
       >
         <div className="flex flex-col flex-shrink-0 relative z-10">
@@ -423,17 +424,11 @@ const Marketplace: React.FC = () => {
           <ChevronDown size={14} className="text-[#17132B] flex-shrink-0" />
         </button>
           
-        <div className="flex items-center gap-4 relative z-10">
-          <HeaderSupport 
-            className="relative flex items-center justify-center text-[#17132B] transition-colors flex-shrink-0"
-            style={{}}
-          />
-          <button onClick={() => navigate('/notifications')} className="relative flex items-center justify-center text-[#17132B] transition-colors flex-shrink-0">
-            <Bell size={20} className="text-[#17132B]" />
-            <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#7B3FE4] rounded-full border-2 border-white" />
-          </button>
+        <div className="flex items-center gap-2 relative z-10">
+          <HeaderSupport />
+          <HeaderBell />
           <div className="relative cursor-pointer flex-shrink-0" onClick={() => navigate(user ? '/profil' : '/login')}>
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl overflow-hidden bg-[var(--imx-surface-2)] flex items-center justify-center border border-[var(--imx-border)] shadow-sm">
               {profile?.avatar_url ? <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" /> : <User size={20} className="text-gray-400" />}
             </div>
             <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#7B3FE4] rounded-full border-[2px] border-white" />

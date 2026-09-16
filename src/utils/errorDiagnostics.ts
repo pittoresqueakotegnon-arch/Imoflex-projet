@@ -91,13 +91,20 @@ export function diagnoseAndShowError(error: any, context?: string) {
   }
 
   // ─── 10. IDENTIFIANTS INCORRECTS / ERREURS AUTH ────────────────────────────
-  else if (rawMessage.includes('INVALID LOGIN') || rawMessage.includes('INVALID CREDENTIALS') || rawMessage.includes('WRONG PASSWORD') || rawMessage.includes('EMAIL NOT CONFIRMED')) {
+  else if (rawMessage.includes('EMAIL NOT CONFIRMED')) {
+    title = '📧 Adresse e-mail non confirmée';
+    description = 'Saisissez le code reçu par e-mail ou utilisez « Renvoyer » depuis l’écran de confirmation avant de vous connecter.';
+    type = 'warning';
+  }
+
+  // ─── 10b. IDENTIFIANTS INCORRECTS ─────────────────────────────────────────
+  else if (rawMessage.includes('INVALID LOGIN') || rawMessage.includes('INVALID CREDENTIALS') || rawMessage.includes('WRONG PASSWORD')) {
     title = '🔑 Identifiants incorrects';
     description = 'Votre email ou mot de passe est incorrect. Vérifiez vos identifiants et réessayez.';
     type = 'error';
   }
 
-  // ─── 10b. ERREUR ENVOI EMAIL CONFIRMATION SUPABASE ─────────────────────────
+  // ─── 10c. ERREUR ENVOI EMAIL CONFIRMATION SUPABASE ─────────────────────────
   else if (rawMessage.includes('CONFIRMATION EMAIL') || rawMessage.includes('SENDING CONFIRMATION') || rawMessage.includes('EMAIL RATE LIMIT')) {
     title = '📧 Erreur d\'envoi de l\'email de confirmation';
     description = 'Le service d\'email Supabase n\'a pas pu envoyer l\'email. Pour tester sans envoi d\'email, désactivez "Confirm email" dans votre Dashboard Supabase (Auth > Providers > Email) ou configurez un SMTP (ex: Resend / Brevo).';

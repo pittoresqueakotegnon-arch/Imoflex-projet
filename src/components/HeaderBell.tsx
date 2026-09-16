@@ -10,7 +10,7 @@ interface HeaderBellProps {
 }
 
 export const HeaderBell: React.FC<HeaderBellProps> = ({
-  className = "relative w-9 h-9 flex items-center justify-center text-[#17132B] rounded-full bg-gray-50 border border-gray-100 active:bg-gray-100 transition-colors flex-shrink-0",
+  className = "premium-icon-button relative flex-shrink-0",
   iconSize = 18,
 }) => {
   const { profile } = useAuth();
@@ -22,7 +22,7 @@ export const HeaderBell: React.FC<HeaderBellProps> = ({
       className={className}
       aria-label="Notifications"
     >
-      <Bell size={iconSize} className="text-[#17132B]" />
+      <Bell size={iconSize} className="text-[var(--imx-text-primary)]" />
 
       {unreadCount > 0 && (
         <span

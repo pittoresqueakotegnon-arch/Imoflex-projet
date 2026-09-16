@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Eye, EyeOff, Lock, Mail, Phone, User, ShieldCheck,
@@ -57,7 +57,7 @@ function getPasswordStrength(password: string): { level: number; label: string; 
 
 export default function Register() {
   const navigate = useNavigate();
-  const { signUp, verifySignupOtp, resendSignupOtp, user } = useAuth();
+  const { signUp, verifySignupOtp, resendSignupOtp } = useAuth();
   const { showToast } = useToast();
 
   const [step, setStep] = useState<Step>('form');
@@ -65,8 +65,11 @@ export default function Register() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [resending, setResending] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
-  const OTP_LENGTH = 8;
-  const [otpDigits, setOtpDigits] = useState<string[]>(new Array(OTP_LENGTH).fill(''));
+  // Supabase utilise généralement 6 chiffres, mais certaines configurations
+  // historiques en utilisent 8. Le formulaire accepte donc les deux formats.
+  const MIN_OTP_LENGTH = 6;
+  const MAX_OTP_LENGTH = 8;
+  const [otpDigits, setOtpDigits] = useState<string[]>(new Array(MAX_OTP_LENGTH).fill(''));
   const [otpVerifying, setOtpVerifying] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [showPassword, setShowPassword] = useState(false);
@@ -84,11 +87,6 @@ export default function Register() {
     acceptTerms: false,
     acceptPrivacy: false,
   });
-
-  // Détection confirmation email
-  useEffect(() => {
-    if (step === 'otp' && user) setStep('success');
-  }, [user, step]);
 
   const strength = getPasswordStrength(formData.password);
 
@@ -147,7 +145,7 @@ export default function Register() {
     try {
       await resendSignupOtp(formData.email);
       showToast('Nouveau code envoyé !', 'success');
-      setOtpDigits(new Array(OTP_LENGTH).fill(''));
+      setOtpDigits(new Array(MAX_OTP_LENGTH).fill(''));
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (err) {
       diagnoseAndShowError(err, 'Authentification');
@@ -161,7 +159,7 @@ export default function Register() {
     const newDigits = [...otpDigits];
     newDigits[index] = value;
     setOtpDigits(newDigits);
-    if (value && index < OTP_LENGTH - 1) {
+    if (value && index < MAX_OTP_LENGTH - 1) {
       otpRefs.current[index + 1]?.focus();
     }
   };
@@ -174,20 +172,20 @@ export default function Register() {
 
   const handleOtpPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    const pasteData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
+    const pasteData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, MAX_OTP_LENGTH);
     if (!pasteData) return;
-    const newDigits = new Array(OTP_LENGTH).fill('');
+    const newDigits = new Array(MAX_OTP_LENGTH).fill('');
     pasteData.split('').forEach((char, i) => { newDigits[i] = char; });
     setOtpDigits(newDigits);
     const nextEmpty = newDigits.findIndex(d => !d);
-    const focusIdx = nextEmpty === -1 ? OTP_LENGTH - 1 : nextEmpty;
+    const focusIdx = nextEmpty === -1 ? MAX_OTP_LENGTH - 1 : nextEmpty;
     setTimeout(() => otpRefs.current[focusIdx]?.focus(), 0);
   };
 
   const handleOtpVerify = async () => {
     const token = otpDigits.join('');
-    if (token.length < OTP_LENGTH) {
-      showToast(`Entrez les ${OTP_LENGTH} chiffres du code`, 'error');
+    if (token.length < MIN_OTP_LENGTH) {
+      showToast(`Entrez au moins ${MIN_OTP_LENGTH} chiffres du code`, 'error');
       return;
     }
     setOtpVerifying(true);
@@ -196,7 +194,7 @@ export default function Register() {
       setStep('success');
     } catch (err) {
       diagnoseAndShowError(err, 'Authentification');
-      setOtpDigits(new Array(OTP_LENGTH).fill(''));
+      setOtpDigits(new Array(MAX_OTP_LENGTH).fill(''));
       setTimeout(() => otpRefs.current[0]?.focus(), 0);
     } finally {
       setOtpVerifying(false);
@@ -212,10 +210,10 @@ export default function Register() {
 
   // ── ÉCRAN OTP ─────────────────────────────────────────────────────────────
   if (step === 'otp') {
-    const otpComplete = otpDigits.every(d => d !== '');
+    const otpComplete = otpDigits.join('').length >= MIN_OTP_LENGTH;
     return (
       <div
-        className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-[var(--imx-bg-app)]"
+        className="min-h-screen premium-page flex flex-col items-center justify-center px-4 py-8"
       >
         {/* Icône */}
         <div
@@ -232,7 +230,7 @@ export default function Register() {
           Code de confirmation
         </h1>
         <p className="text-sm text-center mb-1 max-w-xs" style={{ fontFamily: 'Space Grotesk', color: 'var(--imx-text-secondary)' }}>
-          Nous avons envoyé un code à 8 chiffres à
+          Nous avons envoyé un code de confirmation à
         </p>
         <p className="text-sm font-semibold mb-1" style={{ fontFamily: 'Space Grotesk', color: 'var(--imx-text-primary)' }}>
           {formData.email}
@@ -242,7 +240,7 @@ export default function Register() {
           <strong style={{ color: 'var(--imx-accent-light)' }}>Spam / Courrier indésirable</strong>.
         </p>
 
-        {/* Cases OTP (8 chiffres avec séparateur au milieu) */}
+        {/* Le code Supabase peut contenir 6 ou 8 chiffres. */}
         <div className="flex gap-1.5 sm:gap-2 mb-6 w-full max-w-sm justify-center items-center" onPaste={handleOtpPaste}>
           {otpDigits.map((digit, i) => (
             <React.Fragment key={i}>
@@ -300,7 +298,7 @@ export default function Register() {
   // ── ÉCRAN SUCCESS ──────────────────────────────────────────────────────────
   if (step === 'success') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-8 bg-[var(--imx-bg-app)]">
+      <div className="min-h-screen premium-page flex flex-col items-center justify-center px-6 py-8">
         <div className="w-24 h-24 rounded-full flex items-center justify-center mb-8"
           style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', animation: 'scaleIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards' }}>
           <div className="w-16 h-16 rounded-full flex items-center justify-center"
@@ -317,8 +315,8 @@ export default function Register() {
         <p className="text-sm text-center mb-12 max-w-xs" style={{ fontFamily: 'Space Grotesk', color: '#6B5F8F' }}>
           Explorez la plateforme et publiez ou trouvez votre logement idéal.
         </p>
-        <button onClick={() => navigate('/')} className="btn-primary w-full max-w-xs">
-          Explorer ImoFlex
+        <button onClick={() => navigate(selectedRole === 'proprietaire' ? '/pro/dashboard' : '/dashboard')} className="btn-primary w-full max-w-xs">
+          Accéder à mon espace
         </button>
         <style>{`@keyframes scaleIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }`}</style>
       </div>
@@ -347,7 +345,7 @@ export default function Register() {
     ];
 
     return (
-      <div className="min-h-screen flex flex-col bg-[var(--imx-bg-app)]">
+      <div className="min-h-screen premium-page flex flex-col">
         <div className="px-5 pt-safe" style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}>
           <button onClick={() => setStep('form')}
             className="w-10 h-10 rounded-2xl flex items-center justify-center"
@@ -430,7 +428,7 @@ export default function Register() {
 
   // ── ÉCRAN FORMULAIRE ───────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--imx-bg-app)]">
+    <div className="min-h-screen premium-page flex flex-col">
 
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-safe" style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}>

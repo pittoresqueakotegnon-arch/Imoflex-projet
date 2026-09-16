@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Building2, ArrowRight, Home, MessageCircle, AlertTriangle, ArrowUpRight, TrendingUp, Wallet as WalletIcon } from 'lucide-react';
+import { Plus, Building2, ArrowRight, Home, MessageCircle, AlertTriangle, ArrowUpRight, TrendingUp, Users, Wallet as WalletIcon } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useWallet } from '../../hooks/useWallet';
 import { supabase } from '../../lib/supabase';
@@ -167,7 +167,7 @@ const Dashboard: React.FC = () => {
   // ── LOADING STATE ──
   if (loading && !isLocataire) {
     return (
-      <div className="page-container" style={{ background: '#F5F4FB' }}>
+      <div className="page-container premium-page">
         <div className="px-5 pt-6 space-y-4">
           <div className="flex items-center justify-between mb-2">
             <div className="w-36 h-7 bg-gray-200 rounded-lg animate-pulse" />
@@ -192,7 +192,7 @@ const Dashboard: React.FC = () => {
   // ── ONBOARDING ──
   if (hasNoProperty) {
     return (
-      <div className="page-container flex flex-col" style={{ background: '#F5F4FB' }}>
+      <div className="page-container premium-page flex flex-col">
         <div className="flex-1 flex flex-col items-center justify-center px-6 pb-24 text-center">
           <div className="relative mb-8">
             <div className="w-24 h-24 rounded-3xl flex items-center justify-center" style={{ background: 'var(--imx-surface-2)', border: '1px solid var(--imx-border)' }}>
@@ -231,13 +231,20 @@ const Dashboard: React.FC = () => {
   const collectionRate = data?.currentMonth.expected
     ? Math.round((data.currentMonth.received / data.currentMonth.expected) * 100)
     : 0;
+  const priorityAlerts = [...(data?.alerts || [])]
+    .sort((a, b) => {
+      const statusPriority = (status: string) => status === 'retard' ? 0 : 1;
+      return statusPriority(a.status) - statusPriority(b.status) || b.amountDue - a.amountDue;
+    })
+    .filter((alert, index, alerts) => alerts.findIndex((item) => item.leaseId === alert.leaseId) === index)
+    .slice(0, 3);
 
   return (
-    <div className="page-container flex flex-col" style={{ background: '#F5F4FB' }}>
+    <div className="page-container premium-page flex flex-col">
       <PullToRefresh onRefresh={fetchData}>
 
         {/* ── HEADER ── */}
-        <div className="px-5 pt-6 pb-4 flex items-center justify-between">
+        <div className="premium-header px-5 pt-6 pb-4 flex items-center justify-between">
           <div>
             <p className="text-gray-400 font-space-grotesk font-semibold text-[11px] uppercase tracking-widest">{getGreeting()}</p>
             <h1 className="text-[24px] font-nunito font-black text-[#17132B] mt-0.5 leading-tight">
@@ -245,109 +252,131 @@ const Dashboard: React.FC = () => {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <HeaderSupport className="relative w-10 h-10 rounded-2xl bg-white flex items-center justify-center border border-gray-100 shadow-sm flex-shrink-0" />
-            <HeaderBell className="relative w-10 h-10 rounded-2xl bg-white flex items-center justify-center border border-gray-100 shadow-sm flex-shrink-0" />
+            <HeaderSupport />
+            <HeaderBell />
           </div>
         </div>
 
-        {/* ── CARTE FINTECH PRINCIPALE ── */}
-        <div className="mx-5 mb-5 rounded-[28px] relative overflow-hidden"
-          style={{ background: 'linear-gradient(145deg, #7B3FE4 0%, #3D1884 100%)', boxShadow: '0 16px 40px rgba(123, 63, 228, 0.35)' }}>
-          {/* Décors */}
-          <div className="absolute pointer-events-none"
-            style={{ top: '-30px', right: '-30px', width: '160px', height: '160px', background: 'rgba(255,255,255,0.06)', borderRadius: '50%' }} />
-          <div className="absolute pointer-events-none"
-            style={{ bottom: '-20px', left: '-20px', width: '100px', height: '100px', background: 'rgba(255,255,255,0.04)', borderRadius: '50%' }} />
+        {/* ── SYNTHÈSE FINANCIÈRE ── */}
+        <section className="mx-5 mb-5 rounded-[24px] p-5 relative overflow-hidden"
+          style={{ background: 'linear-gradient(150deg, #8B5CF6 0%, #5B21B6 50%, #2E1065 100%)', boxShadow: '0 8px 32px rgba(46, 16, 101, 0.4)' }}>
+          {/* Formes décoratives Premium (Glassmorphism) */}
+          <div className="absolute -top-16 -right-12 w-48 h-48 rounded-full pointer-events-none" 
+               style={{ 
+                 background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 100%)',
+                 border: '1px solid rgba(255,255,255,0.1)',
+                 transform: 'rotate(15deg)'
+               }} />
+          <div className="absolute -bottom-16 -left-12 w-56 h-56 rounded-full pointer-events-none" 
+               style={{ 
+                 background: 'linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 100%)',
+                 border: '1px solid rgba(255,255,255,0.05)'
+               }} />
 
-          <div className="relative p-6">
+          <div className="relative z-10">
             {/* Solde disponible */}
             <div className="flex items-start justify-between mb-5">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center">
-                    <WalletIcon size={12} className="text-white" />
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                    <WalletIcon size={13} color="white" />
                   </div>
-                  <span className="font-space-grotesk text-[11px] font-bold uppercase tracking-widest text-white/60">Solde disponible</span>
+                  <span className="font-space-grotesk text-[10px] font-bold uppercase tracking-widest text-white/70">Solde disponible</span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-nunito font-black text-[38px] leading-none text-white">
+                  <span className="font-nunito font-black text-[32px] leading-none text-white">
                     {formatMontant(wallet?.available_balance || 0)}
                   </span>
                 </div>
               </div>
               <Link to="/pro/wallet"
-                className="mt-1 flex items-center gap-1.5 rounded-2xl px-3 py-2 active:opacity-70 transition-opacity"
-                style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)' }}>
-                <span className="font-space-grotesk font-bold text-[12px] text-white">Retirer</span>
-                <ArrowUpRight size={13} className="text-white" />
+                className="mt-1 flex items-center gap-1.5 rounded-xl px-3 py-2 active:scale-[0.98] transition-transform"
+                style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white' }}>
+                <span className="font-space-grotesk font-bold text-[11px]">Retirer</span>
+                <ArrowUpRight size={13} />
               </Link>
             </div>
 
             {/* Séparateur */}
-            <div className="h-[1px] bg-white/10 mb-5" />
+            <div className="h-[1px] mb-4" style={{ background: 'rgba(255,255,255,0.1)' }} />
 
             {/* Loyers du mois */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <span className="font-space-grotesk text-[11px] font-bold uppercase tracking-widest text-white/60">
+                <span className="font-space-grotesk text-[10px] font-bold uppercase tracking-widest text-white/70">
                   Loyers — {new Date().toLocaleString('fr-FR', { month: 'long' })}
                 </span>
                 <span
-                  className="font-space-grotesk text-[10px] font-bold px-2.5 py-1 rounded-full"
-                  style={{
-                    background: collectionRate >= 100 ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255,255,255,0.12)',
-                    color: collectionRate >= 100 ? '#6EE7B7' : 'rgba(255,255,255,0.85)',
-                  }}>
+                  className="font-space-grotesk text-[10px] font-bold px-2.5 py-1 rounded-full text-white"
+                  style={{ background: 'rgba(255,255,255,0.15)' }}>
                   {collectionRate}% collecté
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3 mb-3">
-                <div className="rounded-2xl p-3" style={{ background: 'rgba(255,255,255,0.10)' }}>
-                  <p className="font-space-grotesk text-[10px] text-white/50 font-bold uppercase mb-1.5">Reçus</p>
-                  <p className="font-nunito font-black text-[16px] sm:text-[18px] text-white leading-none truncate" title={formatMontant(data?.currentMonth.received || 0)}>
+                <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                  <p className="font-space-grotesk text-[9px] font-bold uppercase mb-1.5 text-white/70">Reçus</p>
+                  <p className="font-nunito font-black text-[16px] sm:text-[18px] leading-none truncate text-white" title={formatMontant(data?.currentMonth.received || 0)}>
                     {formatMontant(data?.currentMonth.received || 0)}
                   </p>
                 </div>
-                <div className="rounded-2xl p-3" style={{ background: 'rgba(255,255,255,0.10)' }}>
-                  <p className="font-space-grotesk text-[10px] text-white/50 font-bold uppercase mb-1.5">À recevoir</p>
-                  <p className="font-nunito font-black text-[16px] sm:text-[18px] leading-none truncate"
-                    title={formatMontant(data?.currentMonth.pending || 0)}
-                    style={{ color: (data?.currentMonth.pending || 0) > 0 ? '#FCA5A5' : '#6EE7B7' }}>
+                <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                  <p className="font-space-grotesk text-[9px] font-bold uppercase mb-1.5 text-white/70">À recevoir</p>
+                  <p className="font-nunito font-black text-[16px] sm:text-[18px] leading-none truncate text-white"
+                    title={formatMontant(data?.currentMonth.pending || 0)}>
                     {formatMontant(data?.currentMonth.pending || 0)}
                   </p>
                 </div>
               </div>
 
               {/* Barre progression */}
-              <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.2)' }}>
+              <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.15)' }}>
                 <div
                   className="h-full rounded-full transition-all duration-1000"
                   style={{
                     width: `${Math.min(collectionRate, 100)}%`,
-                    background: collectionRate >= 100 ? '#10B981' : collectionRate >= 50 ? '#F59E0B' : '#EF4444',
+                    background: 'linear-gradient(90deg, #22C55E, #86EFAC)',
                   }}
                 />
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         <div className="px-5 pb-8 space-y-5">
 
           {/* ── PARC IMMOBILIER ── */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Total biens', value: data?.propertiesStats.total || 0, color: '#17132B' },
-              { label: 'Occupés', value: data?.propertiesStats.occupied || 0, color: '#10B981' },
-              { label: 'Disponibles', value: data?.propertiesStats.available || 0, color: '#9CA3AF' },
+              { label: 'Total biens', value: data?.propertiesStats.total || 0 },
+              { label: 'Occupés', value: data?.propertiesStats.occupied || 0 },
+              { label: 'Disponibles', value: data?.propertiesStats.available || 0 },
             ].map((stat, i) => (
-              <div key={i} className="bg-white rounded-[20px] p-4 flex flex-col items-center text-center shadow-sm border border-gray-100">
-                <span className="font-nunito font-black text-[26px] leading-none mb-1" style={{ color: stat.color }}>{stat.value}</span>
-                <span className="font-space-grotesk text-[10px] font-bold text-gray-400 uppercase tracking-wide leading-tight">{stat.label}</span>
+              <div key={i} className="rounded-[18px] p-3.5 flex flex-col items-center text-center" style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}>
+                <span className="font-nunito font-black text-[24px] leading-none mb-1" style={{ color: i === 0 ? 'var(--imx-text-primary)' : 'var(--imx-accent)' }}>{stat.value}</span>
+                <span className="font-space-grotesk text-[9px] font-bold uppercase tracking-wide leading-tight" style={{ color: 'var(--imx-text-muted)' }}>{stat.label}</span>
               </div>
             ))}
           </div>
+
+          {/* Accès direct aux actions de gestion */}
+          <section>
+            <h2 className="font-nunito font-black text-[15px] mb-3 ml-1" style={{ color: 'var(--imx-text-primary)' }}>Accès rapides</h2>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { to: '/pro/locataires', label: 'Locataires', icon: Users },
+                { to: '/pro/demandes', label: 'Demandes', icon: MessageCircle },
+                { to: '/pro/annonces', label: 'Annonces', icon: Building2 },
+              ].map(({ to, label, icon: Icon }) => (
+                <Link key={to} to={to} className="rounded-[18px] py-3 flex flex-col items-center gap-2 active:scale-[0.98] transition-transform" style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--imx-accent-xlight)' }}>
+                    <Icon size={17} color="var(--imx-accent)" />
+                  </div>
+                  <span className="text-[10px] font-bold" style={{ color: 'var(--imx-text-primary)', fontFamily: 'Space Grotesk' }}>{label}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
 
           {/* ── REVENUS 6 MOIS ── */}
           <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100">

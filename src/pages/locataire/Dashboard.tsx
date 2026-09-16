@@ -172,15 +172,15 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="page-container">
+    <div className="page-container premium-page">
       <PullToRefresh onRefresh={fetchData}>
-      <div className="flex justify-between items-center px-5 pt-4 pb-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
+      <div className="premium-header flex justify-between items-center px-5 pt-4 pb-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
         <div>
           <span style={{ color: 'var(--imx-accent-light)', fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: '0.85rem' }}>{getGreeting()}</span>
           <h1 className="font-nunito font-900 text-xl text-[var(--imx-text-primary)]">{firstName} {lastName}</h1>
         </div>
         <div className="flex items-center gap-2">
-          <HeaderSupport className="relative w-9 h-9 flex items-center justify-center text-[#17132B] rounded-full bg-gray-50 border border-gray-100 active:bg-gray-100 transition-colors flex-shrink-0" style={{}} />
+          <HeaderSupport />
           <HeaderBell />
         </div>
       </div>

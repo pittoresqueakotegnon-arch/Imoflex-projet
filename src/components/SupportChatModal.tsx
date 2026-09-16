@@ -214,143 +214,184 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
           left: 50% !important;
           transform: translateX(-50%) !important;
           width: 100% !important;
-          max-width: 480px !important;
-          height: 100dvh !important; /* Use 100dvh for proper mobile height */
-          z-index: 99999 !important; /* Higher than bottom nav */
+          max-width: 430px !important;
+          height: 100dvh !important;
+          z-index: 99999 !important;
           display: flex !important;
           flex-direction: column !important;
-          background: #F9FAFB !important; /* Light theme background */
-          animation: imxChatOpen 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
-          box-shadow: 0 0 24px rgba(0,0,0,0.1) !important;
+          background: #F8F9FA !important; /* Soft light background */
+          animation: imxChatOpen 0.3s cubic-bezier(0.25, 1, 0.5, 1) both;
+          box-shadow: 0 0 40px rgba(0,0,0,0.15) !important;
         }
         @keyframes imxChatOpen {
-          from { opacity: 0; transform: translateY(100%) translateX(-50%); }
+          from { opacity: 0; transform: translateY(20px) translateX(-50%); }
           to { opacity: 1; transform: translateY(0) translateX(-50%); }
         }
         .imx-header-bg {
-          background: #ffffff !important;
-          border-bottom: 1px solid rgba(123,63,228,0.1) !important;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+          background: linear-gradient(135deg, #3B0E8C 0%, #7B3FE4 60%, #A855F7 100%) !important;
+          box-shadow: 0 8px 24px rgba(123,63,228,0.2) !important;
+          color: white !important;
+          border-bottom-left-radius: 24px !important;
+          border-bottom-right-radius: 24px !important;
+          position: relative !important;
+          z-index: 10 !important;
         }
         .imx-msg-user {
-          background: #7B3FE4 !important;
+          background: linear-gradient(135deg, #7B3FE4, #A855F7) !important;
           color: white !important;
+          box-shadow: 0 4px 12px rgba(123,63,228,0.15) !important;
         }
         .imx-msg-admin {
-          background: #F3F4F6 !important;
+          background: #ffffff !important;
           color: #111827 !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+          border: 1px solid rgba(0,0,0,0.02) !important;
         }
         .imx-messages-area {
           flex: 1 !important;
           overflow-y: auto !important;
           -webkit-overflow-scrolling: touch !important;
+          padding-top: 12px !important;
         }
         .imx-input-area {
           background: #ffffff !important;
-          border-top: 1px solid rgba(0,0,0,0.05) !important;
-          /* Add extra padding at bottom to avoid hiding behind safe areas */
-          padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 12px) !important; 
+          padding: 16px !important;
+          padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 16px) !important;
+          border-top-left-radius: 24px !important;
+          border-top-right-radius: 24px !important;
+          box-shadow: 0 -4px 20px rgba(0,0,0,0.03) !important;
+          position: relative !important;
+          z-index: 10 !important;
+        }
+        .imx-chat-input-wrapper {
+          display: flex !important;
+          align-items: center !important;
+          gap: 8px !important;
+          background: #F3F4F6 !important;
+          border-radius: 24px !important;
+          padding: 4px 4px 4px 16px !important;
+          transition: all 0.2s ease !important;
+          border: 1px solid transparent !important;
+        }
+        .imx-chat-input-wrapper:focus-within {
+          background: #ffffff !important;
+          border-color: rgba(123,63,228,0.3) !important;
+          box-shadow: 0 0 0 4px rgba(123,63,228,0.08) !important;
         }
         .imx-chat-input {
-          background: #F3F4F6 !important;
-          color: #111827 !important;
-          border: 1px solid transparent !important;
-          border-radius: 20px !important;
-          padding: 12px 16px !important;
+          flex: 1 !important;
+          min-width: 0 !important;
+          background: transparent !important;
+          border: none !important;
           outline: none !important;
+          font-family: 'Space Grotesk', sans-serif !important;
           font-size: 14px !important;
-          transition: all 0.2s ease !important;
+          color: #111827 !important;
+          padding: 10px 0 !important;
         }
         .imx-chat-input::placeholder { color: #9CA3AF !important; }
-        .imx-chat-input:focus { border-color: rgba(123,63,228,0.4) !important; background: #ffffff !important; box-shadow: 0 0 0 2px rgba(123,63,228,0.1) !important;}
         .imx-send-btn {
-          width: 44px !important;
-          height: 44px !important;
+          width: 40px !important;
+          height: 40px !important;
           border-radius: 50% !important;
-          background: #7B3FE4 !important;
+          background: linear-gradient(135deg, #7B3FE4, #A855F7) !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
           flex-shrink: 0 !important;
-          transition: transform 0.15s ease !important;
+          transition: transform 0.15s ease, opacity 0.15s ease !important;
+          box-shadow: 0 4px 12px rgba(123,63,228,0.2) !important;
         }
         .imx-send-btn:active { transform: scale(0.9) !important; }
-        .imx-send-btn:disabled { background: #E5E7EB !important; opacity: 0.7 !important; }
+        .imx-send-btn:disabled { background: #E5E7EB !important; box-shadow: none !important; opacity: 0.6 !important; }
         .imx-attach-btn {
-          width: 44px !important;
-          height: 44px !important;
-          border-radius: 50% !important;
-          background: transparent !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
           flex-shrink: 0 !important;
+          width: 32px !important;
+          height: 32px !important;
+          border-radius: 50% !important;
+          background: transparent !important;
+          color: #6B7280 !important;
+          border: none !important;
+          margin-right: 4px !important;
         }
         .imx-attach-btn:active { background: rgba(0,0,0,0.05) !important; }
         .imx-status-dot {
-          width: 12px !important;
-          height: 12px !important;
+          width: 14px !important;
+          height: 14px !important;
           border-radius: 50% !important;
-          border: 2px solid #ffffff !important;
+          border: 2px solid #7B3FE4 !important;
           flex-shrink: 0 !important;
         }
         .imx-msg-animate {
-          animation: imxMsgIn 0.2s ease-out both;
+          animation: imxMsgIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
         }
-        @keyframes imxMsgIn { from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
+        @keyframes imxMsgIn { from{ opacity:0; transform:translateY(12px) scale(0.95); } to{ opacity:1; transform:translateY(0) scale(1); } }
         .imx-quick-btn {
           background: #ffffff !important;
-          border: 1px solid rgba(123,63,228,0.2) !important;
+          border: 1px solid rgba(123,63,228,0.15) !important;
           color: #7B3FE4 !important;
-          border-radius: 12px !important;
-          padding: 12px 16px !important;
+          border-radius: 16px !important;
+          padding: 14px 18px !important;
           font-size: 13px !important;
           text-align: left !important;
-          transition: all 0.15s ease !important;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          font-family: 'Space Grotesk', sans-serif !important;
           font-weight: 600 !important;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+          box-shadow: 0 2px 8px rgba(123,63,228,0.04) !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
         }
-        .imx-quick-btn:active { background: #F9FAFB !important; transform: scale(0.98); }
+        .imx-quick-btn:active { background: #F9FAFB !important; transform: scale(0.97); }
         .imx-scroll-btn {
           position: absolute !important;
-          bottom: 20px !important;
-          right: 16px !important;
-          width: 36px !important;
-          height: 36px !important;
+          bottom: 24px !important;
+          right: 20px !important;
+          width: 44px !important;
+          height: 44px !important;
           border-radius: 50% !important;
           background: #ffffff !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
           z-index: 10 !important;
-          border: 1px solid #F3F4F6 !important;
+          border: 1px solid rgba(0,0,0,0.04) !important;
+          transition: transform 0.2s ease !important;
         }
+        .imx-scroll-btn:active { transform: scale(0.9) !important; }
         .imx-date-sep {
           font-size: 11px !important;
-          color: #6B7280 !important;
+          color: #9CA3AF !important;
           text-align: center !important;
-          margin: 16px 0 !important;
+          margin: 20px 0 !important;
           position: relative !important;
-          font-weight: 600 !important;
+          font-weight: 700 !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.05em !important;
         }
       `}</style>
 
       <div className="imx-support-overlay">
         {/* ═══════ HEADER ═══════ */}
-        <div className="imx-header-bg" style={{ paddingTop: '16px', paddingBottom: '16px', paddingLeft: '16px', paddingRight: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button onClick={onClose} style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: 'none', cursor: 'pointer' }}>
-            <ArrowLeft size={18} color="#4B5563" />
+        <div className="imx-header-bg" style={{ paddingTop: '16px', paddingBottom: '20px', paddingLeft: '16px', paddingRight: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <button onClick={onClose} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: 'none', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+            <ArrowLeft size={20} color="white" />
           </button>
           
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <div style={{
-              width: '44px', height: '44px', borderRadius: '14px',
-              background: '#7B3FE4',
+              width: '48px', height: '48px', borderRadius: '16px',
+              background: '#ffffff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              overflow: 'hidden'
+              overflow: 'hidden', padding: '2px'
             }}>
-              <img src="/support-avatar.png" alt="Support ImoFlex" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div style={{ width: '100%', height: '100%', borderRadius: '14px', overflow: 'hidden' }}>
+                <img src="/support-avatar.png" alt="Support ImoFlex" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
             </div>
             <div className="imx-status-dot"
               style={{
@@ -360,10 +401,10 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
           </div>
 
           <div style={{ flex: 1 }}>
-            <h2 style={{ color: '#111827', fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: '16px', margin: 0 }}>
+            <h2 style={{ color: 'white', fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: '18px', margin: 0 }}>
               Équipe ImoFlex
             </h2>
-            <p style={{ color: '#6B7280', fontSize: '12px', margin: '2px 0 0', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500 }}>
+            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', margin: '2px 0 0', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500 }}>
               {isOnline ? 'En ligne · Répond rapidement' : statusText}
             </p>
           </div>
@@ -442,8 +483,8 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
                   const firstInGroup = !prev || prev.sender_type !== msg.sender_type;
                   const lastInGroup = !next || next.sender_type !== msg.sender_type;
 
-                  const brUser = firstInGroup ? '18px 18px 4px 18px' : '6px 18px 4px 18px';
-                  const brAdmin = firstInGroup ? '18px 18px 18px 4px' : '18px 6px 18px 4px';
+                  const brUser = firstInGroup ? '20px 20px 4px 20px' : '6px 20px 4px 20px';
+                  const brAdmin = firstInGroup ? '20px 20px 20px 4px' : '20px 6px 20px 4px';
 
                   return (
                     <div key={msg.id} className="imx-msg-animate"
@@ -494,12 +535,12 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
         </div>
 
         {/* ═══════ INPUT ═══════ */}
-        {user && <div className="imx-input-area" style={{ padding: '12px 16px', flexShrink: 0 }}>
-          <form onSubmit={handleSendMessage} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button type="button" className="imx-attach-btn" onClick={() => fileInputRef.current?.click()} disabled={isUploading} style={{ border: 'none', cursor: 'pointer' }}>
+        {user && <div className="imx-input-area">
+          <form onSubmit={handleSendMessage} className="imx-chat-input-wrapper">
+            <button type="button" className="imx-attach-btn" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
               {isUploading
                 ? <div style={{ width: '18px', height: '18px', border: '2px solid #9CA3AF', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                : <Paperclip size={20} color="#6B7280" />
+                : <Paperclip size={20} />
               }
             </button>
             <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" style={{ display: 'none' }} />
@@ -510,11 +551,10 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
               className="imx-chat-input"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Message..."
-              style={{ flex: 1, minWidth: 0 }}
+              placeholder="Écrivez votre message..."
             />
 
-            <button type="submit" className="imx-send-btn" disabled={!newMessage.trim() || isSending} style={{ border: 'none', cursor: 'pointer' }}>
+            <button type="submit" className="imx-send-btn" disabled={!newMessage.trim() || isSending}>
               {isSending
                 ? <div style={{ width: '18px', height: '18px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                 : <Send size={18} color="white" style={{ marginLeft: '2px' }} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Phone, Calendar, MapPin, CreditCard, AlertTriangle } from 'lucide-react';
+import { Phone, Calendar, MapPin, CreditCard, AlertTriangle, CheckCircle2, Clock3, MessageCircle, WalletCards } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/Toast';
 import { getCurrentMonth, getMonthName } from '../../lib/utils';
@@ -39,7 +39,7 @@ interface LeaseDetails {
   }>;
 }
 
-const ProgressBar: React.FC<{ current: number; total: number; isSolde: boolean }> = ({ current, total, isSolde }) => {
+const ProgressBar: React.FC<{ current: number; total: number }> = ({ current, total }) => {
   const pct = total > 0 ? Math.min((current / total) * 100, 100) : 0;
   return (
     <div className="h-[6px] rounded-full w-full mt-3 mb-2" style={{ background: 'var(--imx-border)' }}>
@@ -47,9 +47,7 @@ const ProgressBar: React.FC<{ current: number; total: number; isSolde: boolean }
         className="h-full rounded-full transition-all duration-500"
         style={{
           width: `${pct}%`,
-          background: isSolde
-            ? 'linear-gradient(90deg, #16A34A, #22C55E)'
-            : 'linear-gradient(90deg, #7B3FE4, #C084FC)',
+          background: 'var(--imx-accent)',
         }}
       />
     </div>
@@ -138,7 +136,7 @@ const FicheBail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="page-container flex flex-col min-h-screen">
+      <div className="page-container premium-page flex flex-col min-h-screen">
         <div className="px-4 py-6">
           <div className="h-6 w-8 bg-[var(--imx-surface)] rounded animate-pulse mb-6"></div>
           <div className="h-40 bg-[var(--imx-surface)] rounded-2xl animate-pulse mb-4"></div>
@@ -161,7 +159,10 @@ const FicheBail: React.FC = () => {
   );
   
   const isRetard = currentPeriod?.status === 'retard';
-  const isSolde = currentPeriod?.status === 'solde' || (currentPeriod && currentPeriod.amount_paid >= currentPeriod.amount_due && currentPeriod.amount_due > 0);
+  const isSolde = Boolean(
+    currentPeriod?.status === 'solde'
+      || (currentPeriod && currentPeriod.amount_paid >= currentPeriod.amount_due && currentPeriod.amount_due > 0)
+  );
 
   // Flatten and sort payments from newest to oldest
   const allPayments = lease.rent_periods
@@ -169,38 +170,63 @@ const FicheBail: React.FC = () => {
     .filter((p: any) => p.is_test_data === false)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+  // Indicateurs strictement limités au bail ouvert : aucun score opaque ni donnée privée du profil.
+  const currentMonthDate = new Date(year, month - 1, 1);
+  const duePeriods = lease.rent_periods.filter((period) => {
+    const periodDate = new Date(period.period_year, period.period_month - 1, 1);
+    return period.amount_due > 0 && periodDate <= currentMonthDate;
+  });
+  const settledPeriods = duePeriods.filter(
+    (period) => period.status === 'solde' || period.amount_paid >= period.amount_due
+  );
+  const overduePeriods = duePeriods.filter((period) => period.status === 'retard');
+  const currentBalance = currentPeriod
+    ? Math.max(currentPeriod.amount_due - currentPeriod.amount_paid, 0)
+    : 0;
+  const lastValidatedPayment = allPayments.find((payment) => payment.status === 'valide');
+  const formatAmount = (amount: number) => new Intl.NumberFormat('fr-FR').format(amount);
+  const formatDate = (date: string) => new Date(date).toLocaleDateString('fr-FR', {
+    day: 'numeric', month: 'short', year: 'numeric'
+  });
+  const reminderMessage = currentPeriod
+    ? `Bonjour ${lease.tenant?.full_name || ''}, le loyer de ${getMonthName(month, year)} présente un solde de ${formatAmount(currentBalance)} FCFA. Merci de nous contacter.`
+    : `Bonjour ${lease.tenant?.full_name || ''}, merci de nous contacter au sujet de votre bail ImoFlex.`;
+  const reminderHref = lease.tenant?.phone
+    ? `sms:${lease.tenant.phone}?body=${encodeURIComponent(reminderMessage)}`
+    : undefined;
+
   const tenantInitial = lease.tenant?.full_name
     ? lease.tenant.full_name.charAt(0).toUpperCase()
     : '?';
 
   return (
-    <div className="page-container flex flex-col min-h-screen pb-24">
+    <div className="page-container premium-page flex flex-col min-h-screen pb-24">
       {/* ── HEADER ── */}
-      <div className="px-4 pt-6 pb-4 flex items-center justify-between sticky top-0 z-40" style={{ background: 'var(--imx-bg-app)' }}>
+      <div className="premium-header px-4 pt-6 pb-4 flex items-center justify-between">
         <BackButton />
-        <h1 className="text-lg font-nunito font-black text-[var(--imx-text-primary)]">Détails du bail</h1>
+        <h1 className="text-lg font-nunito font-black text-[var(--imx-text-primary)]">Dossier locataire</h1>
         <div className="w-10"></div> {/* Spacer for centering */}
       </div>
 
       <div className="px-4 space-y-5">
         {/* INDICATEUR DE RETARD */}
         {isRetard && (
-          <div className="rounded-[16px] px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239, 68, 68, 0.2)' }}>
+          <div className="rounded-[16px] px-4 py-3 flex items-center gap-3" style={{ background: 'var(--imx-surface)', border: '1px solid rgba(239, 68, 68, 0.32)', boxShadow: '0 4px 14px rgba(35, 23, 67, 0.04)' }}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239, 68, 68, 0.10)' }}>
               <AlertTriangle size={18} className="text-red-500" />
             </div>
             <div>
-              <p className="font-nunito font-black text-red-500 text-[14px]">Loyer en retard</p>
-              <p className="text-[11px] text-red-400" style={{ fontFamily: 'Space Grotesk' }}>
+              <p className="font-nunito font-black text-[var(--imx-text-primary)] text-[14px]">Loyer en retard</p>
+              <p className="text-[11px]" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>
                 Le paiement pour la période en cours n'a pas été reçu.
               </p>
             </div>
           </div>
         )}
 
-        {/* SECTION 1: LOCATAIRE */}
-        <div className="rounded-[20px] p-5" style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}>
-          <div className="flex items-center gap-4 mb-5">
+        {/* VUE D'ENSEMBLE — limitée aux informations de ce bail */}
+        <section className="rounded-[24px] p-5 overflow-hidden" style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)', boxShadow: 'var(--imx-card-shadow)' }}>
+          <div className="flex items-start gap-4 mb-5">
             <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #7B3FE4, #A855F7)' }}>
               {lease.tenant?.avatar_url ? (
                 <img src={lease.tenant.avatar_url} alt={lease.tenant.full_name} className="w-full h-full object-cover" />
@@ -209,39 +235,107 @@ const FicheBail: React.FC = () => {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="font-nunito font-black text-[var(--imx-text-primary)] text-[18px] truncate">
-                {lease.tenant?.full_name || 'Locataire'}
-              </h2>
-              <p className="text-[13px] mt-0.5" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>
-                {lease.tenant?.phone || 'Numéro non renseigné'}
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="font-nunito font-black text-[var(--imx-text-primary)] text-[18px] truncate">
+                  {lease.tenant?.full_name || 'Locataire'}
+                </h2>
+                <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-full" style={{ color: 'var(--imx-accent)', background: 'var(--imx-accent-xlight)', fontFamily: 'Space Grotesk' }}>
+                  BAIL ACTIF
+                </span>
+              </div>
+              <p className="text-[12px] mt-1" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>
+                Locataire depuis le {formatDate(lease.start_date)}
               </p>
             </div>
           </div>
 
-          <a
-            href={lease.tenant?.phone ? `tel:${lease.tenant.phone}` : '#'}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-[14px] transition-opacity hover:opacity-90"
-            style={{ 
-              background: lease.tenant?.phone ? 'linear-gradient(135deg, #7B3FE4, #A855F7)' : 'var(--imx-border)', 
-              color: '#FFFFFF', 
-              border: lease.tenant?.phone ? 'none' : '1px solid rgba(255,255,255,0.1)' 
-            }}
-          >
-            <Phone size={16} />
-            {lease.tenant?.phone ? 'Appeler le locataire' : 'Numéro non disponible'}
-          </a>
-        </div>
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            <div className="rounded-xl px-3 py-3" style={{ background: 'var(--imx-surface-2)' }}>
+              <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--imx-text-muted)', fontFamily: 'Space Grotesk' }}>Logement</p>
+              <p className="text-[12px] font-bold truncate text-[var(--imx-text-primary)]">{lease.property?.name || '—'}</p>
+            </div>
+            <div className="rounded-xl px-3 py-3" style={{ background: 'var(--imx-surface-2)' }}>
+              <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--imx-text-muted)', fontFamily: 'Space Grotesk' }}>Échéance</p>
+              <p className="text-[12px] font-bold text-[var(--imx-text-primary)]">Le {lease.property?.payment_deadline_day ?? '—'} du mois</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2" style={{ gridTemplateColumns: isRetard && reminderHref ? '1fr 1fr' : '1fr' }}>
+            <a
+              href={lease.tenant?.phone ? `tel:${lease.tenant.phone}` : undefined}
+              aria-disabled={!lease.tenant?.phone}
+              className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-[13px] transition-opacity hover:opacity-90"
+              style={{
+                background: lease.tenant?.phone ? 'linear-gradient(135deg, #7B3FE4, #A855F7)' : 'var(--imx-border)',
+                color: '#FFFFFF',
+                pointerEvents: lease.tenant?.phone ? 'auto' : 'none'
+              }}
+            >
+              <Phone size={16} />
+              {lease.tenant?.phone ? 'Appeler' : 'Numéro non disponible'}
+            </a>
+            {isRetard && reminderHref && (
+              <a
+                href={reminderHref}
+                className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-[13px] transition-opacity hover:opacity-90"
+                style={{ background: 'var(--imx-surface)', border: '1px solid rgba(123, 63, 228, 0.38)', color: 'var(--imx-accent)' }}
+              >
+                <MessageCircle size={16} />
+                Relancer
+              </a>
+            )}
+          </div>
+          <p className="text-[10px] mt-3 text-center" style={{ color: 'var(--imx-text-muted)', fontFamily: 'Space Grotesk' }}>
+            Informations limitées à ce bail pour préserver la vie privée du locataire.
+          </p>
+        </section>
+
+        {/* SUIVI FACTUEL DES PAIEMENTS — pas de score de locataire */}
+        <section>
+          <div className="flex items-center justify-between mb-3 ml-1">
+            <h3 className="font-nunito font-black text-[var(--imx-text-primary)] text-[15px]">Suivi du paiement</h3>
+            <span className="text-[10px]" style={{ color: 'var(--imx-text-muted)', fontFamily: 'Space Grotesk' }}>Ce bail uniquement</span>
+          </div>
+          <div className="rounded-[20px] overflow-hidden grid grid-cols-3" style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)', boxShadow: '0 6px 18px rgba(35, 23, 67, 0.04)' }}>
+            <div className="min-w-0 p-4">
+              {isRetard ? <AlertTriangle size={17} color="#EF4444" /> : isSolde ? <CheckCircle2 size={17} color="var(--imx-accent)" /> : <Clock3 size={17} color="var(--imx-accent)" />}
+              <p className="text-[10px] mt-2" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>Mois en cours</p>
+              <p className="font-nunito font-black text-[12px] mt-0.5 text-[var(--imx-text-primary)] truncate">
+                {!currentPeriod ? 'À venir' : isSolde ? 'Soldé' : currentBalance > 0 ? `${formatAmount(currentBalance)} F` : 'En cours'}
+              </p>
+            </div>
+            <div className="min-w-0 p-4" style={{ borderLeft: '1px solid var(--imx-border)' }}>
+              <WalletCards size={17} color="var(--imx-accent-light)" />
+              <p className="text-[10px] mt-2" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>Périodes soldées</p>
+              <p className="font-nunito font-black text-[12px] mt-0.5 text-[var(--imx-text-primary)]">
+                {duePeriods.length ? `${settledPeriods.length} / ${duePeriods.length}` : '—'}
+              </p>
+            </div>
+            <div className="min-w-0 p-4" style={{ borderLeft: '1px solid var(--imx-border)' }}>
+              <CreditCard size={17} color="var(--imx-accent-light)" />
+              <p className="text-[10px] mt-2" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>Dernier versement</p>
+              <p className="font-nunito font-black text-[12px] mt-0.5 text-[var(--imx-text-primary)] truncate">
+                {lastValidatedPayment ? formatDate(lastValidatedPayment.created_at) : 'Aucun'}
+              </p>
+            </div>
+          </div>
+          {overduePeriods.length > 0 && !isRetard && (
+            <p className="text-[11px] mt-2 ml-1" style={{ color: '#FBBF24', fontFamily: 'Space Grotesk' }}>
+              {overduePeriods.length} période{overduePeriods.length > 1 ? 's' : ''} antérieure{overduePeriods.length > 1 ? 's' : ''} à régulariser.
+            </p>
+          )}
+        </section>
 
         {/* SECTION 2: INFORMATIONS DU BAIL */}
         <div>
-          <h3 className="font-nunito font-black text-[var(--imx-text-primary)] text-[15px] mb-3 ml-1">Informations du Bail</h3>
+          <h3 className="font-nunito font-black text-[var(--imx-text-primary)] text-[15px] mb-3 ml-1">Le bail</h3>
           <div className="rounded-[20px] p-5 space-y-4" style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}>
             
             {/* Loyer mensuel */}
             <div className="flex justify-between items-end pb-4" style={{ borderBottom: '1px solid var(--imx-border)' }}>
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>
-                  Loyer Mensuel Attendu
+                  Loyer mensuel attendu
                 </p>
                 <div className="flex items-baseline gap-1">
                   <span className="font-nunito font-black text-[var(--imx-text-primary)] text-[24px]">
@@ -250,7 +344,7 @@ const FicheBail: React.FC = () => {
                   <span className="text-[12px] text-[var(--imx-text-secondary)]">FCFA</span>
                 </div>
               </div>
-              <span className="text-[10px] font-bold rounded-md px-2.5 py-1 uppercase" style={{ background: 'rgba(34,197,94,0.15)', color: '#4ADE80', fontFamily: 'Space Grotesk', letterSpacing: '0.04em' }}>
+              <span className="text-[10px] font-bold rounded-md px-2.5 py-1 uppercase" style={{ background: 'var(--imx-accent-xlight)', color: 'var(--imx-accent)', fontFamily: 'Space Grotesk', letterSpacing: '0.04em' }}>
                 ACTIF
               </span>
             </div>
@@ -306,8 +400,8 @@ const FicheBail: React.FC = () => {
                     className="text-[9px] font-bold rounded-md px-2 py-0.5 uppercase"
                     style={{
                       fontFamily: 'Space Grotesk',
-                      background: isSolde ? 'rgba(34,197,94,0.15)' : isRetard ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
-                      color: isSolde ? '#4ADE80' : isRetard ? '#F87171' : '#FBBF24',
+                      background: isRetard ? 'rgba(239,68,68,0.10)' : 'var(--imx-accent-xlight)',
+                      color: isRetard ? '#EF4444' : 'var(--imx-accent)',
                     }}
                   >
                     {isSolde ? 'SOLDÉ' : isRetard ? 'RETARD' : 'EN COURS'}
@@ -317,11 +411,10 @@ const FicheBail: React.FC = () => {
                 <ProgressBar
                   current={currentPeriod.amount_paid}
                   total={currentPeriod.amount_due}
-                  isSolde={isSolde || false}
                 />
                 
                 <div className="flex justify-between text-[11px]" style={{ fontFamily: 'Space Grotesk' }}>
-                  <span style={{ color: isSolde ? '#4ADE80' : isRetard ? '#F87171' : 'var(--imx-accent-light)' }}>
+                  <span style={{ color: isRetard ? '#EF4444' : 'var(--imx-accent)' }}>
                     {new Intl.NumberFormat('fr-FR').format(currentPeriod.amount_paid)} F reçus
                   </span>
                   <span style={{ color: 'var(--imx-text-muted)' }}>
@@ -340,8 +433,8 @@ const FicheBail: React.FC = () => {
                   return (
                     <div key={payment.id} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: isValide ? 'rgba(34,197,94,0.1)' : isEchoue ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)' }}>
-                          <CreditCard size={16} color={isValide ? '#4ADE80' : isEchoue ? '#F87171' : '#FBBF24'} />
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: isEchoue ? 'rgba(239,68,68,0.10)' : 'var(--imx-accent-xlight)' }}>
+                          <CreditCard size={16} color={isEchoue ? '#EF4444' : 'var(--imx-accent)'} />
                         </div>
                         <div>
                           <p className="font-nunito font-bold text-[var(--imx-text-primary)] text-[14px]">Paiement Mobile Money</p>
@@ -358,7 +451,7 @@ const FicheBail: React.FC = () => {
                           className="text-[10px] font-bold mt-0.5"
                           style={{
                             fontFamily: 'Space Grotesk',
-                            color: isValide ? '#4ADE80' : isEchoue ? '#F87171' : '#FBBF24'
+                            color: isEchoue ? '#EF4444' : isValide ? 'var(--imx-accent)' : 'var(--imx-text-secondary)'
                           }}
                         >
                           {isValide ? 'Validé' : isEchoue ? 'Échoué' : 'En attente'}

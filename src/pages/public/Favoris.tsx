@@ -120,8 +120,8 @@ const Favoris: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="page-container bg-white h-screen overflow-y-auto">
-        <header className="px-5 pt-6 pb-4 bg-white sticky top-0 z-40 border-b border-gray-100">
+      <div className="page-container premium-page h-screen overflow-y-auto">
+        <header className="premium-header px-5 pt-6 pb-4">
           <h1 className="font-nunito font-900 text-[22px] text-[#17132B]">Mes favoris</h1>
           <p className="text-[13px] text-gray-500 font-space-grotesk mt-1 font-medium">
             Vos logements sauvegardés
@@ -138,9 +138,9 @@ const Favoris: React.FC = () => {
   }
 
   return (
-    <div className="page-container bg-white h-screen overflow-y-auto">
+    <div className="page-container premium-page h-screen overflow-y-auto">
       {/* ── Header ─────────────────────────────────────── */}
-      <header className="px-5 pt-6 pb-4 bg-white sticky top-0 z-40 border-b border-gray-100">
+      <header className="premium-header px-5 pt-6 pb-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-nunito font-900 text-[22px] text-[#17132B]">

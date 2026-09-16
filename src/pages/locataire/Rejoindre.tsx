@@ -113,7 +113,7 @@ export default function Rejoindre() {
   }, [step]);
 
   return (
-    <div className="min-h-screen bg-[var(--imx-bg-app)] text-[var(--imx-text-primary)] flex flex-col px-5 pt-12 pb-8">
+    <div className="min-h-screen premium-page text-[var(--imx-text-primary)] flex flex-col px-5 pt-12 pb-8">
       {/* Header / Back */}
       <div className="flex items-center mb-10 w-full">
         <BackButton />

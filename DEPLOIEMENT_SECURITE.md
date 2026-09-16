@@ -1,6 +1,6 @@
 # ImoFlex — déploiement de la correction sécurité
 
-Cette livraison contient les migrations `038` à `045`. Elles doivent
+Cette livraison contient les migrations `038` à `047`. Elles doivent
 être appliquées dans l'ordre sur le projet Supabase cible avant de déployer le
 front-end.
 
@@ -44,6 +44,12 @@ Vérifiez ensuite que les secrets suivants sont bien présents :
 7. Envoyer une capture dans le support : le bucket `support_attachments` doit
    être privé et l'image ne doit être accessible que via une URL signée
    temporaire à un participant de la conversation ou à un administrateur.
+8. Créer un compte avec l'email de confirmation activé, saisir le code reçu,
+   puis se déconnecter et se reconnecter. Le profil doit être créé dans
+   `public.users` et la connexion doit aboutir au tableau de bord.
+9. Modifier le nom et le téléphone dans Profil. Le numéro doit être normalisé
+   au format international et un numéro modifié ne doit plus être indiqué
+   comme vérifié.
 
 Ne passez les clés ni les URLs FedaPay de production dans le front-end. Elles
 restent exclusivement dans les secrets des Edge Functions.

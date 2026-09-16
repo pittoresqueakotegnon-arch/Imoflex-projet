@@ -273,7 +273,7 @@ export default function Payer() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--imx-bg-app)] flex items-center justify-center">
+      <div className="min-h-screen premium-page flex items-center justify-center">
         <div className="w-8 h-8 border-3 border-[var(--imx-accent)] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -281,7 +281,7 @@ export default function Payer() {
 
   if (!currentRentPeriod) {
     return (
-      <div className="min-h-screen bg-[var(--imx-bg-app)] text-[var(--imx-text-primary)] p-6 flex flex-col">
+      <div className="min-h-screen premium-page text-[var(--imx-text-primary)] p-6 flex flex-col">
         <div className="mb-6"><BackButton /></div>
         <div className="flex-1 flex items-center justify-center">
           <p className="text-[var(--imx-text-secondary)]">Aucune periode de loyer active pour ce logement</p>
@@ -502,7 +502,7 @@ export default function Payer() {
 
   /* FORM */
   return (
-    <div className="min-h-screen bg-[var(--imx-bg-app)] text-[var(--imx-text-primary)] flex flex-col"
+    <div className="min-h-screen premium-page text-[var(--imx-text-primary)] flex flex-col"
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)" }}>
       <div className="px-6 flex-1 flex flex-col" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)" }}>
         <div className="mb-5"><BackButton /></div>

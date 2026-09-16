@@ -98,7 +98,7 @@ export default function ResetPassword() {
 
   if (checkingSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--imx-bg-app)]">
+      <div className="min-h-screen premium-page flex items-center justify-center">
         <div className="w-8 h-8 border-3 border-[var(--imx-accent)] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -106,7 +106,7 @@ export default function ResetPassword() {
 
   if (!hasRecoverySession) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-[var(--imx-bg-app)] text-center">
+      <div className="min-h-screen premium-page flex flex-col items-center justify-center px-6 text-center">
         <div
           className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
           style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}
@@ -126,7 +126,7 @@ export default function ResetPassword() {
 
   if (done) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-[var(--imx-bg-app)] text-center">
+      <div className="min-h-screen premium-page flex flex-col items-center justify-center px-6 text-center">
         <div
           className="w-20 h-20 rounded-3xl flex items-center justify-center mb-8"
           style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)' }}
@@ -145,7 +145,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--imx-bg-app)]">
+    <div className="min-h-screen premium-page flex flex-col">
       <div
         className="flex-1 flex flex-col px-6 justify-center"
         style={{

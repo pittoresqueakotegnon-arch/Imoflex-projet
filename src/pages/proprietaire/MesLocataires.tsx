@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 import { formatMontant, getCurrentMonth } from '../../lib/utils';
@@ -9,11 +11,13 @@ import StatusBadge from '../../components/StatusBadge';
 import { useToast } from '../../components/Toast';
 
 interface TenantData {
+  leaseId: string;
   propertyId: string;
   propertyName: string;
   tenantId: string;
   tenantName: string;
   tenantPhone: string;
+  tenantAvatarUrl?: string;
   amountPaid: number;
   amountDue: number;
   status: string;
@@ -28,6 +32,7 @@ interface GroupedTenants {
 
 const MesLocataires: React.FC = () => {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const [tenants, setTenants] = useState<GroupedTenants>({});
   const [loading, setLoading] = useState(true);
@@ -83,7 +88,7 @@ const MesLocataires: React.FC = () => {
         // 1 requête pour tous les locataires + 1 requête pour toutes les périodes en cours
         // (remplace deux allers-retours par bail — N+1 sur leases.length)
         const [{ data: users, error: usersError }, { data: rentPeriods, error: rpError }] = await Promise.all([
-          supabase.from('users').select('id, full_name, phone').in('id', tenantIds),
+          supabase.from('users').select('id, full_name, phone, avatar_url').in('id', tenantIds),
           supabase
             .from('rent_periods')
             .select('lease_id, amount_paid, amount_due, status')
@@ -123,11 +128,13 @@ const MesLocataires: React.FC = () => {
 
           if (property && user && currentRentPeriod) {
             grouped[property.id].tenants.push({
+              leaseId: lease.id,
               propertyId: property.id,
               propertyName: property.name,
               tenantId: lease.tenant_id,
               tenantName: user.full_name,
               tenantPhone: user.phone,
+              tenantAvatarUrl: user.avatar_url || undefined,
               amountPaid: currentRentPeriod.amount_paid || 0,
               amountDue: currentRentPeriod.amount_due || 0,
               status: currentRentPeriod.status,
@@ -189,9 +196,12 @@ const MesLocataires: React.FC = () => {
   };
 
   return (
-    <div className="page-container">
+    <div className="page-container premium-page">
       <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-nunito font-900 mb-6">Mes locataires</h1>
+        <div className="mb-6">
+          <h1 className="text-2xl font-nunito font-900">Mes locataires</h1>
+          <p className="premium-subtitle mt-1">Suivez vos baux actifs et vos échéances.</p>
+        </div>
 
         <div className="space-y-6">
           {Object.values(tenants).map(property => {
@@ -199,15 +209,19 @@ const MesLocataires: React.FC = () => {
 
             return (
               <div key={property.propertyName}>
-                <h2 className="section-title text-sm mb-3">{property.propertyName}</h2>
+                <h2 className="premium-section-heading mb-3">{property.propertyName}</h2>
                 <div className="space-y-3">
                   {property.tenants.map(tenant => (
-                    <div key={tenant.tenantId} className="card p-4">
+                    <div key={tenant.leaseId} className="card p-4">
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-full bg-violet flex items-center justify-center">
-                          <span className="font-nunito font-700 text-white text-sm">
-                            {getInitials(tenant.tenantName)}
-                          </span>
+                        <div className="w-10 h-10 rounded-full bg-violet flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {tenant.tenantAvatarUrl ? (
+                            <img src={tenant.tenantAvatarUrl} alt={`Photo de ${tenant.tenantName}`} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="font-nunito font-700 text-white text-sm">
+                              {getInitials(tenant.tenantName)}
+                            </span>
+                          )}
                         </div>
                         <div>
                           <p className="font-semibold text-[var(--imx-text-primary)]">{tenant.tenantName}</p>
@@ -217,7 +231,7 @@ const MesLocataires: React.FC = () => {
 
                       <ProgressBar current={tenant.amountPaid} total={tenant.amountDue} />
 
-                      <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center justify-between mt-3 gap-3">
                         <div>
                           <p className="text-xs text-text-dim">
                             <span className="font-semibold text-[var(--imx-text-primary)]">{formatMontant(tenant.amountPaid)}</span>
@@ -226,6 +240,15 @@ const MesLocataires: React.FC = () => {
                         </div>
                         <StatusBadge status={tenant.status} />
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/pro/bail/${tenant.leaseId}`)}
+                        className="w-full mt-3 pt-3 border-t flex items-center justify-between text-sm font-semibold text-[var(--imx-accent)]"
+                        style={{ borderColor: 'var(--imx-border)' }}
+                      >
+                        Voir la fiche du locataire
+                        <ChevronRight size={16} />
+                      </button>
                     </div>
                   ))}
                 </div>

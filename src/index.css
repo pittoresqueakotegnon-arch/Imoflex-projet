@@ -7,21 +7,21 @@
    Sombre = surcharge sous [data-theme="dark"].
    Le violet signature (--imx-accent) est la couleur principale dans les deux modes. */
 :root {
-  --imx-bg-deep: #F0EDF8;
-  --imx-bg-app: #FFFFFF;
+  --imx-bg-deep: #EEEAF8;
+  --imx-bg-app: #FCFBFE;
   --imx-surface: #FFFFFF;
-  --imx-surface-2: #F8F7FC;
+  --imx-surface-2: #F7F5FC;
   --imx-text-primary: #17132B;
   --imx-text-secondary: #77738A;
   --imx-text-muted: #A89EC0;
-  --imx-border: #E9E5F2;
+  --imx-border: #E8E3F1;
   --imx-accent: #7B3FE4;
   --imx-accent-light: #A855F7;
   --imx-accent-xlight: #F1EBFF;
   --imx-accent-glow: #C084FC;
   --imx-nav-bg: rgba(255, 255, 255, 0.95);
-  --imx-card-shadow: 0 2px 16px rgba(23, 19, 43, 0.07), 0 1px 4px rgba(23, 19, 43, 0.04);
-  --imx-card-shadow-sm: 0 1px 6px rgba(23, 19, 43, 0.06);
+  --imx-card-shadow: 0 12px 32px rgba(35, 23, 67, 0.07), 0 2px 8px rgba(35, 23, 67, 0.03);
+  --imx-card-shadow-sm: 0 4px 14px rgba(35, 23, 67, 0.05);
 }
 
 
@@ -130,7 +130,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 10px 24px rgba(123, 63, 228, 0.25);
     transition: all 0.18s ease;
     font-family: 'Sora', sans-serif;
     letter-spacing: 0.01em;
@@ -142,7 +142,7 @@
   .btn-primary:hover {
     opacity: 0.92;
     transform: translateY(-1px);
-    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 12px 28px rgba(123, 63, 228, 0.32);
   }
 
   .btn-primary:active {
@@ -263,7 +263,7 @@
   .card {
     background: var(--imx-surface);
     border: 1px solid var(--imx-border);
-    border-radius: 16px;
+    border-radius: 20px;
     box-shadow: var(--imx-card-shadow);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
@@ -271,7 +271,7 @@
   .card-dark {
     background: var(--imx-bg-app);
     border: 1px solid var(--imx-border);
-    border-radius: 16px;
+    border-radius: 20px;
   }
 
   /* =========================================
@@ -432,7 +432,7 @@
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
-    max-width: 390px;
+    max-width: 430px;
     background: var(--imx-nav-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -452,10 +452,87 @@
   ========================================= */
   .page-container {
     min-height: 100vh;
-    background: var(--imx-bg-app);
+    background:
+      radial-gradient(700px 300px at 100% -80px, rgba(168, 85, 247, 0.10), transparent 62%),
+      radial-gradient(460px 240px at -80px 25%, rgba(123, 63, 228, 0.06), transparent 65%),
+      var(--imx-bg-app);
     display: flex;
     flex-direction: column;
     padding-bottom: 88px; /* espace pour la bottom nav fixe */
+  }
+
+  /* ── Langage visuel premium partagé ───────────────────────────────────── */
+  .premium-page {
+    background:
+      radial-gradient(700px 300px at 100% -80px, rgba(168, 85, 247, 0.10), transparent 62%),
+      radial-gradient(460px 240px at -80px 25%, rgba(123, 63, 228, 0.06), transparent 65%),
+      var(--imx-bg-app);
+  }
+
+  .premium-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: rgba(252, 251, 254, 0.88);
+    background: color-mix(in srgb, var(--imx-bg-app) 88%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-bottom: 1px solid rgba(232, 227, 241, 0.75);
+  }
+
+  .premium-icon-button {
+    width: 42px;
+    height: 42px;
+    border-radius: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--imx-text-primary);
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid var(--imx-border);
+    box-shadow: var(--imx-card-shadow-sm);
+    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  }
+
+  .premium-icon-button:hover {
+    background: var(--imx-surface);
+    border-color: rgba(123, 63, 228, 0.35);
+    transform: translateY(-1px);
+  }
+
+  .premium-icon-button:active {
+    transform: scale(0.96);
+  }
+
+  .premium-section-heading {
+    font-family: 'Sora', sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 800;
+    color: var(--imx-text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  .premium-subtitle {
+    color: var(--imx-text-secondary);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 3px solid rgba(123, 63, 228, 0.28);
+    outline-offset: 2px;
+  }
+
+  @media (hover: hover) {
+    .card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 36px rgba(35, 23, 67, 0.09), 0 2px 8px rgba(35, 23, 67, 0.03);
+    }
   }
 
   /* =========================================

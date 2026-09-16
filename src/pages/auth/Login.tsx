@@ -63,7 +63,7 @@ export default function Login() {
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-[var(--imx-bg-app)]"
+      className="min-h-screen premium-page flex flex-col"
     >
       {/* Bouton retour */}
       <div className="px-5 pt-safe" style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}>

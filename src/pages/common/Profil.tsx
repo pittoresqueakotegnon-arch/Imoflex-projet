@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
 import BottomNav from '../../components/BottomNav';
-import { ShieldCheck, Receipt, Wallet, MessageCircle, HelpCircle, ChevronRight, KeyRound, Home, User, Camera, Trash2, ClipboardList, Heart, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Receipt, Wallet, MessageCircle, HelpCircle, ChevronRight, KeyRound, Home, User, Camera, Trash2, ClipboardList, Heart, AlertTriangle, Pencil, Save, X } from 'lucide-react';
 import { LegalModal } from '../../components/LegalModal';
 
 const compressImage = (file: File): Promise<Blob> => {
@@ -117,6 +117,53 @@ export default function Profil() {
   const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState<'terms' | 'privacy' | null>(null);
+  const [editingContact, setEditingContact] = useState(false);
+  const [savingContact, setSavingContact] = useState(false);
+  const [editFullName, setEditFullName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+
+  const openContactEditor = () => {
+    if (!profile) return;
+    setEditFullName(profile.full_name || '');
+    setEditPhone(profile.phone || '');
+    setEditingContact(true);
+  };
+
+  const handleContactSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile || savingContact) return;
+
+    const fullName = editFullName.trim().replace(/\s+/g, ' ');
+    const phoneDigits = editPhone.replace(/\D/g, '');
+    const phone = phoneDigits ? `+${phoneDigits}` : '';
+
+    if (fullName.length < 2 || fullName.length > 150) {
+      showToast('Le nom doit contenir entre 2 et 150 caractères.', 'error');
+      return;
+    }
+    if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+      showToast('Saisissez un numéro de téléphone international valide.', 'error');
+      return;
+    }
+
+    setSavingContact(true);
+    try {
+      const { error } = await supabase.rpc('update_current_user_contact', {
+        p_full_name: fullName,
+        p_phone: phone,
+      });
+      if (error) throw error;
+
+      await refreshProfile();
+      setEditingContact(false);
+      showToast('Vos informations ont été mises à jour.', 'success');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Impossible de mettre à jour vos informations.';
+      showToast(message.includes('déjà utilisé') ? 'Ce numéro est déjà associé à un autre compte.' : message, 'error');
+    } finally {
+      setSavingContact(false);
+    }
+  };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -216,8 +263,8 @@ export default function Profil() {
   const mmTrailing = profile.preferred_operator ? profile.preferred_operator.toUpperCase() : 'Non renseigné';
 
   return (
-    <div className="page-container">
-      <header className="sticky-header px-4 py-4 text-center">
+    <div className="page-container premium-page">
+      <header className="premium-header px-4 py-4 text-center">
         <h1 className="text-sm font-space-grotesk font-semibold text-[var(--imx-text-secondary)] tracking-wider uppercase">
           Paramètres du compte
         </h1>
@@ -300,6 +347,75 @@ export default function Profil() {
               <Wallet size={16} className="text-[#FBBF24]" />
               <span className="font-nunito font-800 text-[13px] text-[var(--imx-text-primary)]">Mobile Money</span>
             </button>
+          </div>
+
+          <div>
+            <SectionLabel>Mes informations</SectionLabel>
+            <div className="card overflow-hidden">
+              {editingContact ? (
+                <form onSubmit={handleContactSave} className="p-4 space-y-4">
+                  <div>
+                    <label htmlFor="profile-full-name" className="block text-xs font-semibold mb-1.5 text-[var(--imx-text-secondary)]">
+                      Nom complet
+                    </label>
+                    <input
+                      id="profile-full-name"
+                      value={editFullName}
+                      onChange={(e) => setEditFullName(e.target.value)}
+                      autoComplete="name"
+                      maxLength={150}
+                      required
+                      className="input-field w-full"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="profile-phone" className="block text-xs font-semibold mb-1.5 text-[var(--imx-text-secondary)]">
+                      Numéro de téléphone
+                    </label>
+                    <input
+                      id="profile-phone"
+                      type="tel"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      autoComplete="tel"
+                      inputMode="tel"
+                      placeholder="+229 97 12 34 56"
+                      required
+                      className="input-field w-full"
+                    />
+                    <p className="text-[11px] mt-1.5 text-[var(--imx-text-muted)]">
+                      Un changement de numéro désactive sa vérification.
+                    </p>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditingContact(false)}
+                      disabled={savingContact}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+                      style={{ background: 'var(--imx-surface-2)', color: 'var(--imx-text-primary)' }}
+                    >
+                      <X size={16} /> Annuler
+                    </button>
+                    <button type="submit" disabled={savingContact} className="btn-primary flex-1 py-2.5 text-sm flex items-center justify-center gap-2">
+                      {savingContact ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save size={16} />}
+                      Enregistrer
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <button onClick={openContactEditor} className="w-full px-4 py-4 flex items-center justify-between hover:bg-[var(--imx-surface-2)] transition-colors text-left">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <User size={16} className="flex-shrink-0 text-[var(--imx-accent)]" />
+                    <div className="min-w-0">
+                      <p className="text-sm text-[var(--imx-text-primary)] font-medium truncate" style={{ fontFamily: 'Space Grotesk' }}>Nom et téléphone</p>
+                      <p className="text-xs text-[var(--imx-text-secondary)] truncate mt-0.5">{profile.full_name} · {profile.phone || 'Non renseigné'}</p>
+                    </div>
+                  </div>
+                  <Pencil size={16} className="flex-shrink-0 text-[var(--imx-text-muted)]" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

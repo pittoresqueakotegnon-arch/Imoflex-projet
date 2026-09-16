@@ -106,7 +106,7 @@ export default function LogementDetail() {
 
   if (notFound) {
     return (
-      <div className="min-h-screen bg-[var(--imx-bg-app)] text-[var(--imx-text-primary)] p-6 flex flex-col">
+      <div className="min-h-screen premium-page text-[var(--imx-text-primary)] p-6 flex flex-col">
         <button onClick={() => navigate('/dashboard')} className="p-2 hover:bg-[var(--imx-surface-2)] rounded-lg transition-colors w-fit">
           <ChevronLeft size={24} />
         </button>
@@ -126,7 +126,7 @@ export default function LogementDetail() {
   const isLate = daysUntil < 0 && remaining > 0;
 
   return (
-    <div className="min-h-screen bg-[var(--imx-bg-app)] text-[var(--imx-text-primary)] flex flex-col p-6">
+    <div className="min-h-screen premium-page text-[var(--imx-text-primary)] flex flex-col p-6">
       <div className="flex items-center gap-4 mb-6">
         <button onClick={() => navigate('/dashboard')} className="p-3 bg-[var(--imx-surface-2)] hover:bg-[#2A1E5C] rounded-2xl transition-colors">
           <ChevronLeft size={20} className="text-[var(--imx-text-primary)]" />

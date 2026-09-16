@@ -40,22 +40,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
+    const selectProfile = () => supabase
       .from('users')
       .select('*')
       .eq('id', userId)
       .maybeSingle();
+
+    let { data, error } = await selectProfile();
     if (error) {
       console.error('Erreur fetchProfile:', error);
       throw new Error('Impossible de charger le profil utilisateur. ' + error.message);
     }
-    if (data) {
-      setProfile(data as UserProfile);
-    } else {
-      // Le profil est créé exclusivement par le trigger auth côté base. Une
-      // écriture de secours depuis le navigateur permettrait de choisir un rôle.
-      throw new Error('Profil utilisateur introuvable. Réessayez dans quelques instants.');
+
+    // Les anciennes versions du trigger pouvaient créer le compte Auth sans
+    // créer sa ligne `users` (par exemple si le numéro était déjà utilisé).
+    // Cette RPC répare uniquement le profil de la session courante, sans lui
+    // permettre de choisir un rôle privilégié.
+    if (!data) {
+      const { error: repairError } = await supabase.rpc('ensure_current_user_profile');
+      if (repairError) {
+        console.error('Erreur réparation profil:', repairError);
+        throw new Error('Votre compte est confirmé, mais son profil ne peut pas être finalisé. Contactez le support.');
+      }
+
+      ({ data, error } = await selectProfile());
+      if (error) {
+        console.error('Erreur fetchProfile après réparation:', error);
+        throw new Error('Impossible de charger le profil utilisateur. ' + error.message);
+      }
     }
+
+    if (!data) {
+      throw new Error('Votre compte est confirmé, mais son profil est introuvable. Contactez le support.');
+    }
+
+    setProfile(data as UserProfile);
   }, []);
 
   const refreshProfile = useCallback(async () => {
@@ -144,24 +163,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(error.message);
-    if (data?.user) {
-      await fetchProfile(data.user.id);
-      await syncLocalFavorites(data.user.id);
-      
-      logAction({
-        userId: data.user.id,
-        action: 'connexion',
-        entityType: 'users',
-        entityId: data.user.id,
-      }).catch(console.error);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      if (error) throw new Error(error.message);
+      if (data?.user) {
+        await fetchProfile(data.user.id);
+        await syncLocalFavorites(data.user.id);
+        
+        logAction({
+          userId: data.user.id,
+          action: 'connexion',
+          entityType: 'users',
+          entityId: data.user.id,
+        }).catch(console.error);
+      }
+    } catch (error) {
+      // Évite une session partiellement connectée si la finalisation du profil
+      // échoue après une authentification pourtant valide.
+      await supabase.auth.signOut();
+      throw error;
     }
   };
 
   const signUp = async ({ email, password, full_name, phone, role }: SignUpParams) => {
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: email.trim().toLowerCase(),
       password,
       options: {
         data: { full_name, phone, role },
@@ -178,6 +207,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     await syncLocalFavorites(data.user.id);
 
+    // Si la confirmation email est désactivée, Supabase ouvre une session dès
+    // l'inscription. On vérifie le profil avant que l'interface annonce le
+    // compte comme utilisable.
+    if (data.session) {
+      try {
+        await fetchProfile(data.user.id);
+      } catch (profileError) {
+        await supabase.auth.signOut();
+        throw profileError;
+      }
+    }
+
     return data;
   };
 
@@ -186,7 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Supabase crée directement une session active — la personne est
     // connectée automatiquement, sans jamais retaper son mot de passe.
     const { data, error } = await supabase.auth.verifyOtp({
-      email,
+      email: email.trim().toLowerCase(),
       token,
       type: 'signup',
     });
@@ -195,26 +236,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
 
-    if (data?.session) {
-      setSession(data.session);
-      setUser(data.user);
-      if (data.user) {
-        await fetchProfile(data.user.id);
+    if (!data?.session || !data.user) {
+      throw new Error('La confirmation n’a pas ouvert de session. Réessayez de vous connecter.');
+    }
 
-        logAction({
-          userId: data.user.id,
-          action: 'inscription',
-          entityType: 'users',
-          entityId: data.user.id,
-        }).catch(console.error);
-      }
+    setSession(data.session);
+    setUser(data.user);
+    try {
+      await fetchProfile(data.user.id);
+
+      logAction({
+        userId: data.user.id,
+        action: 'inscription',
+        entityType: 'users',
+        entityId: data.user.id,
+      }).catch(console.error);
+    } catch (profileError) {
+      await supabase.auth.signOut();
+      throw profileError;
     }
   };
 
   const resendSignupOtp = async (email: string) => {
     const { error } = await supabase.auth.resend({
       type: 'signup',
-      email,
+      email: email.trim().toLowerCase(),
     });
     if (error) throw new Error(error.message);
   };

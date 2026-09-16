@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Check, UserCheck, MessageCircle, ChevronDown, MoreVertical } from 'lucide-react';
+import { Phone, Check, UserCheck, MessageCircle, ChevronDown, MoreVertical, Building2, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, ContactRequest } from '../../lib/supabase';
 import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
-import StatusBadge from '../../components/StatusBadge';
 import { HeaderBell } from '../../components/HeaderBell';
 import { useToast } from '../../components/Toast';
 import { PullToRefresh } from '../../components/PullToRefresh';
@@ -42,13 +41,13 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({ value, onChange, listin
   }, []);
 
   return (
-    <div ref={ref} className="relative px-4 pb-2">
+    <div ref={ref} className="relative px-5 pb-1">
       {/* Bouton principal */}
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between font-nunito text-[13px] font-600 text-[var(--imx-text-primary)] rounded-2xl px-4 py-3 outline-none transition-all active:scale-[0.98]"
-        style={{ background: 'var(--imx-surface)', border: '1px solid rgba(168,85,247,0.2)' }}
+        className="w-full flex items-center justify-between font-nunito text-[13px] font-semibold text-[var(--imx-text-primary)] rounded-xl px-3.5 py-3 outline-none transition-all active:scale-[0.98]"
+        style={{ background: 'var(--imx-surface-2)', border: '1px solid var(--imx-border)' }}
       >
         <span>{truncate(selected.title)}</span>
         <ChevronDown
@@ -61,8 +60,8 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({ value, onChange, listin
       {/* Liste déroulante */}
       {open && (
         <div
-          className="absolute left-4 right-4 z-[500] mt-1 rounded-2xl overflow-hidden shadow-2xl"
-          style={{ background: 'var(--imx-surface)', border: '1px solid rgba(168,85,247,0.25)' }}
+          className="absolute left-5 right-5 z-[500] mt-1 rounded-xl overflow-hidden shadow-2xl"
+          style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}
         >
           {allOptions.map(opt => (
             <button
@@ -71,8 +70,8 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({ value, onChange, listin
               onClick={() => { onChange(opt.id); setOpen(false); }}
               className="w-full text-left px-4 py-3 text-[13px] font-nunito font-600 transition-all"
               style={{
-                color: opt.id === value ? 'var(--imx-accent-light)' : 'var(--imx-text-primary)',
-                background: opt.id === value ? 'rgba(168,85,247,0.12)' : 'transparent',
+                color: opt.id === value ? 'var(--imx-accent)' : 'var(--imx-text-primary)',
+                background: opt.id === value ? 'var(--imx-accent-xlight)' : 'transparent',
                 fontWeight: opt.id === value ? 700 : 600,
               }}
             >
@@ -201,12 +200,17 @@ const Demandes: React.FC = () => {
     );
   }
 
+  const pendingRequests = requests.filter((request) => request.status !== 'traitee');
+  const handledRequests = requests.filter((request) => request.status === 'traitee');
+  const listingCount = new Set(requests.map((request) => request.listing_id)).size;
+
   if (requests.length === 0) {
     return (
-      <div className="page-container">
-        <header className="sticky-header px-4 py-4 flex items-center justify-between">
+      <div className="page-container premium-page">
+        <header className="premium-header px-5 pt-6 pb-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-nunito font-900 text-[var(--imx-text-primary)]">Demandes reçues</h1>
+            <h1 className="text-[22px] font-nunito font-black text-[var(--imx-text-primary)]">Demandes</h1>
+            <p className="text-[12px] mt-1" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>Boîte de réception locative</p>
           </div>
           <HeaderBell />
         </header>
@@ -220,17 +224,31 @@ const Demandes: React.FC = () => {
   }
 
   return (
-    <div className="page-container">
+    <div className="page-container premium-page">
       {/* Header */}
-      <header className="sticky-header px-4 py-4 flex items-center justify-between">
+      <header className="premium-header px-5 pt-6 pb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-nunito font-900 text-[var(--imx-text-primary)]">Demandes reçues</h1>
-          <p className="text-[var(--imx-text-secondary)] text-xs mt-0.5" style={{ fontFamily: 'Space Grotesk' }}>Boîte de réception</p>
+          <h1 className="text-[22px] font-nunito font-black text-[var(--imx-text-primary)]">Demandes</h1>
+          <p className="text-[12px] mt-1" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>
+            {pendingRequests.length} à traiter · {listingCount} logement{listingCount > 1 ? 's' : ''}
+          </p>
         </div>
         <HeaderBell />
       </header>
 
       <PullToRefresh onRefresh={fetchRequests}>
+        <div className="px-5 pt-1 pb-4">
+          <div className="rounded-2xl px-4 py-3 grid grid-cols-2" style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)', boxShadow: '0 6px 18px rgba(35, 23, 67, 0.04)' }}>
+            <div className="pr-4" style={{ borderRight: '1px solid var(--imx-border)' }}>
+              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--imx-text-muted)', fontFamily: 'Space Grotesk' }}>À traiter</p>
+              <p className="font-nunito font-black text-[18px] mt-0.5" style={{ color: 'var(--imx-accent)' }}>{pendingRequests.length}</p>
+            </div>
+            <div className="pl-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--imx-text-muted)', fontFamily: 'Space Grotesk' }}>Traitées</p>
+              <p className="font-nunito font-black text-[18px] mt-0.5 text-[var(--imx-text-primary)]">{handledRequests.length}</p>
+            </div>
+          </div>
+        </div>
         {/* Filtre par logement — Dropdown custom (sans select natif) */}
         {allListings.length > 1 && (
           <FilterDropdown
@@ -240,7 +258,7 @@ const Demandes: React.FC = () => {
           />
         )}
 
-      <div className="px-4 py-4 space-y-5 flex-1 pb-6">
+      <div className="px-5 pt-3 space-y-5 flex-1 pb-8">
         {Object.entries(
           // Appliquer le filtre par logement sélectionné
           (selectedListingFilter === 'all' ? requests : requests.filter(r => r.listing_id === selectedListingFilter))
@@ -252,23 +270,31 @@ const Demandes: React.FC = () => {
             }, {} as Record<string, RequestWithDetails[]>)
         ).map(([listingTitle, groupRequests]) => (
           <div key={listingTitle} className="space-y-2.5">
-            <h2 className="text-[var(--imx-text-secondary)] text-[10px] font-space-grotesk font-semibold uppercase tracking-wider mb-1">
-              {listingTitle}
+            <h2 className="text-[11px] font-semibold flex items-center gap-1.5 mb-1" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>
+              <Building2 size={13} color="var(--imx-accent)" />
+              <span className="truncate">{listingTitle}</span>
             </h2>
             <div className="space-y-3">
               {groupRequests.map(req => (
-                <div key={req.id} className="card p-4 flex flex-col gap-2">
+                <article key={req.id} className="rounded-[20px] p-4 flex flex-col gap-3" style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)', boxShadow: '0 6px 18px rgba(35, 23, 67, 0.04)' }}>
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 flex gap-3">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-nunito font-black text-[14px]" style={{ background: 'var(--imx-accent-xlight)', color: 'var(--imx-accent)' }}>
+                        {req.requester_name?.charAt(0).toUpperCase() || 'L'}
+                      </div>
+                      <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-nunito font-800 text-[var(--imx-text-primary)] text-base leading-tight">
+                        <h3 className="font-nunito font-black text-[var(--imx-text-primary)] text-[15px] leading-tight">
                           {req.requester_name || 'Locataire potentiel'}
                         </h3>
-                        <StatusBadge status={req.status} />
+                        <span className="text-[9px] font-bold px-2 py-1 rounded-md" style={{ background: req.status === 'traitee' ? 'var(--imx-surface-2)' : 'var(--imx-accent-xlight)', color: req.status === 'traitee' ? 'var(--imx-text-secondary)' : 'var(--imx-accent)', fontFamily: 'Space Grotesk' }}>
+                          {req.status === 'traitee' ? 'TRAITÉE' : 'À TRAITER'}
+                        </span>
                       </div>
-                      <p className="text-[var(--imx-text-secondary)] text-xs italic mt-1.5 leading-relaxed" style={{ fontFamily: 'Space Grotesk' }}>
-                        « {req.message} »
+                      <p className="text-[10px] mt-1" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>
+                        Reçue le {new Date(req.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                       </p>
+                      </div>
                     </div>
 
                     {/* Bouton ⋮ avec menu contextuel flottant */}
@@ -307,7 +333,7 @@ const Demandes: React.FC = () => {
                                 onClick={() => setOpenMenuId(null)}
                                 className="flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-[var(--imx-text-primary)] hover:bg-[var(--imx-surface-2)] transition-colors"
                               >
-                                <Phone size={14} className="text-blue-400" />
+                                <Phone size={14} color="var(--imx-accent)" />
                                 <span>Appeler</span>
                               </a>
                             ) : null}
@@ -319,9 +345,9 @@ const Demandes: React.FC = () => {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={() => setOpenMenuId(null)}
-                                className="flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                                className="flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-[var(--imx-text-primary)] hover:bg-[var(--imx-surface-2)] transition-colors"
                               >
-                                <MessageCircle size={14} className="text-emerald-400" />
+                                <MessageCircle size={14} color="var(--imx-accent)" />
                                 <span>WhatsApp</span>
                               </a>
                             ) : null}
@@ -333,9 +359,9 @@ const Demandes: React.FC = () => {
                                 setOpenMenuId(null);
                                 navigate(`/pro/activer/${req.listing_id}?request_id=${req.id}`);
                               }}
-                              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-[var(--imx-accent-light)] hover:bg-purple-500/10 transition-colors text-left"
+                              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold text-[var(--imx-accent)] hover:bg-[var(--imx-accent-xlight)] transition-colors text-left"
                             >
-                              <UserCheck size={14} className="text-[var(--imx-accent-light)]" />
+                              <UserCheck size={14} color="var(--imx-accent)" />
                               <span>Accepter ce locataire</span>
                             </button>
 
@@ -360,12 +386,32 @@ const Demandes: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between mt-1 pt-2 border-t border-[var(--imx-surface-2)]">
-                    <span className="text-[var(--imx-text-secondary)] text-xs font-mono bg-[var(--imx-surface-2)] px-2 py-0.5 rounded">
-                      {req.requester_phone || 'N/A'}
+                  {req.message && (
+                    <p className="text-[12px] leading-relaxed px-3 py-2.5 rounded-xl" style={{ background: 'var(--imx-surface-2)', color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>
+                      « {req.message} »
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid var(--imx-border)' }}>
+                    <span className="text-[11px] font-semibold truncate max-w-[130px]" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>
+                      {req.requester_phone || 'Téléphone non renseigné'}
                     </span>
+                    {req.status === 'traitee' ? (
+                      <span className="text-[10px] font-bold px-2.5 py-2 rounded-xl" style={{ background: 'var(--imx-surface-2)', color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>
+                        Déjà traitée
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/pro/activer/${req.listing_id}?request_id=${req.id}`)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold text-white active:scale-[0.98] transition-transform"
+                        style={{ background: 'var(--imx-accent)' }}
+                      >
+                        Traiter <ArrowRight size={13} />
+                      </button>
+                    )}
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           </div>
