@@ -160,3 +160,27 @@ export async function requestWithdrawal(
   // l'idempotence, mais le client ne doit pas le rejouer automatiquement.
   return callEdgeFunction<RequestWithdrawalResult>('request-withdrawal', payload, 0);
 }
+
+export interface CheckPaymentStatusResult {
+  status: string;
+  synced: boolean;
+  already_final?: boolean;
+  fedapay_status?: string;
+  message?: string;
+}
+
+/**
+ * Interroge directement l'API FedaPay (via Edge Function) pour synchroniser
+ * manuellement le statut d'un paiement en attente.
+ * À appeler quand le locataire est bloqué en attente USSD > 45 secondes.
+ * L'appel est limité à 3 fois par minute côté serveur.
+ */
+export async function checkPaymentStatus(
+  paymentId: string
+): Promise<CheckPaymentStatusResult> {
+  return callEdgeFunction<CheckPaymentStatusResult>(
+    'check-payment-status',
+    { payment_id: paymentId },
+    0 // Pas de retry automatique côté client pour cette opération
+  );
+}

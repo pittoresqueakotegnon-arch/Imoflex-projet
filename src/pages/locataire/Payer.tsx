@@ -4,7 +4,7 @@ import { Sparkles, AlertTriangle, Smartphone, ChevronLeft, Check, Building2, Cal
 
 import { useAuth } from "../../hooks/useAuth";
 import { supabase, RentPeriod, Operator } from "../../lib/supabase";
-import { initiatePayment, normalizeBjPhone } from "../../lib/fedapay";
+import { initiatePayment, normalizeBjPhone, checkPaymentStatus } from "../../lib/fedapay";
 import { diagnoseAndShowError, showPaymentStatusError, showUssdTimeoutError } from "../../utils/errorDiagnostics";
 import { useToast } from "../../components/Toast";
 import { BackButton } from "../../components/BackButton";
@@ -49,6 +49,7 @@ export default function Payer() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
+  const [checking, setChecking] = useState(false);
   const [pollingPaymentId, setPollingPaymentId] = useState<string | null>(null);
 
   const [successData, setSuccessData] = useState<{
@@ -225,6 +226,46 @@ export default function Payer() {
 
     return () => { clearTimeout(timeoutId); supabase.removeChannel(channel); };
   }, [pollingPaymentId]);
+
+  // Synchronisation manuelle du statut : interroge FedaPay directement
+  const handleCheckStatus = async () => {
+    if (!pollingPaymentId || checking) return;
+    setChecking(true);
+    try {
+      const result = await checkPaymentStatus(pollingPaymentId);
+      if (result.status === "valide" || result.already_final && result.status === "valide") {
+        // Le RPC a mis à jour le paiement, le Realtime channel va le capter
+        // On force un rafraîchissement si le statut est déjà final
+        const period = currentRentPeriod;
+        const periodLabel = period ? `${MONTH_NAMES[(period.period_month ?? 1) - 1]} ${period.period_year}` : "";
+        setSuccessData({
+          amount,
+          paymentId: pollingPaymentId,
+          recipientName: ownerName || "Proprietaire",
+          propertyName,
+          periodLabel,
+          transactionId: pollingPaymentId,
+          date: new Date().toISOString(),
+          operator: selectedOperator || "mtn",
+        });
+        haptics.success();
+        setStep("success");
+      } else if (result.status === "echoue" || (result.already_final && result.status === "echoue")) {
+        showToast("Le paiement a échoué selon FedaPay.", "error");
+        setProcessing(false);
+        setPollingPaymentId(null);
+        setStep("confirm");
+      } else if (result.synced && result.status === "en_attente") {
+        showToast("Paiement encore en cours côté Mobile Money. Patientez encore un moment.", "success");
+      } else {
+        showToast(result.message || "Paiement toujours en attente de confirmation.", "success");
+      }
+    } catch (err: any) {
+      showToast(err?.message || "Impossible de vérifier le statut. Vérifiez votre connexion.", "error");
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const handlePay = async () => {
     setError("");
@@ -485,9 +526,18 @@ export default function Payer() {
             ) : "PAYER"}
           </button>
           {pollingPaymentId && (
-            <p className="text-gray-500 text-[11px] font-space-grotesk text-center flex items-center justify-center gap-1.5 animate-pulse">
-              <Smartphone size={13} /> Vérifiez votre téléphone et entrez votre code PIN Mobile Money
-            </p>
+            <div className="flex flex-col items-center gap-3">
+              <p className="text-gray-500 text-[11px] font-space-grotesk text-center flex items-center justify-center gap-1.5 animate-pulse">
+                <Smartphone size={13} /> Vérifiez votre téléphone et entrez votre code PIN Mobile Money
+              </p>
+              <button
+                onClick={handleCheckStatus}
+                disabled={checking}
+                className="text-[#7B3FE4] text-[12px] font-space-grotesk font-semibold underline underline-offset-2 active:opacity-60 transition-opacity disabled:opacity-40"
+              >
+                {checking ? "Vérification en cours..." : "Le code n'est pas arrivé ? Vérifier le statut"}
+              </button>
+            </div>
           )}
           {!processing && (
             <button onClick={() => { haptics.light(); setStep("form"); }}
