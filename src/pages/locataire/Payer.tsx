@@ -357,7 +357,7 @@ export default function Payer() {
               Versement réussi !
             </h1>
             <p className="font-space-grotesk text-white/80 text-[14px] text-center px-8">
-              Votre paiement de <strong className="text-white">{formatMontant(successData.amount)}</strong> a bien été traité.
+              Votre paiement de <strong className="whitespace-nowrap text-white">{formatMontant(successData.amount)}</strong> a bien été traité.
             </p>
           </div>
           <div className="absolute -bottom-1 left-0 right-0 h-10">
@@ -434,7 +434,7 @@ export default function Payer() {
               style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.25), transparent 70%)' }} />
             <div className="relative z-10">
               <p className="font-space-grotesk text-white/60 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">Total à payer</p>
-              <p className="font-nunito font-900 text-white leading-none mb-1" style={{ fontSize: 'clamp(2.2rem, 12vw, 3rem)', letterSpacing: '-1px' }}>
+              <p className="font-nunito font-900 text-white leading-none mb-1 whitespace-nowrap tracking-[-0.035em]" style={{ fontSize: 'clamp(1.55rem, 8vw, 2.5rem)' }} title={formatMontant(amount)}>
                 {formatMontant(amount)}
               </p>
               <div className="mt-3 inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm px-3 py-1.5 rounded-full">
@@ -454,8 +454,8 @@ export default function Payer() {
               </div>
             </div>
             <div className="px-5 py-4 flex items-center gap-3 border-b border-gray-50">
-              <div className="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: '#EFF6FF' }}>
-                <Building2 size={16} className="text-[#3B82F6]" />
+              <div className="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: '#F5F3FF' }}>
+                <Building2 size={16} className="text-[#7B3FE4]" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wider">Bien</p>
@@ -464,8 +464,8 @@ export default function Payer() {
               </div>
             </div>
             <div className="px-5 py-4 flex items-center gap-3 border-b border-gray-50">
-              <div className="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: '#ECFDF5' }}>
-                <Calendar size={16} className="text-[#10B981]" />
+              <div className="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: '#F5F3FF' }}>
+                <Calendar size={16} className="text-[#7B3FE4]" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wider">Période</p>
@@ -474,8 +474,8 @@ export default function Payer() {
             </div>
             <div className="px-5 py-4 flex items-center justify-between gap-3 border-b border-gray-50">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: '#FFFBEB' }}>
-                  <CreditCard size={16} className="text-[#F59E0B]" />
+                <div className="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: '#F5F3FF' }}>
+                  <CreditCard size={16} className="text-[#7B3FE4]" />
                 </div>
                 <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wider">Versement</p>
               </div>

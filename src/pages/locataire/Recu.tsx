@@ -215,7 +215,7 @@ export default function Recu() {
           className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors">
           <ChevronLeft size={20} className="text-[#17132B]" />
         </button>
-        <span className="font-nunito font-900 text-[16px] text-[#17132B]">Recu de paiement</span>
+        <span className="font-nunito font-900 text-[16px] text-[#17132B]">Reçu de paiement</span>
         <button onClick={handleShare}
           className="w-9 h-9 rounded-full bg-[#F5F3FF] flex items-center justify-center active:bg-[#EDE9FE] transition-colors">
           <Share2 size={18} className="text-[#7B3FE4]" />
@@ -236,9 +236,8 @@ export default function Recu() {
               <div className="w-2 h-2 rounded-full bg-[#4ADE80]" />
               <span className="font-space-grotesk text-white font-bold text-[11px] uppercase tracking-wider">PAYE</span>
             </div>
-            <p className="font-nunito font-900 text-white text-[32px] leading-none">{formatMontant(receipt.amount)}</p>
-            <p className="font-space-grotesk text-white/70 text-[13px] mt-1">FCFA</p>
-            <p className="font-space-grotesk text-white/90 text-[13px] mt-2">Loyer � {receipt.periodLabel}</p>
+            <p className="font-nunito font-900 text-white leading-none whitespace-nowrap tracking-[-0.035em]" style={{ fontSize: 'clamp(1.55rem, 8vw, 2rem)' }} title={formatMontant(receipt.amount)}>{formatMontant(receipt.amount)}</p>
+            <p className="font-space-grotesk text-white/90 text-[13px] mt-3">Loyer — {receipt.periodLabel}</p>
           </div>
 
           {/* Logo ImoFlex */}
@@ -251,8 +250,8 @@ export default function Recu() {
           {/* Lignes de detail */}
           <div className="px-6 divide-y divide-gray-50">
             <div className="py-3.5 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#EFF6FF] flex items-center justify-center flex-shrink-0">
-                <Building2 size={15} className="text-[#3B82F6]" />
+              <div className="w-8 h-8 rounded-lg bg-[#F5F3FF] flex items-center justify-center flex-shrink-0">
+                <Building2 size={15} className="text-[#7B3FE4]" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Bien</p>
@@ -272,28 +271,28 @@ export default function Recu() {
             </div>
 
             <div className="py-3.5 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#ECFDF5] flex items-center justify-center flex-shrink-0">
-                <User size={15} className="text-[#10B981]" />
+              <div className="w-8 h-8 rounded-lg bg-[#F5F3FF] flex items-center justify-center flex-shrink-0">
+                <User size={15} className="text-[#7B3FE4]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Proprietaire / Agence</p>
+                <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Propriétaire / Agence</p>
                 <p className="font-nunito font-800 text-[14px] text-[#17132B] truncate">{receipt.ownerName}</p>
               </div>
             </div>
 
             <div className="py-3.5 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#FFFBEB] flex items-center justify-center flex-shrink-0">
-                <Phone size={15} className="text-[#F59E0B]" />
+              <div className="w-8 h-8 rounded-lg bg-[#F5F3FF] flex items-center justify-center flex-shrink-0">
+                <Phone size={15} className="text-[#7B3FE4]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Operateur</p>
+                <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Opérateur</p>
                 <p className="font-nunito font-800 text-[14px] text-[#17132B]">{OPERATOR_LABELS[receipt.operator] || receipt.operator}</p>
               </div>
             </div>
 
             <div className="py-3.5 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                <Calendar size={15} className="text-gray-500" />
+              <div className="w-8 h-8 rounded-lg bg-[#F5F3FF] flex items-center justify-center flex-shrink-0">
+                <Calendar size={15} className="text-[#7B3FE4]" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Date et heure</p>

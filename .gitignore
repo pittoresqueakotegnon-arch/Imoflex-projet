@@ -24,3 +24,5 @@ dist-ssr
 
 .vercel
 supabase/.temp
+playwright-report/
+test-results/

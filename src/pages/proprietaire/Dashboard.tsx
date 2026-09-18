@@ -231,6 +231,13 @@ const Dashboard: React.FC = () => {
   const collectionRate = data?.currentMonth.expected
     ? Math.round((data.currentMonth.received / data.currentMonth.expected) * 100)
     : 0;
+  const priorityAlerts = [...(data?.alerts || [])]
+    .sort((a, b) => {
+      const priority = (status: string) => status === 'retard' ? 0 : 1;
+      return priority(a.status) - priority(b.status) || b.amountDue - a.amountDue;
+    })
+    .filter((alert, index, alerts) => alerts.findIndex((item) => item.leaseId === alert.leaseId) === index)
+    .slice(0, 3);
 
   return (
     <div className="page-container premium-page flex flex-col">
@@ -251,47 +258,41 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* ── SYNTHÈSE FINANCIÈRE ── */}
-        <section className="mx-5 mb-5 rounded-[24px] p-5 relative overflow-hidden"
-          style={{ background: 'linear-gradient(150deg, #8B5CF6 0%, #5B21B6 50%, #2E1065 100%)', boxShadow: '0 8px 32px rgba(46, 16, 101, 0.4)' }}>
-          {/* Formes décoratives Premium (Glassmorphism) */}
-          <div className="absolute -top-16 -right-12 w-48 h-48 rounded-full pointer-events-none" 
-               style={{ 
-                 background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 100%)',
-                 border: '1px solid rgba(255,255,255,0.1)',
-                 transform: 'rotate(15deg)'
-               }} />
-          <div className="absolute -bottom-16 -left-12 w-56 h-56 rounded-full pointer-events-none" 
-               style={{ 
-                 background: 'linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 100%)',
-                 border: '1px solid rgba(255,255,255,0.05)'
-               }} />
-
+        <section className="relative mx-5 mb-5 overflow-hidden rounded-[24px] p-5"
+          style={{
+            background: 'linear-gradient(150deg, #8B5CF6 0%, #5B21B6 50%, #2E1065 100%)',
+            boxShadow: '0 12px 30px rgba(76, 29, 149, 0.32)',
+          }}>
+          {/* Décor ton sur ton : la carte reste expressive sans introduire d'autres couleurs. */}
+          <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full border border-white/10 bg-gradient-to-br from-white/15 to-transparent rotate-[15deg]" />
+          <div className="pointer-events-none absolute -bottom-16 -left-12 h-56 w-56 rounded-full border border-white/5 bg-gradient-to-br from-transparent to-white/10" />
           <div className="relative z-10">
             {/* Solde disponible */}
             <div className="flex items-start justify-between mb-5">
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255, 255, 255, 0.15)' }}>
                     <WalletIcon size={13} color="white" />
                   </div>
                   <span className="font-space-grotesk text-[10px] font-bold uppercase tracking-widest text-white/70">Solde disponible</span>
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-nunito font-black text-[32px] leading-none text-white">
-                    {formatMontant(wallet?.available_balance || 0)}
-                  </span>
-                </div>
+                <p
+                  className="font-nunito font-black leading-none whitespace-nowrap tracking-[-0.035em] text-white"
+                  style={{ fontSize: 'clamp(1.45rem, 7vw, 2rem)' }}
+                  title={formatMontant(wallet?.available_balance || 0)}>
+                  {formatMontant(wallet?.available_balance || 0)}
+                </p>
               </div>
               <Link to="/pro/wallet"
                 className="mt-1 flex items-center gap-1.5 rounded-xl px-3 py-2 active:scale-[0.98] transition-transform"
-                style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white' }}>
+                style={{ background: 'rgba(255, 255, 255, 0.14)', border: '1px solid rgba(255, 255, 255, 0.14)', color: 'white' }}>
                 <span className="font-space-grotesk font-bold text-[11px]">Retirer</span>
                 <ArrowUpRight size={13} />
               </Link>
             </div>
 
             {/* Séparateur */}
-            <div className="h-[1px] mb-4" style={{ background: 'rgba(255,255,255,0.1)' }} />
+            <div className="h-[1px] mb-4 bg-white/15" />
 
             {/* Loyers du mois */}
             <div>
@@ -300,22 +301,22 @@ const Dashboard: React.FC = () => {
                   Loyers — {new Date().toLocaleString('fr-FR', { month: 'long' })}
                 </span>
                 <span
-                  className="font-space-grotesk text-[10px] font-bold px-2.5 py-1 rounded-full text-white"
-                  style={{ background: 'rgba(255,255,255,0.15)' }}>
+                  className="font-space-grotesk text-[10px] font-bold px-2.5 py-1 rounded-full"
+                  style={{ background: 'rgba(255, 255, 255, 0.14)', color: 'white' }}>
                   {collectionRate}% collecté
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3 mb-3">
-                <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.1)' }}>
-                  <p className="font-space-grotesk text-[9px] font-bold uppercase mb-1.5 text-white/70">Reçus</p>
-                  <p className="font-nunito font-black text-[16px] sm:text-[18px] leading-none truncate text-white" title={formatMontant(data?.currentMonth.received || 0)}>
+                <div className="min-w-0 rounded-xl p-3" style={{ background: 'rgba(255, 255, 255, 0.12)' }}>
+                  <p className="font-space-grotesk text-[9px] font-bold uppercase mb-1.5 text-white/65">Reçus</p>
+                  <p className="font-nunito font-black leading-none whitespace-nowrap tracking-[-0.035em] text-white" style={{ fontSize: 'clamp(0.68rem, 3vw, 0.95rem)' }} title={formatMontant(data?.currentMonth.received || 0)}>
                     {formatMontant(data?.currentMonth.received || 0)}
                   </p>
                 </div>
-                <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.1)' }}>
-                  <p className="font-space-grotesk text-[9px] font-bold uppercase mb-1.5 text-white/70">À recevoir</p>
-                  <p className="font-nunito font-black text-[16px] sm:text-[18px] leading-none truncate text-white"
+                <div className="min-w-0 rounded-xl p-3" style={{ background: 'rgba(255, 255, 255, 0.12)' }}>
+                  <p className="font-space-grotesk text-[9px] font-bold uppercase mb-1.5 text-white/65">À recevoir</p>
+                  <p className="font-nunito font-black leading-none whitespace-nowrap tracking-[-0.035em] text-white" style={{ fontSize: 'clamp(0.68rem, 3vw, 0.95rem)' }}
                     title={formatMontant(data?.currentMonth.pending || 0)}>
                     {formatMontant(data?.currentMonth.pending || 0)}
                   </p>
@@ -323,12 +324,12 @@ const Dashboard: React.FC = () => {
               </div>
 
               {/* Barre progression */}
-              <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.15)' }}>
+              <div className="h-1.5 w-full rounded-full overflow-hidden bg-black/20">
                 <div
                   className="h-full rounded-full transition-all duration-1000"
                   style={{
                     width: `${Math.min(collectionRate, 100)}%`,
-                    background: 'linear-gradient(90deg, #22C55E, #86EFAC)',
+                    background: '#C4B5FD',
                   }}
                 />
               </div>
@@ -372,15 +373,15 @@ const Dashboard: React.FC = () => {
           </section>
 
           {/* ── REVENUS 6 MOIS ── */}
-          <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100">
+          <section className="rounded-[22px] p-5" style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}>
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-xl bg-purple-50 flex items-center justify-center">
-                  <TrendingUp size={14} className="text-[#7B3FE4]" />
+                <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: 'var(--imx-accent-xlight)' }}>
+                  <TrendingUp size={14} color="var(--imx-accent)" />
                 </div>
-                <h3 className="font-nunito font-black text-[15px] text-[#17132B]">Revenus historiques</h3>
+                <h3 className="font-nunito font-black text-[15px] text-[var(--imx-text-primary)]">Revenus historiques</h3>
               </div>
-              <span className="font-space-grotesk text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">6 MOIS</span>
+              <span className="font-space-grotesk text-[10px] font-bold px-2 py-1 rounded-lg" style={{ color: 'var(--imx-text-muted)', background: 'var(--imx-surface-2)' }}>6 MOIS</span>
             </div>
 
             <div className="flex items-end justify-between gap-2" style={{ height: '90px' }}>
@@ -394,13 +395,11 @@ const Dashboard: React.FC = () => {
                         className="w-full rounded-lg transition-all duration-700"
                         style={{
                           height: `${heightPct}%`,
-                          background: isCurrentMonth
-                            ? 'linear-gradient(180deg, #9B6FF4 0%, #7B3FE4 100%)'
-                            : '#EDE9FE',
+                          background: isCurrentMonth ? 'var(--imx-accent)' : 'var(--imx-border)',
                         }}
                       />
                     </div>
-                    <span className={`font-space-grotesk text-[9px] font-bold ${isCurrentMonth ? 'text-[#7B3FE4]' : 'text-gray-400'}`}>
+                    <span className="font-space-grotesk text-[9px] font-bold" style={{ color: isCurrentMonth ? 'var(--imx-accent)' : 'var(--imx-text-muted)' }}>
                       {d.shortName}
                     </span>
                   </div>
@@ -409,69 +408,67 @@ const Dashboard: React.FC = () => {
             </div>
 
             {data?.chartData[5] && data.chartData[5].total > 0 && (
-              <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-                <span className="font-space-grotesk text-[11px] text-gray-400 font-semibold">Ce mois</span>
-                <span className="font-nunito font-black text-[14px] text-[#7B3FE4]">
+              <div className="mt-4 pt-4 flex items-center justify-between" style={{ borderTop: '1px solid var(--imx-border)' }}>
+                <span className="font-space-grotesk text-[11px] font-semibold" style={{ color: 'var(--imx-text-secondary)' }}>Ce mois</span>
+                <span className="font-nunito font-black text-[14px]" style={{ color: 'var(--imx-accent)' }}>
                   {formatMontant(data.chartData[5].total)}
                 </span>
               </div>
             )}
-          </div>
+          </section>
 
           {/* ── LOYERS À SURVEILLER ── */}
-          <div>
+          <section>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-nunito font-black text-[16px] text-[#17132B]">Loyers à surveiller</h3>
+              <h3 className="font-nunito font-black text-[16px] text-[var(--imx-text-primary)]">À traiter en priorité</h3>
               {data?.alerts && data.alerts.length > 0 && (
-                <span className="font-space-grotesk text-[10px] font-bold bg-red-50 text-red-500 px-2.5 py-1 rounded-full border border-red-100">
-                  {data.alerts.length} alerte{data.alerts.length > 1 ? 's' : ''}
+                <span className="font-space-grotesk text-[10px] font-bold px-2.5 py-1 rounded-full" style={{ color: 'var(--imx-accent)', background: 'var(--imx-accent-xlight)' }}>
+                  {data.alerts.length} à suivre
                 </span>
               )}
             </div>
 
-            {data?.alerts && data.alerts.length > 0 ? (
+            {priorityAlerts.length > 0 ? (
               <div className="space-y-3">
-                {data.alerts.map(alert => (
-                  <div key={alert.id} className="bg-white rounded-[20px] p-4 flex items-center justify-between shadow-sm border border-gray-100">
+                {priorityAlerts.map(alert => (
+                  <Link key={alert.id} to={`/pro/bail/${alert.leaseId}`} className="rounded-[18px] p-4 flex items-center justify-between active:scale-[0.99] transition-transform" style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}>
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 ${alert.status === 'retard' ? 'bg-red-50' : 'bg-amber-50'}`}>
-                        <AlertTriangle size={17} className={alert.status === 'retard' ? 'text-red-500' : 'text-amber-500'} />
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: alert.status === 'retard' ? 'rgba(239, 68, 68, 0.10)' : 'var(--imx-accent-xlight)' }}>
+                        <AlertTriangle size={17} color={alert.status === 'retard' ? '#EF4444' : 'var(--imx-accent)'} />
                       </div>
                       <div>
-                        <h4 className="font-nunito font-bold text-[14px] text-[#17132B] truncate max-w-[130px]">{alert.propertyName}</h4>
-                        <p className="font-space-grotesk text-[11px] font-semibold text-gray-400 mt-0.5">
+                        <h4 className="font-nunito font-bold text-[14px] text-[var(--imx-text-primary)] truncate max-w-[190px]">{alert.propertyName}</h4>
+                        <p className="font-space-grotesk text-[11px] font-semibold mt-0.5" style={{ color: 'var(--imx-text-secondary)' }}>
                           {formatMontant(alert.amountDue)} restants
                         </p>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <span className={`font-space-grotesk text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${alert.status === 'retard' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'}`}>
-                        {alert.status === 'retard' ? 'En retard' : 'À venir'}
+                      <span className="font-space-grotesk text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full" style={{ background: alert.status === 'retard' ? 'rgba(239, 68, 68, 0.10)' : 'var(--imx-accent-xlight)', color: alert.status === 'retard' ? '#EF4444' : 'var(--imx-accent)' }}>
+                        {alert.status === 'retard' ? 'En retard' : 'À suivre'}
                       </span>
-                      <a
-                        href={`https://wa.me/?text=Bonjour%2C%20je%20vous%20rappelle%20que%20le%20loyer%20de%20${encodeURIComponent(alert.propertyName)}%20est%20en%20attente%20de%20règlement.%20Merci.`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[11px] font-space-grotesk font-bold text-[#7B3FE4] flex items-center gap-1 active:opacity-60"
-                      >
-                        Relancer <ArrowRight size={11} />
-                      </a>
+                      <span className="text-[11px] font-space-grotesk font-bold flex items-center gap-1" style={{ color: 'var(--imx-accent)' }}>
+                        Voir <ArrowRight size={11} />
+                      </span>
                     </div>
-                  </div>
+                  </Link>
                 ))}
+                <Link to="/pro/locataires" className="flex items-center justify-center gap-1.5 text-[12px] font-bold pt-1" style={{ color: 'var(--imx-accent)' }}>
+                  Voir les dossiers locataires <ArrowRight size={13} />
+                </Link>
               </div>
             ) : (
-              <div className="bg-white rounded-[20px] p-6 flex flex-col items-center text-center shadow-sm border border-gray-100">
-                <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mb-3">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <div className="rounded-[20px] p-6 flex flex-col items-center text-center" style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'var(--imx-accent-xlight)' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--imx-accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
-                <p className="font-nunito font-black text-[15px] text-[#17132B]">Tout est à jour ✓</p>
-                <p className="font-space-grotesk text-[12px] text-gray-400 mt-1">Aucun retard de loyer ce mois-ci.</p>
+                <p className="font-nunito font-black text-[15px] text-[var(--imx-text-primary)]">Tout est à jour</p>
+                <p className="font-space-grotesk text-[12px] mt-1" style={{ color: 'var(--imx-text-secondary)' }}>Aucun retard de loyer ce mois-ci.</p>
               </div>
             )}
-          </div>
+          </section>
 
         </div>
 

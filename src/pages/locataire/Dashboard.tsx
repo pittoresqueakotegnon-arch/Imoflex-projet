@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ChevronRight, AlertCircle, Clock, CheckCircle2, KeyRound } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, Payment } from '../../lib/supabase';
-import { daysUntilDeadline } from '../../lib/utils';
+import { daysUntilDeadline, formatMontant } from '../../lib/utils';
 import { getGreeting } from '../../utils/greeting';
 import BottomNav from '../../components/BottomNav';
 import { HeaderSupport } from '../../components/HeaderSupport';
@@ -259,13 +259,18 @@ export default function Dashboard() {
                         </div>
                       </div>
                       
-                      <p className="font-nunito font-900 text-3xl text-white leading-none mb-1 relative z-10">{new Intl.NumberFormat('fr-FR').format(remaining)} <span className="text-sm text-white/70 font-normal">F</span></p>
+                      <p
+                        className="relative z-10 mb-1 font-nunito font-900 leading-none whitespace-nowrap tracking-[-0.035em] text-white"
+                        style={{ fontSize: 'clamp(1.5rem, 7.2vw, 2rem)' }}
+                        title={formatMontant(remaining)}>
+                        {formatMontant(remaining)}
+                      </p>
                       <p className="text-[13px] text-white/90 font-nunito font-bold mb-4 relative z-10">{lease.propertyName}</p>
                       
                       <button
                         onClick={() => navigate(`/payer/${lease.leaseId}`)}
                         className="w-full flex items-center justify-center gap-2 font-bold text-[14px] text-white rounded-2xl py-3.5 transition-transform active:scale-[0.98] relative z-10 shadow-md"
-                        style={{ background: status === 'retard' ? '#EF4444' : 'var(--imx-accent-light)', fontFamily: 'Sora' }}
+                        style={{ background: 'var(--imx-accent)', fontFamily: 'Sora' }}
                       >
                         Payer maintenant
                       </button>
@@ -280,7 +285,7 @@ export default function Dashboard() {
                   ) : status === 'solde' ? (
                     <CheckCircle2 size={18} color="#22C55E" />
                   ) : (
-                    <Clock size={18} color="#F59E0B" />
+                    <Clock size={18} color="var(--imx-accent)" />
                   );
 
                 const statusText =
@@ -315,8 +320,8 @@ export default function Dashboard() {
                     </div>
                     {period && (
                       <div className="text-right flex-shrink-0">
-                        <p className="text-[var(--imx-text-primary)] font-nunito font-bold text-[14px]">
-                          {new Intl.NumberFormat('fr-FR').format(remaining)} F
+                        <p className="text-[var(--imx-text-primary)] font-nunito font-bold text-[14px] whitespace-nowrap tracking-[-0.025em]" title={formatMontant(remaining)}>
+                          {formatMontant(remaining)}
                         </p>
                         <p className="text-[10px] text-[var(--imx-text-muted)]" style={{ fontFamily: 'Space Grotesk' }}>restant</p>
                       </div>
@@ -330,15 +335,13 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div className="rounded-2xl p-4" style={{ background: 'var(--imx-surface-2)' }}>
                 <p className="text-[var(--imx-text-secondary)] text-[10px] font-space-grotesk font-semibold mb-1">Restant total</p>
-                <p className="font-nunito font-black text-[18px]" style={{ color: 'var(--imx-accent-light)' }}>
-                  {new Intl.NumberFormat('fr-FR').format(
-                    sortedLeases.reduce((sum, l) => sum + Math.max((l.currentPeriod?.amount_due || 0) - (l.currentPeriod?.amount_paid || 0), 0), 0)
-                  )} F
+                <p className="font-nunito font-black text-[14px] leading-none whitespace-nowrap tracking-[-0.035em]" style={{ color: 'var(--imx-accent-light)' }}>
+                  {formatMontant(sortedLeases.reduce((sum, l) => sum + Math.max((l.currentPeriod?.amount_due || 0) - (l.currentPeriod?.amount_paid || 0), 0), 0))}
                 </p>
               </div>
               <div className="rounded-2xl p-4" style={{ background: 'var(--imx-surface-2)' }}>
                 <p className="text-[var(--imx-text-secondary)] text-[10px] font-space-grotesk font-semibold mb-1">Ce mois</p>
-                <p className="font-nunito font-black text-[18px]" style={{ color: '#22C55E' }}>{paymentsThisMonth} versement{paymentsThisMonth !== 1 ? 's' : ''}</p>
+                <p className="font-nunito font-black text-[18px]" style={{ color: 'var(--imx-text-primary)' }}>{paymentsThisMonth} versement{paymentsThisMonth !== 1 ? 's' : ''}</p>
               </div>
             </div>
 
@@ -356,8 +359,8 @@ export default function Dashboard() {
                     <div key={payment.id} className="flex items-center gap-3 rounded-2xl px-4 py-3"
                       style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}>
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: 'rgba(251, 191, 36, 0.12)' }}>
-                        <div className="w-3 h-3 rounded-full" style={{ background: '#FBBF24' }} />
+                        style={{ background: 'var(--imx-accent-xlight)' }}>
+                        <div className="w-3 h-3 rounded-full" style={{ background: 'var(--imx-accent)' }} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-bold text-[var(--imx-text-primary)] font-nunito truncate">
@@ -368,10 +371,9 @@ export default function Dashboard() {
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="font-nunito font-black text-[14px]" style={{ color: 'var(--imx-text-primary)' }}>
-                          {new Intl.NumberFormat('fr-FR').format(payment.amount)}
+                        <p className="font-nunito font-black text-[13px] whitespace-nowrap tracking-[-0.03em]" style={{ color: 'var(--imx-text-primary)' }} title={formatMontant(payment.amount)}>
+                          {formatMontant(payment.amount)}
                         </p>
-                        <p className="text-[10px] font-semibold" style={{ color: '#22C55E', fontFamily: 'Space Grotesk' }}>FCFA</p>
                       </div>
                     </div>
                   ))}

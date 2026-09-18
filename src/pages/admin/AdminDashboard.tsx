@@ -4,7 +4,8 @@ import {
   Users, Home, CreditCard, ArrowUpRight, ArrowDownRight,
   Clock, CheckCircle, AlertCircle, Wallet, Activity,
   Eye, ChevronRight, RefreshCw, Calendar, FileText,
-  Zap, AlertTriangle, BarChart2, Minus, CheckCircle2, Lock, UserPlus, Megaphone, Banknote, XCircle, Ban, Trash2,
+  Zap, AlertTriangle, Minus, CheckCircle2, Lock, UserPlus, Megaphone, Banknote, XCircle, Ban, Trash2,
+  ChevronDown, ChevronUp, Shield,
 } from 'lucide-react';
 import {
   Area, AreaChart, Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -24,10 +25,10 @@ const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
 ];
 
 const ACTION_META: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
-  connexion:            { icon: <Lock size={16} />, label: 'Connexion',           color: '#6366f1' },
-  inscription:          { icon: <UserPlus size={16} />, label: 'Nouvelle inscription', color: '#10b981' },
-  publication_annonce:  { icon: <Megaphone size={16} />, label: 'Annonce publiée',      color: 'var(--imx-accent-light)' },
-  paiement:             { icon: <Banknote size={16} />, label: 'Paiement reçu',        color: '#14b8a6' },
+  connexion:            { icon: <Lock size={16} />, label: 'Connexion',           color: 'var(--adm-accent)' },
+  inscription:          { icon: <UserPlus size={16} />, label: 'Nouvelle inscription', color: 'var(--adm-accent)' },
+  publication_annonce:  { icon: <Megaphone size={16} />, label: 'Annonce publiée',      color: 'var(--adm-accent)' },
+  paiement:             { icon: <Banknote size={16} />, label: 'Paiement reçu',        color: '#10b981' },
   retrait_demande:      { icon: <Wallet size={16} />, label: 'Retrait demandé',      color: '#f59e0b' },
   retrait_valide:       { icon: <CheckCircle2 size={16} />, label: 'Retrait validé',       color: '#10b981' },
   moderation_approuve:  { icon: <CheckCircle2 size={16} />, label: 'Annonce approuvée',    color: '#10b981' },
@@ -105,6 +106,186 @@ const ChartTooltip: React.FC<ChartTooltipProps> = ({ active, payload, label }) =
   );
 };
 
+// ─── AlertPanel ──────────────────────────────────────────────────────────────
+
+interface AlertItem {
+  label: string;
+  color: string;
+  icon: React.ReactNode;
+  link: string;
+  level: 'critical' | 'warning';
+}
+
+interface SystemAlert {
+  label: string;
+  ok: boolean;
+}
+
+interface AlertPanelProps {
+  alertItems: AlertItem[];
+  systemAlerts: SystemAlert[];
+  hasAnomalies: boolean;
+}
+
+const STORAGE_KEY = 'imoflex_alerts_open';
+
+const AlertPanel: React.FC<AlertPanelProps> = ({ alertItems, systemAlerts, hasAnomalies }) => {
+  const [open, setOpen] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      // Si des alertes existent et qu'on n'a pas de préférence stockée → ouvert par défaut
+      if (stored === null) return alertItems.length > 0 || hasAnomalies;
+      return stored === 'true';
+    } catch { return true; }
+  });
+
+  const totalAlerts = alertItems.length + (hasAnomalies ? systemAlerts.filter(s => !s.ok).length : 0);
+  const allClear = totalAlerts === 0;
+
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    try { localStorage.setItem(STORAGE_KEY, String(next)); } catch { /* ignore */ }
+  };
+
+  if (allClear) {
+    return (
+      <div
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs"
+        style={{ background: 'rgba(16,185,129,0.06)', borderColor: 'rgba(16,185,129,0.2)' }}
+      >
+        <CheckCircle2 size={14} className="text-emerald-400" />
+        <span className="font-semibold text-emerald-400">Système opérationnel :</span>
+        <span style={{ color: 'var(--adm-text)' }}>Aucune alerte ni anomalie détectée</span>
+      </div>
+    );
+  }
+
+  const criticalCount = alertItems.filter(a => a.level === 'critical').length;
+  const warningCount  = alertItems.filter(a => a.level === 'warning').length + (hasAnomalies ? systemAlerts.filter(s => !s.ok).length : 0);
+
+  return (
+    <div
+      className="rounded-xl border overflow-hidden"
+      style={{ borderColor: criticalCount > 0 ? 'rgba(239,68,68,0.35)' : 'rgba(245,158,11,0.35)' }}
+    >
+      {/* Header cliquable */}
+      <button
+        onClick={toggle}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-xs transition-colors"
+        style={{
+          background: criticalCount > 0 ? 'rgba(239,68,68,0.07)' : 'rgba(245,158,11,0.07)',
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <AlertTriangle size={14} className={criticalCount > 0 ? 'text-red-400' : 'text-amber-400'} />
+          <span className={`font-bold ${criticalCount > 0 ? 'text-red-400' : 'text-amber-400'}`}>
+            {totalAlerts} alerte{totalAlerts > 1 ? 's' : ''} active{totalAlerts > 1 ? 's' : ''}
+          </span>
+          {criticalCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 text-red-400">
+              {criticalCount} critique{criticalCount > 1 ? 's' : ''}
+            </span>
+          )}
+          {warningCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400">
+              {warningCount} avertissement{warningCount > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5" style={{ color: 'var(--adm-text-muted)' }}>
+          <span className="text-[11px]">{open ? 'Masquer' : 'Afficher'}</span>
+          {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        </div>
+      </button>
+
+      {/* Contenu dépliable */}
+      {open && (
+        <div className="px-4 py-3 flex flex-col gap-3" style={{ background: 'var(--adm-surface)' }}>
+
+          {/* Alertes métier */}
+          {alertItems.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--adm-text-muted)' }}>
+                Alertes opérationnelles
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {alertItems.map((a, i) => (
+                  <Link key={i} to={a.link}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold text-xs transition-opacity hover:opacity-80"
+                    style={{ background: `${a.color}18`, color: a.color, border: `1px solid ${a.color}35` }}
+                  >
+                    {a.icon}
+                    {a.label}
+                    <ChevronRight size={10} />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Anomalies système */}
+          {hasAnomalies && systemAlerts.some(s => !s.ok) && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--adm-text-muted)' }}>
+                Anomalies système
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {systemAlerts.filter(s => !s.ok).map((s, i) => (
+                  <span key={i}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold text-xs"
+                    style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }}
+                  >
+                    <Activity size={11} />
+                    {s.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── QuickActions ─────────────────────────────────────────────────────────────
+
+interface QuickActionProps {
+  icon: React.ReactNode;
+  label: string;
+  description: string;
+  link: string;
+  badge?: number;
+  color: string;
+}
+
+const QuickActionItem: React.FC<QuickActionProps> = ({ icon, label, description, link, badge, color }) => (
+  <Link to={link}
+    className="flex items-center justify-between p-3 rounded-lg border transition-all hover:scale-[1.01] hover:shadow-md group"
+    style={{ background: 'var(--adm-surface-alt)', borderColor: 'var(--adm-border)' }}
+  >
+    <div className="flex items-center gap-3 min-w-0">
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors" style={{ background: `${color}15`, color }}>
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-medium truncate" style={{ color: 'var(--adm-text)' }}>{label}</p>
+        <p className="text-[11px] truncate" style={{ color: 'var(--adm-text-dim)' }}>{description}</p>
+      </div>
+    </div>
+    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+      {badge !== undefined && badge > 0 && (
+        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: `${color}20`, color }}>
+          {badge}
+        </span>
+      )}
+      <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--adm-text-dim)' }} />
+    </div>
+  </Link>
+);
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 type ChartMode = 'revenue' | 'volume' | 'both';
@@ -120,13 +301,50 @@ const AdminDashboard: React.FC = () => {
 
   const [chartMode, setChartMode] = useState<ChartMode>('revenue');
 
-  // Bandeau d'alertes
-  const alertItems = [
-    alerts.pendingWithdrawals > 0 && { label: `${alerts.pendingWithdrawals} retrait(s) en attente`,  color: '#f59e0b', icon: <Wallet size={12} />,       link: '/admin/transactions' },
-    alerts.lateRentPeriods    > 0 && { label: `${alerts.lateRentPeriods} loyer(s) en retard`,        color: '#ef4444', icon: <AlertTriangle size={12} />, link: '/admin/loyers-retard' },
-    alerts.failedPayments     > 0 && { label: `${alerts.failedPayments} paiement(s) échoué(s)`,      color: '#ef4444', icon: <CreditCard size={12} />,    link: '/admin/transactions' },
-    alerts.pendingDeletionRequests > 0 && { label: `${alerts.pendingDeletionRequests} demande(s) de suppression`, color: '#f59e0b', icon: <Trash2 size={12} />, link: '/admin/suppressions' },
-  ].filter(Boolean) as { label: string; color: string; icon: React.ReactNode; link: string }[];
+  // Calcul des anomalies techniques
+  const CRON_THRESHOLDS_MINS: Record<string, number> = {
+    'reconcile-payments-every-10-min':   20,
+    'update-overdue-rent-periods-daily': 26 * 60,
+  };
+
+  const isCronInactive = (jobName: string) => {
+    const run = systemHealth?.cronHealth.find(c => c.jobname === jobName);
+    if (!run) return true;
+    const diffMins = (Date.now() - new Date(run.start_time).getTime()) / 60000;
+    const maxMins = CRON_THRESHOLDS_MINS[jobName] ?? 30;
+    return diffMins > maxMins || run.status !== 'succeeded';
+  };
+
+  const isReconcileBad    = isCronInactive('reconcile-payments-every-10-min');
+  const isUpdateOverdueBad = isCronInactive('update-overdue-rent-periods-daily');
+
+  const hasSystemAnomalies = systemHealth != null && (
+    systemHealth.pendingPayments.length > 0 ||
+    systemHealth.failedWithdrawals.length > 0 ||
+    isReconcileBad || isUpdateOverdueBad
+  );
+
+  // Alertes métier
+  const alertItems: AlertItem[] = [
+    alerts.lateRentPeriods    > 0 && { label: `${alerts.lateRentPeriods} loyer(s) en retard`,        color: '#ef4444', icon: <AlertTriangle size={12} />, link: '/admin/loyers-retard',  level: 'critical' as const },
+    alerts.failedPayments     > 0 && { label: `${alerts.failedPayments} paiement(s) échoué(s)`,      color: '#ef4444', icon: <CreditCard size={12} />,    link: '/admin/transactions',    level: 'critical' as const },
+    alerts.pendingWithdrawals > 0 && { label: `${alerts.pendingWithdrawals} retrait(s) en attente`,  color: '#f59e0b', icon: <Wallet size={12} />,       link: '/admin/transactions',    level: 'warning' as const  },
+    alerts.pendingDeletionRequests > 0 && { label: `${alerts.pendingDeletionRequests} demande(s) de suppression`, color: '#f59e0b', icon: <Trash2 size={12} />, link: '/admin/suppressions', level: 'warning' as const },
+  ].filter(Boolean) as AlertItem[];
+
+  // Alertes système pour le panel
+  const systemAlerts: SystemAlert[] = systemHealth ? [
+    { label: 'Réconciliation paiements CRON',  ok: !isReconcileBad },
+    { label: 'Mise à jour retards loyers CRON', ok: !isUpdateOverdueBad },
+    ...systemHealth.pendingPayments.slice(0, 2).map(p => ({
+      label: `Paiement bloqué : ${p.tenant?.full_name || 'Inconnu'} (${formatMontant(p.amount)})`,
+      ok: false,
+    })),
+    ...systemHealth.failedWithdrawals.slice(0, 2).map(w => ({
+      label: `Retrait échoué : ${w.wallet?.owner?.full_name || 'Inconnu'} (${formatMontant(w.amount)})`,
+      ok: false,
+    })),
+  ] : [];
 
   if (loading) {
     return (
@@ -144,30 +362,6 @@ const AdminDashboard: React.FC = () => {
       </div>
     );
   }
-
-  // Calcul des anomalies techniques
-  // NB: thresholds différenciés par job — le daily ne tourne qu'une fois par 24h
-  const CRON_THRESHOLDS_MINS: Record<string, number> = {
-    'reconcile-payments-every-10-min':   20,       // 20 minutes
-    'update-overdue-rent-periods-daily': 26 * 60,  // 26 heures
-  };
-
-  const isCronInactive = (jobName: string) => {
-    const run = systemHealth?.cronHealth.find(c => c.jobname === jobName);
-    if (!run) return true; // pas de run dans la fenêtre → stale
-    const diffMins = (Date.now() - new Date(run.start_time).getTime()) / 60000;
-    const maxMins = CRON_THRESHOLDS_MINS[jobName] ?? 30; // fallback 30 min
-    return diffMins > maxMins || run.status !== 'succeeded';
-  };
-
-  const isReconcileBad    = isCronInactive('reconcile-payments-every-10-min');
-  const isUpdateOverdueBad = isCronInactive('update-overdue-rent-periods-daily');
-
-  const hasSystemAnomalies = systemHealth && (
-    systemHealth.pendingPayments.length > 0 ||
-    systemHealth.failedWithdrawals.length > 0 ||
-    isReconcileBad || isUpdateOverdueBad
-  );
 
   return (
     <div className="w-full space-y-5 pb-10">
@@ -210,145 +404,54 @@ const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Santé du Système ────────────────────────────────────────────────── */}
-      {systemHealth && hasSystemAnomalies ? (
-        <div
-          className="flex flex-col gap-3 p-4 rounded-xl border text-sm"
-          style={{ background: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.3)' }}
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <Activity size={16} className="text-red-400" />
-            <h2 className="font-bold text-red-400">Santé du système : Anomalies techniques détectées</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Crons */}
-            <div className="p-3 rounded-lg" style={{ background: 'var(--adm-surface-alt)' }}>
-              <p className="font-bold mb-2" style={{ color: 'var(--adm-text)' }}>Tâches de fond (CRON)</p>
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between items-center">
-                  <span className={isReconcileBad ? 'text-red-400 font-medium' : 'text-emerald-400'}>Réconciliation paiements</span>
-                  <span>{isReconcileBad ? '🔴 Échec/Retard' : '🟢 OK'}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className={isUpdateOverdueBad ? 'text-red-400 font-medium' : 'text-emerald-400'}>Mise à jour retards loyers</span>
-                  <span>{isUpdateOverdueBad ? '🔴 Échec/Retard' : '🟢 OK'}</span>
-                </div>
-              </div>
-            </div>
+      {/* ── Panel d'alertes unifié ───────────────────────────────────────────── */}
+      <AlertPanel
+        alertItems={alertItems}
+        systemAlerts={systemAlerts}
+        hasAnomalies={hasSystemAnomalies}
+      />
 
-            {/* Paiements bloqués */}
-            <div className="p-3 rounded-lg" style={{ background: 'var(--adm-surface-alt)' }}>
-              <p className="font-bold mb-2" style={{ color: 'var(--adm-text)' }}>Paiements suspects (&gt; 20m)</p>
-              {systemHealth.pendingPayments.length === 0 ? (
-                <p className="text-emerald-400 text-xs">🟢 Aucun paiement bloqué</p>
-              ) : (
-                <div className="space-y-1 text-xs">
-                  {systemHealth.pendingPayments.slice(0, 3).map(p => (
-                    <div key={p.id} className="flex justify-between items-center">
-                      <span className="text-red-400 truncate max-w-[100px]">{p.tenant?.full_name || 'Inconnu'}</span>
-                      <span style={{ color: 'var(--adm-text)' }}>{formatMontant(p.amount)}</span>
-                    </div>
-                  ))}
-                  {systemHealth.pendingPayments.length > 3 && (
-                    <p className="text-right italic" style={{ color: 'var(--adm-text-dim)' }}>+ {systemHealth.pendingPayments.length - 3} autre(s)</p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Retraits en échec/bloqués */}
-            <div className="p-3 rounded-lg" style={{ background: 'var(--adm-surface-alt)' }}>
-              <p className="font-bold mb-2" style={{ color: 'var(--adm-text)' }}>Retraits échoués/bloqués</p>
-              {systemHealth.failedWithdrawals.length === 0 ? (
-                <p className="text-emerald-400 text-xs">🟢 Aucun retrait bloqué</p>
-              ) : (
-                <div className="space-y-1 text-xs">
-                  {systemHealth.failedWithdrawals.slice(0, 3).map(w => (
-                    <div key={w.id} className="flex justify-between items-center">
-                      <span className="text-red-400 truncate max-w-[100px]">{w.wallet?.owner?.full_name || 'Inconnu'}</span>
-                      <span style={{ color: 'var(--adm-text)' }}>{formatMontant(w.amount)}</span>
-                    </div>
-                  ))}
-                  {systemHealth.failedWithdrawals.length > 3 && (
-                    <p className="text-right italic" style={{ color: 'var(--adm-text-dim)' }}>+ {systemHealth.failedWithdrawals.length - 3} autre(s)</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : systemHealth && !hasSystemAnomalies ? (
-        <div
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs"
-          style={{ background: 'rgba(16,185,129,0.06)', borderColor: 'rgba(16,185,129,0.2)' }}
-        >
-          <Activity size={14} className="text-emerald-400" />
-          <span className="font-semibold text-emerald-400">Santé du système :</span>
-          <span style={{ color: 'var(--adm-text)' }}>Aucune anomalie technique détectée</span>
-        </div>
-      ) : null}
-
-      {/* ── Bandeau d'alertes ───────────────────────────────────────────────── */}
-      {alertItems.length > 0 && (
-        <div
-          className="flex flex-wrap items-center gap-2 px-4 py-3 rounded-xl border text-xs"
-          style={{ background: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)' }}
-        >
-          <AlertTriangle size={14} className="text-red-400 flex-shrink-0" />
-          <span className="font-semibold text-red-400 mr-1">Alertes :</span>
-          {alertItems.map((a, i) => (
-            <Link key={i} to={a.link}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold transition-opacity hover:opacity-80"
-              style={{ background: `${a.color}18`, color: a.color, border: `1px solid ${a.color}35` }}
-            >
-              {a.icon}
-              {a.label}
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* ── Bloc revenus highlight ──────────────────────────────────────────── */}
+      {/* ── Bloc revenus ─────────────────────────────────────────────────────── */}
       <div
-        className="rounded-xl p-6 border relative overflow-hidden"
-        style={{ background: 'var(--adm-banner-bg)', borderColor: 'var(--adm-border-focus)' }}
+        className="relative overflow-hidden rounded-2xl p-6"
+        style={{
+          background: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 52%, #312E81 100%)',
+          boxShadow: '0 14px 30px rgba(76, 29, 149, 0.28)',
+        }}
       >
-        <div className="absolute top-0 right-0 w-56 h-56 rounded-full opacity-5 blur-3xl"
-          style={{ background: 'radial-gradient(circle, #7C3AED, transparent)' }} />
+        <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full border border-white/10 bg-gradient-to-br from-white/20 to-transparent" />
+        <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full border border-white/5 bg-gradient-to-br from-transparent to-white/10" />
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: 'var(--adm-text-muted)' }}>
-              <Wallet size={14} className="text-amber-500" /> Revenus ImoFlex (commissions)
+          <div className="min-w-0">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-white/70">
+              <Wallet size={14} /> Revenus ImoFlex (commissions)
             </p>
-            <div className="flex items-end gap-3">
-              <p className="text-4xl font-bold" style={{ color: 'var(--adm-text)', fontFamily: 'Space Grotesk' }}>
+            <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
+              <p className="font-bold leading-none whitespace-nowrap tracking-[-0.035em] text-white" style={{ fontFamily: 'Space Grotesk', fontSize: 'clamp(1.75rem, 4vw, 2.25rem)' }} title={formatMontant(kpis.revenueImoflex)}>
                 {formatMontant(kpis.revenueImoflex)}
               </p>
               {kpis.revenueDelta !== null && (
-                <span className={`text-sm font-semibold mb-1 ${kpis.revenueDelta >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <span className={`mb-0.5 text-sm font-semibold ${kpis.revenueDelta >= 0 ? 'text-white/90' : 'text-red-200'}`}>
                   {kpis.revenueDelta >= 0 ? '+' : ''}{kpis.revenueDelta}%
                 </span>
               )}
             </div>
-            <p className="text-sm mt-1" style={{ color: 'var(--adm-text-dim)' }}>
+            <p className="mt-2 text-sm text-white/65">
               {PERIOD_OPTIONS.find(p => p.key === period)?.label}
             </p>
           </div>
-          <div className="flex gap-6 flex-wrap">
-            <div className="text-center">
-              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--adm-text-muted)' }}>Volume transité</p>
-              <p className="text-sky-400 text-xl font-bold">{formatMontant(kpis.paymentsTotalVolume)}</p>
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="min-w-0 rounded-xl px-3 py-2.5 text-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-white/60">Volume transité</p>
+              <p className="font-bold leading-none whitespace-nowrap tracking-[-0.035em] text-white" style={{ fontSize: 'clamp(0.68rem, 1.35vw, 1rem)' }} title={formatMontant(kpis.paymentsTotalVolume)}>{formatMontant(kpis.paymentsTotalVolume)}</p>
             </div>
-            <div className="w-px hidden lg:block" style={{ background: 'var(--adm-border)' }} />
-            <div className="text-center">
-              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--adm-text-muted)' }}>Transactions</p>
-              <p className="text-violet-400 text-xl font-bold">{kpis.paymentsCount}</p>
+            <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-white/60">Transactions</p>
+              <p className="text-xl font-bold leading-none text-white">{kpis.paymentsCount}</p>
             </div>
-            <div className="w-px hidden lg:block" style={{ background: 'var(--adm-border)' }} />
-            <div className="text-center">
-              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--adm-text-muted)' }}>Baux actifs</p>
-              <p className="text-emerald-400 text-xl font-bold">{kpis.activeLeases}</p>
+            <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-white/60">Baux actifs</p>
+              <p className="text-xl font-bold leading-none text-white">{kpis.activeLeases}</p>
             </div>
           </div>
         </div>
@@ -357,24 +460,24 @@ const AdminDashboard: React.FC = () => {
       {/* ── KPI Grid 8 cartes ──────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard label="Utilisateurs" value={kpis.totalUsers} sub="inscrits"
-          icon={<Users size={17} />} gradient="linear-gradient(135deg,#6366f1,#8b5cf6)"
+          icon={<Users size={17} />} gradient="linear-gradient(135deg,#8B5CF6,#6D28D9)"
           delta={kpis.usersDelta} link="/admin/utilisateurs" />
 
         <KPICard label="Annonces actives" value={kpis.activeListings} sub={`+ ${kpis.pendingListings} en attente`}
-          icon={<Home size={17} />} gradient="linear-gradient(135deg,#0ea5e9,#6366f1)"
+          icon={<Home size={17} />} gradient="linear-gradient(135deg,#8B5CF6,#6D28D9)"
           link="/admin/annonces" />
 
         <KPICard label="Transactions" value={kpis.paymentsCount} sub="paiements validés"
-          icon={<CreditCard size={17} />} gradient="linear-gradient(135deg,#10b981,#059669)"
+          icon={<CreditCard size={17} />} gradient="linear-gradient(135deg,#8B5CF6,#6D28D9)"
           delta={null} link="/admin/transactions" />
 
         <KPICard label="Retraits en attente" value={kpis.pendingWithdrawals}
           sub={kpis.pendingWithdrawals > 0 ? 'à traiter' : 'Aucun en attente'}
-          icon={<Wallet size={17} />} gradient="linear-gradient(135deg,#f59e0b,#d97706)"
+          icon={<Wallet size={17} />} gradient="linear-gradient(135deg,#D97706,#B45309)"
           alert={kpis.pendingWithdrawals > 0} />
 
         <KPICard label="Baux actifs" value={kpis.activeLeases} sub="contrats en cours"
-          icon={<FileText size={17} />} gradient="linear-gradient(135deg,#14b8a6,#0ea5e9)"
+          icon={<FileText size={17} />} gradient="linear-gradient(135deg,#8B5CF6,#6D28D9)"
           />
 
         <KPICard label="Loyers en retard" value={kpis.lateRentPeriods}
@@ -384,7 +487,7 @@ const AdminDashboard: React.FC = () => {
 
         <KPICard label="Demandes de visite" value={kpis.visitRequests}
           sub="contact_requests"
-          icon={<Calendar size={17} />} gradient="linear-gradient(135deg,#8b5cf6,#7C3AED)"
+          icon={<Calendar size={17} />} gradient="linear-gradient(135deg,#8B5CF6,#6D28D9)"
           delta={kpis.visitsDelta} />
 
         <KPICard label="Annonces en attente" value={kpis.pendingListings}
@@ -522,7 +625,7 @@ const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Activités récentes + Santé plateforme ──────────────────────────── */}
+      {/* ── Activités récentes + Accès rapides ─────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         {/* Activités récentes (Realtime) */}
@@ -562,68 +665,51 @@ const AdminDashboard: React.FC = () => {
           )}
         </div>
 
-        {/* Santé de la plateforme */}
-        <div className="rounded-xl p-5 border flex flex-col gap-4" style={{ background: 'var(--adm-surface)', borderColor: 'var(--adm-border)' }}>
-          <div className="flex items-center gap-2">
-            <Zap size={15} className="text-emerald-400" />
-            <h2 className="font-semibold text-sm" style={{ fontFamily: 'Space Grotesk', color: 'var(--adm-text)' }}>Santé plateforme</h2>
+        {/* Accès rapides */}
+        <div className="rounded-xl p-5 border flex flex-col gap-3" style={{ background: 'var(--adm-surface)', borderColor: 'var(--adm-border)' }}>
+          <div className="flex items-center gap-2 mb-1">
+            <Zap size={15} className="text-violet-400" />
+            <h2 className="font-semibold text-sm" style={{ fontFamily: 'Space Grotesk', color: 'var(--adm-text)' }}>Accès rapides</h2>
           </div>
 
-          {[
-            {
-              label: 'API Supabase',
-              ok: true,
-              detail: 'Connecté',
-              icon: <BarChart2 size={13} />,
-              color: '#10b981',
-            },
-            {
-              label: 'Paiements',
-              ok: alerts.failedPayments === 0,
-              detail: alerts.failedPayments > 0 ? `${alerts.failedPayments} échoué(s)` : 'Opérationnel',
-              icon: <CreditCard size={13} />,
-              color: alerts.failedPayments > 0 ? '#ef4444' : '#10b981',
-            },
-            {
-              label: 'Retraits',
-              ok: alerts.pendingWithdrawals === 0,
-              detail: alerts.pendingWithdrawals > 0 ? `${alerts.pendingWithdrawals} en attente` : 'Aucun en attente',
-              icon: <Wallet size={13} />,
-              color: alerts.pendingWithdrawals > 0 ? '#f59e0b' : '#10b981',
-            },
-            {
-              label: 'Loyers en retard',
-              ok: alerts.lateRentPeriods === 0,
-              detail: alerts.lateRentPeriods > 0 ? `${alerts.lateRentPeriods} périodes` : 'Tout à jour',
-              icon: <AlertTriangle size={13} />,
-              color: alerts.lateRentPeriods > 0 ? '#ef4444' : '#10b981',
-            },
-            {
-              label: 'Modération',
-              ok: kpis.pendingListings === 0,
-              detail: kpis.pendingListings > 0 ? `${kpis.pendingListings} annonce(s)` : 'File vide',
-              icon: <Home size={13} />,
-              color: kpis.pendingListings > 0 ? '#f59e0b' : '#10b981',
-            },
-            {
-              label: 'Suppressions',
-              ok: alerts.pendingDeletionRequests === 0,
-              detail: alerts.pendingDeletionRequests > 0 ? `${alerts.pendingDeletionRequests} demande(s)` : 'Aucune demande',
-              icon: <Trash2 size={13} />,
-              color: alerts.pendingDeletionRequests > 0 ? '#f59e0b' : '#10b981',
-            },
-          ].map(item => (
-            <div key={item.label} className="flex items-center justify-between">
-              <div className="flex items-center gap-2" style={{ color: 'var(--adm-text-muted)' }}>
-                {item.icon}
-                <span className="text-xs">{item.label}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
-                <span className="text-xs font-medium" style={{ color: item.color }}>{item.detail}</span>
-              </div>
-            </div>
-          ))}
+          <QuickActionItem
+            icon={<Home size={14} />}
+            label="Modérer les annonces"
+            description="Approuver ou rejeter"
+            link="/admin/annonces"
+            badge={kpis.pendingListings}
+            color="#f59e0b"
+          />
+          <QuickActionItem
+            icon={<Wallet size={14} />}
+            label="Valider les retraits"
+            description="Traiter les demandes"
+            link="/admin/transactions"
+            badge={kpis.pendingWithdrawals}
+            color="#0ea5e9"
+          />
+          <QuickActionItem
+            icon={<Users size={14} />}
+            label="Utilisateurs"
+            description="Gérer les comptes"
+            link="/admin/utilisateurs"
+            color="#8b5cf6"
+          />
+          <QuickActionItem
+            icon={<Trash2 size={14} />}
+            label="Suppressions"
+            description="Demandes en attente"
+            link="/admin/suppressions"
+            badge={alerts.pendingDeletionRequests}
+            color="#ef4444"
+          />
+          <QuickActionItem
+            icon={<Shield size={14} />}
+            label="Support"
+            description="Tickets et messages"
+            link="/admin/support"
+            color="#10b981"
+          />
 
           <div className="mt-auto pt-3 border-t" style={{ borderColor: 'var(--adm-border)' }}>
             <p className="text-xs text-center" style={{ color: 'var(--adm-text-dim)' }}>
