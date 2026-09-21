@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+﻿import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -10,7 +10,9 @@ import {
   Sun,
   Moon,
   Trash2,
-  Headset
+  Headset,
+  ShieldCheck,
+  AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useAdminTheme } from '../hooks/useAdminTheme';
@@ -40,8 +42,10 @@ export default function AdminLayout() {
     { path: '/admin/suppressions', icon: Trash2, label: 'Demandes suppression' },
     { path: '/admin/utilisateurs', icon: Users, label: 'Utilisateurs' },
     { path: '/admin/transactions', icon: CreditCard, label: 'Transactions' },
+    { path: '/admin/verifications', icon: ShieldCheck, label: 'Vérifications propriétaires' },
     { path: '/admin/support', icon: Headset, label: 'Support / Tickets' },
     { path: '/admin/logs', icon: FileText, label: 'Audit Logs' },
+    { path: '/admin/loyers-retard', icon: AlertTriangle, label: 'Loyers en retard' },
     { path: '/admin/config', icon: Settings, label: 'Configuration' },
   ];
 

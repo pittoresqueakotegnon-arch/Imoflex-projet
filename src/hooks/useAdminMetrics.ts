@@ -70,7 +70,7 @@ const DEFAULT_KPIS: DashboardKPIs = {
 };
 
 const DEFAULT_ALERTS: DashboardAlerts = {
-  pendingWithdrawals: 0, lateRentPeriods: 0, failedPayments: 0, pendingDeletionRequests: 0,
+  pendingWithdrawals: 0, pendingOwnerVerifications: 0, lateRentPeriods: 0, failedPayments: 0, pendingDeletionRequests: 0,
 };
 
 export function useAdminMetrics(): AdminMetricsState {
@@ -150,6 +150,10 @@ export function useAdminMetrics(): AdminMetricsState {
         Promise.all([fetchAlerts(), fetchPendingWithdrawals()])
           .then(([a, pw]) => { setAlerts(a); setPendingWithdrawals(pw); })
           .catch(console.error);
+      })
+      // Dossiers de vérification des propriétaires
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'owner_verification_requests' }, () => {
+        fetchAlerts().then(setAlerts).catch(console.error);
       })
       // Paiements
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {

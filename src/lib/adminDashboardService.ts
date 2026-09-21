@@ -17,6 +17,7 @@ export interface PeriodRange {
 
 export interface DashboardAlerts {
   pendingWithdrawals: number;
+  pendingOwnerVerifications: number;
   lateRentPeriods: number;
   failedPayments: number;
   pendingDeletionRequests: number;
@@ -157,8 +158,9 @@ function fmtDate(iso: string): string {
 // ─── Alertes ──────────────────────────────────────────────────────────────────
 
 export async function fetchAlerts(): Promise<DashboardAlerts> {
-  const [withdrawalsRes, rentsRes, paymentsRes, deletionsRes] = await Promise.all([
+  const [withdrawalsRes, ownerVerificationsRes, rentsRes, paymentsRes, deletionsRes] = await Promise.all([
     supabase.from('withdrawals').select('id', { count: 'exact', head: true }).eq('status', 'en_traitement').eq('is_test_data', false),
+    supabase.from('owner_verification_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('rent_periods').select('id', { count: 'exact', head: true }).eq('status', 'retard'),
     supabase.from('payments').select('id', { count: 'exact', head: true }).eq('status', 'echoue').eq('is_test_data', false),
     supabase.from('listing_deletion_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -166,6 +168,7 @@ export async function fetchAlerts(): Promise<DashboardAlerts> {
 
   return {
     pendingWithdrawals: withdrawalsRes.count || 0,
+    pendingOwnerVerifications: ownerVerificationsRes.count || 0,
     lateRentPeriods: rentsRes.count || 0,
     failedPayments: paymentsRes.count || 0,
     pendingDeletionRequests: deletionsRes.count || 0,

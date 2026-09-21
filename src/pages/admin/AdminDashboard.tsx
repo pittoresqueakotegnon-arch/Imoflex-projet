@@ -5,7 +5,7 @@ import {
   Clock, CheckCircle, AlertCircle, Wallet, Activity,
   Eye, ChevronRight, RefreshCw, Calendar, FileText,
   Zap, AlertTriangle, Minus, CheckCircle2, Lock, UserPlus, Megaphone, Banknote, XCircle, Ban, Trash2,
-  ChevronDown, ChevronUp, Shield,
+  ChevronDown, ChevronUp, Shield, ShieldCheck,
 } from 'lucide-react';
 import {
   Area, AreaChart, Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -329,6 +329,7 @@ const AdminDashboard: React.FC = () => {
     alerts.lateRentPeriods    > 0 && { label: `${alerts.lateRentPeriods} loyer(s) en retard`,        color: '#ef4444', icon: <AlertTriangle size={12} />, link: '/admin/loyers-retard',  level: 'critical' as const },
     alerts.failedPayments     > 0 && { label: `${alerts.failedPayments} paiement(s) échoué(s)`,      color: '#ef4444', icon: <CreditCard size={12} />,    link: '/admin/transactions',    level: 'critical' as const },
     alerts.pendingWithdrawals > 0 && { label: `${alerts.pendingWithdrawals} retrait(s) en attente`,  color: '#f59e0b', icon: <Wallet size={12} />,       link: '/admin/transactions',    level: 'warning' as const  },
+    alerts.pendingOwnerVerifications > 0 && { label: `${alerts.pendingOwnerVerifications} vérification(s) propriétaire`, color: '#7c3aed', icon: <ShieldCheck size={12} />, link: '/admin/verifications', level: 'warning' as const },
     alerts.pendingDeletionRequests > 0 && { label: `${alerts.pendingDeletionRequests} demande(s) de suppression`, color: '#f59e0b', icon: <Trash2 size={12} />, link: '/admin/suppressions', level: 'warning' as const },
   ].filter(Boolean) as AlertItem[];
 
@@ -687,6 +688,14 @@ const AdminDashboard: React.FC = () => {
             link="/admin/transactions"
             badge={kpis.pendingWithdrawals}
             color="#0ea5e9"
+          />
+          <QuickActionItem
+            icon={<ShieldCheck size={14} />}
+            label="Vérifier les propriétaires"
+            description="Contrôler les pièces d’identité"
+            link="/admin/verifications"
+            badge={alerts.pendingOwnerVerifications}
+            color="#7c3aed"
           />
           <QuickActionItem
             icon={<Users size={14} />}

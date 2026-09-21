@@ -7,7 +7,9 @@ export const useUnreadSupportMessages = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (!user) {
+    // allow running without user if visitorId exists
+    const visitorId = localStorage.getItem('imx_visitor_id');
+    if (!user && !visitorId) {
       setUnreadCount(0);
       return;
     }
@@ -16,7 +18,16 @@ export const useUnreadSupportMessages = () => {
 
     const fetchUnread = async () => {
       let q = supabase.from('support_conversations').select('id');
-      q = q.eq('user_id', user.id);
+      const visitorId = localStorage.getItem('imx_visitor_id');
+      
+      if (user) {
+        q = q.eq('user_id', user.id);
+      } else if (visitorId) {
+        q = q.eq('visitor_id', visitorId);
+      } else {
+        return; // No user or visitor
+      }
+      
       const { data: convs } = await q.neq('status', 'resolue').order('created_at', { ascending: false }).limit(1);
 
       if (convs && convs.length > 0) {

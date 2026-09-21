@@ -60,11 +60,10 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
   };
 
   useEffect(() => {
-    if (isOpen && user) {
+    if (isOpen) {
       loadOrCreateConversation();
-    } else if (!user) {
-      setConversationId(null);
-      setMessages([]);
+    } else {
+      // Do not clear conversation, allow visitor to reopen and see history
     }
   }, [isOpen, user]);
 
@@ -98,13 +97,17 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
   }, [conversationId, isOpen]);
 
   const loadOrCreateConversation = async () => {
-    if (!user) return;
     setIsLoading(true);
+    let visitorId = localStorage.getItem('imx_visitor_id');
+    if (!user && !visitorId) {
+      visitorId = 'visitor_' + crypto.randomUUID();
+      localStorage.setItem('imx_visitor_id', visitorId);
+    }
     try {
       const { data: convs, error: conversationsError } = await supabase
         .from('support_conversations')
         .select('*')
-        .eq('user_id', user.id)
+        .eq(user ? 'user_id' : 'visitor_id', user ? user.id : visitorId)
         .neq('status', 'resolue')
         .order('created_at', { ascending: false })
         .limit(1);
@@ -120,7 +123,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
         setTimeout(() => scrollToBottom(false), 150);
       } else {
         const { data: newConv, error: createError } = await supabase.from('support_conversations')
-          .insert({ user_id: user.id, status: 'ouverte' })
+          .insert({ user_id: user?.id, visitor_id: user ? null : visitorId, status: 'ouverte' })
           .select().single();
         if (createError) throw createError;
         if (newConv) { setConversationId(newConv.id); setMessages([]); }
@@ -133,7 +136,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
   const handleSendMessage = async (e?: React.FormEvent, directMessage?: string) => {
     if (e) e.preventDefault();
     const textToSend = directMessage || newMessage.trim();
-    if (!textToSend || !conversationId || !user || isSending) return;
+    if (!textToSend || !conversationId || isSending) return;
     
     if (!directMessage) setNewMessage('');
     setIsSending(true);
@@ -147,7 +150,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
 
     try {
       const { data: inserted, error } = await supabase.from('support_messages')
-        .insert({ conversation_id: conversationId, sender_type: 'user', sender_id: user.id, message: textToSend })
+        .insert({ conversation_id: conversationId, sender_type: 'user', sender_id: user?.id, message: textToSend })
         .select().single();
       if (error) throw error;
       const [message] = await resolveSupportMessageAttachments([inserted as Message]);
@@ -164,13 +167,13 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !conversationId || !user) return;
+    if (!file || !conversationId) return;
     let uploadedPath: string | null = null;
     let previewUrl: string | null = null;
     setIsUploading(true);
     try {
       const extension = assertSupportedSupportImage(file);
-      const path = `${user.id}/${conversationId}/${crypto.randomUUID()}.${extension}`;
+      const path = `${user?.id || localStorage.getItem('imx_visitor_id')}/${conversationId}/${crypto.randomUUID()}.${extension}`;
       await uploadSupportAttachment(path, file);
       uploadedPath = path;
       
@@ -180,7 +183,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
       setTimeout(() => scrollToBottom(true), 100);
 
       const { data: inserted, error } = await supabase.from('support_messages')
-        .insert({ conversation_id: conversationId, sender_type: 'user', sender_id: user.id, message: "Capture d'écran", screenshot_url: path })
+        .insert({ conversation_id: conversationId, sender_type: 'user', sender_id: user?.id, message: "Capture d'écran", screenshot_url: path })
         .select().single();
       if (error) throw error;
       const [message] = await resolveSupportMessageAttachments([inserted as Message]);
@@ -376,7 +379,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
       `}</style>
 
       <div className="imx-support-overlay">
-        {/* ═══════ HEADER ═══════ */}
+        {/* â•â•â•â•â•â•â• HEADER â•â•â•â•â•â•â• */}
         <div className="imx-header-bg" style={{ paddingTop: '16px', paddingBottom: '20px', paddingLeft: '16px', paddingRight: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '14px' }}>
           <button onClick={onClose} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: 'none', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
             <ArrowLeft size={20} color="white" />
@@ -402,15 +405,15 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
 
           <div style={{ flex: 1 }}>
             <h2 style={{ color: 'white', fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: '18px', margin: 0 }}>
-              Équipe ImoFlex
+              Ã‰quipe ImoFlex
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', margin: '2px 0 0', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500 }}>
-              {isOnline ? 'En ligne · Répond rapidement' : statusText}
+              {isOnline ? 'En ligne Â· RÃ©pond rapidement' : statusText}
             </p>
           </div>
         </div>
 
-        {/* ═══════ MESSAGES ═══════ */}
+        {/* â•â•â•â•â•â•â• MESSAGES â•â•â•â•â•â•â• */}
         <div
           ref={messagesContainerRef}
           onScroll={handleScroll}
@@ -423,17 +426,17 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
                 Connectez-vous pour contacter le support
               </h3>
               <p style={{ color: '#4B5563', fontSize: '14px', margin: 0, lineHeight: 1.5, maxWidth: '280px', fontFamily: 'Space Grotesk, sans-serif' }}>
-                Votre compte protège la confidentialité de vos échanges et de vos pièces jointes.
+                Votre compte protÃ¨ge la confidentialitÃ© de vos Ã©changes et de vos piÃ¨ces jointes.
               </p>
             </div>
           ) : isLoading ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', minHeight: '200px' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '3px solid #E5E7EB', borderTopColor: '#7B3FE4', animation: 'spin 0.8s linear infinite' }} />
               <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-              <span style={{ color: '#6B7280', fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif' }}>Chargement…</span>
+              <span style={{ color: '#6B7280', fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif' }}>Chargementâ€¦</span>
             </div>
           ) : messages.length === 0 ? (
-            /* ─── ÉTAT VIDE CLAIR ─── */
+            /* â”€â”€â”€ Ã‰TAT VIDE CLAIR â”€â”€â”€ */
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '24px 16px', minHeight: '60vh' }}>
               <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(123,63,228,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', padding: '4px' }}>
                  <div style={{ width: '100%', height: '100%', borderRadius: '16px', overflow: 'hidden' }}>
@@ -445,12 +448,12 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
                 Bonjour !
               </h3>
               <p style={{ color: '#4B5563', fontSize: '14px', margin: '0 0 32px', lineHeight: 1.5, maxWidth: '280px', fontFamily: 'Space Grotesk, sans-serif' }}>
-                Notre équipe est là pour vous aider. Envoyez-nous votre question, nous vous répondrons rapidement.
+                Notre Ã©quipe est lÃ  pour vous aider. Envoyez-nous votre question, nous vous rÃ©pondrons rapidement.
               </p>
 
               {/* Quick suggestions */}
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {['Comment rechercher un logement ?', 'Comment contacter un propriétaire ?', 'Signaler une annonce suspecte', 'Problème de paiement'].map((q) => (
+                {['Comment rechercher un logement ?', 'Comment contacter un propriÃ©taire ?', 'Signaler une annonce suspecte', 'ProblÃ¨me de paiement'].map((q) => (
                   <button key={q} className="imx-quick-btn" onClick={() => {
                     setNewMessage(q);
                     setTimeout(() => handleSendMessage(undefined, q), 0);
@@ -499,7 +502,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
                               <a href={msg.screenshot_url} target="_blank" rel="noreferrer">
                                 <img src={msg.screenshot_url} alt="Capture" style={{ borderRadius: '8px', maxWidth: '100%', maxHeight: '200px', objectFit: 'cover', display: 'block' }} />
                               </a>
-                              {msg.message !== "Capture d'écran" && (
+                              {msg.message !== "Capture d'Ã©cran" && (
                                 <p style={{ margin: '8px 0 0', fontSize: '14px', fontFamily: 'Space Grotesk, sans-serif' }}>{msg.message}</p>
                               )}
                             </div>
@@ -534,7 +537,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
           )}
         </div>
 
-        {/* ═══════ INPUT ═══════ */}
+        {/* â•â•â•â•â•â•â• INPUT â•â•â•â•â•â•â• */}
         {user && <div className="imx-input-area">
           <form onSubmit={handleSendMessage} className="imx-chat-input-wrapper">
             <button type="button" className="imx-attach-btn" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
@@ -551,7 +554,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
               className="imx-chat-input"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Écrivez votre message..."
+              placeholder="Ã‰crivez votre message..."
             />
 
             <button type="submit" className="imx-send-btn" disabled={!newMessage.trim() || isSending}>
@@ -568,3 +571,4 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
 
   return createPortal(modalContent, document.body);
 };
+

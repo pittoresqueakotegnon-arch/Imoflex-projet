@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Check, ArrowRight, Wallet2, Phone, AlertTriangle, Copy } from "lucide-react";
+import { ChevronLeft, Check, ArrowRight, Wallet2, Phone, AlertTriangle, Copy, Clock3, ShieldCheck } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useWallet } from "../../hooks/useWallet";
 import { requestWithdrawal, normalizeBjPhone } from "../../lib/fedapay";
@@ -9,6 +9,8 @@ import { useToast } from "../../components/Toast";
 import { Operator } from "../../lib/supabase";
 import { logAction } from "../../lib/audit";
 import { haptics } from "../../lib/haptics";
+import { useOwnerVerification } from "../../hooks/useOwnerVerification";
+import { OWNER_VERIFICATION_STATUS_META } from "../../lib/ownerVerification";
 
 type Step = "form" | "confirm" | "success";
 
@@ -38,6 +40,7 @@ const Retrait: React.FC = () => {
   const { profile } = useAuth();
   const { wallet, ensureWallet } = useWallet(profile?.id);
   const { showToast } = useToast();
+  const { verification, loading: verificationLoading } = useOwnerVerification(profile?.role === 'proprietaire');
 
   const [step, setStep] = useState<Step>("form");
   const [amountStr, setAmountStr] = useState("");
@@ -83,6 +86,7 @@ const Retrait: React.FC = () => {
   const amountReceived = parsedAmount - fees;
 
   const validateForm = (): string | null => {
+    if (verification.verification_status !== 'verifie') return "Votre identité doit être vérifiée avant un retrait";
     if (parsedAmount < 100) return "Le montant minimum est 100 FCFA";
     if (!wallet) return "Wallet non trouvé";
     if (parsedAmount > availableBalance) return `Solde insuffisant. Disponible : ${formatMontant(availableBalance)}`;
@@ -91,6 +95,53 @@ const Retrait: React.FC = () => {
     if (!cleanPhone || cleanPhone.length !== 10) return "Numéro invalide. Entrez 10 chiffres locaux (ex: 01 97 00 00 00)";
     return null;
   };
+
+  // L'interface explique le blocage, mais le même contrôle est aussi appliqué
+  // côté SQL avant tout débit du wallet : aucun contournement client possible.
+  if (verificationLoading) {
+    return (
+      <div className="min-h-screen premium-page flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[var(--imx-accent)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (verification.verification_status !== 'verifie') {
+    const verificationMeta = OWNER_VERIFICATION_STATUS_META[verification.verification_status];
+    const isPending = verification.verification_status === 'en_attente';
+    return (
+      <div className="min-h-screen premium-page flex flex-col" style={{ paddingBottom: "calc(env(safe-area-inset-bottom,0px)+32px)" }}>
+        <header className="premium-header flex items-center gap-3 px-5 pb-4" style={{ paddingTop: "calc(env(safe-area-inset-top,0px)+20px)" }}>
+          <button onClick={() => navigate(-1)} aria-label="Retour" className="w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--imx-surface-2)] text-[var(--imx-text-primary)]">
+            <ChevronLeft size={20} />
+          </button>
+          <h1 className="font-nunito font-900 text-[19px] text-[var(--imx-text-primary)]">Retirer des fonds</h1>
+        </header>
+        <main className="flex-1 px-5 py-8 flex flex-col items-center justify-center text-center">
+          <div className="w-16 h-16 rounded-[22px] flex items-center justify-center mb-5" style={{ background: 'var(--imx-accent-xlight)', color: 'var(--imx-accent)' }}>
+            {isPending ? <Clock3 size={30} /> : <ShieldCheck size={30} />}
+          </div>
+          <h2 className="font-nunito font-900 text-[21px] text-[var(--imx-text-primary)]">{verificationMeta.label}</h2>
+          <p className="mt-3 max-w-[310px] text-[13px] leading-relaxed text-[var(--imx-text-secondary)]" style={{ fontFamily: 'Space Grotesk' }}>
+            {verificationMeta.description}
+          </p>
+          {verification.verification_status === 'refuse' && verification.rejection_reason && (
+            <p className="mt-5 max-w-[330px] rounded-2xl border border-red-200 bg-red-50 p-4 text-left text-[12px] leading-relaxed text-red-700">
+              {verification.rejection_reason}
+            </p>
+          )}
+          {!isPending && (
+            <button onClick={() => navigate('/pro/verification')} className="btn-primary mt-7 w-full max-w-[330px]">
+              Vérifier mon identité
+            </button>
+          )}
+          <button onClick={() => navigate('/pro/wallet')} className="mt-3 text-[13px] font-bold text-[var(--imx-accent)]">
+            Retour à mon wallet
+          </button>
+        </main>
+      </div>
+    );
+  }
 
   const handleContinue = () => {
     const err = validateForm();

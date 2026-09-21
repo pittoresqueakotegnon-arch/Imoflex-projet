@@ -21,6 +21,9 @@ export type LeaseStatus = 'actif' | 'termine' | 'suspendu';
 export type RentPeriodStatus = 'en_cours' | 'solde' | 'retard';
 export type PaymentStatus = 'en_attente' | 'valide' | 'echoue';
 export type WithdrawalStatus = 'en_traitement' | 'complete' | 'echoue';
+export type OwnerVerificationStatus = 'non_verifie' | 'en_attente' | 'verifie' | 'refuse';
+export type OwnerVerificationRequestStatus = 'draft' | 'pending' | 'approved' | 'rejected';
+export type OwnerIdentityDocumentType = 'cni' | 'passeport' | 'permis_conduire';
 export type Operator = 'mtn' | 'moov' | 'celtiis';
 export type ContactStatus = 'nouvelle' | 'traitee';
 export type ListingStatus = 'en_attente' | 'publiee' | 'rejetee' | 'suppression_demandee' | 'supprimee';
@@ -71,7 +74,47 @@ export interface UserProfile {
   phone_verified: boolean;
   is_active: boolean;
   account_status?: 'actif' | 'suspendu' | 'banni';
+  owner_verification_status?: OwnerVerificationStatus;
+  owner_verified_at?: string | null;
+  owner_verification_updated_at?: string | null;
   created_at: string;
+}
+
+export interface OwnerVerificationSummary {
+  verification_status: OwnerVerificationStatus;
+  request_id?: string | null;
+  request_status?: OwnerVerificationRequestStatus | null;
+  legal_name?: string | null;
+  document_type?: OwnerIdentityDocumentType | null;
+  document_number_last4?: string | null;
+  submitted_at?: string | null;
+  reviewed_at?: string | null;
+  rejection_reason?: string | null;
+  fee_required?: boolean | null;
+  fee_amount?: number | null;
+  fee_status?: 'not_required' | 'pending' | 'paid' | 'waived' | 'refunded' | null;
+}
+
+export interface OwnerVerificationRequest {
+  id: string;
+  owner_id: string;
+  status: OwnerVerificationRequestStatus;
+  legal_name: string;
+  document_type: OwnerIdentityDocumentType;
+  document_number_last4: string;
+  identity_front_path?: string | null;
+  identity_back_path?: string | null;
+  fee_required: boolean;
+  fee_amount: number;
+  fee_status: 'not_required' | 'pending' | 'paid' | 'waived' | 'refunded';
+  fee_payment_reference?: string | null;
+  submitted_at?: string | null;
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
+  rejection_reason?: string | null;
+  admin_note?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Listing {

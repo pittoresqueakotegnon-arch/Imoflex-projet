@@ -55,6 +55,7 @@ const MesLocataires         = lazy(() => import('./pages/proprietaire/MesLocatai
 const Wallet                = lazy(() => import('./pages/proprietaire/Wallet'));
 const Retrait               = lazy(() => import('./pages/proprietaire/Retrait'));
 const FicheBail             = lazy(() => import('./pages/proprietaire/FicheBail'));
+const VerificationProprietaire = lazy(() => import('./pages/proprietaire/VerificationProprietaire'));
 
 // Admin — recharts (700 KB) ne se charge QUE si l'admin accède à ces pages
 const AdminDashboard    = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -66,6 +67,7 @@ const AdminConfig       = lazy(() => import('./pages/admin/AdminConfig'));
 const AdminLogs         = lazy(() => import('./pages/admin/AdminLogs'));
 const AdminLoyersRetard = lazy(() => import('./pages/admin/AdminLoyersRetard'));
 const AdminDemandesSuppression = lazy(() => import('./pages/admin/AdminDemandesSuppression'));
+const AdminOwnerVerifications = lazy(() => import('./pages/admin/AdminOwnerVerifications'));
 
 // Common
 const Profil            = lazy(() => import('./pages/common/Profil'));
@@ -150,6 +152,7 @@ function AppRoutes() {
                 <Route path="loyers-retard" element={<AdminLoyersRetard />} />
                 <Route path="config" element={<AdminConfig />} />
                 <Route path="logs" element={<AdminLogs />} />
+                <Route path="verifications" element={<AdminOwnerVerifications />} />
               </Route>
 
               {/* ── SPLASH ─────────────────────────────────────────── */}
@@ -323,6 +326,16 @@ function AppRoutes() {
                   <MobileFrame>
                     <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
                       <Retrait />
+                    </RoleGuard>
+                  </MobileFrame>
+                }
+              />
+              <Route
+                path="/pro/verification"
+                element={
+                  <MobileFrame>
+                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+                      <VerificationProprietaire />
                     </RoleGuard>
                   </MobileFrame>
                 }

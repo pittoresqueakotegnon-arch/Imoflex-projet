@@ -44,6 +44,7 @@ const Annonce: React.FC = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [isOwnerVerified, setIsOwnerVerified] = useState(false);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     setTouchStart(e.touches[0].clientX);
@@ -81,6 +82,24 @@ const Annonce: React.FC = () => {
     };
     checkFavorite();
   }, [user, listing?.id]);
+
+  useEffect(() => {
+    let active = true;
+
+    const checkOwnerVerification = async () => {
+      if (!listing?.owner_id) {
+        if (active) setIsOwnerVerified(false);
+        return;
+      }
+
+      const { data, error } = await supabase.rpc('is_owner_verified', { p_owner_id: listing.owner_id });
+      if (!error && active) setIsOwnerVerified(Boolean(data));
+      if (error) console.warn('[Annonce] owner verification badge unavailable:', error.message);
+    };
+
+    checkOwnerVerification();
+    return () => { active = false; };
+  }, [listing?.owner_id]);
 
   const handleToggleFavorite = async () => {
     if (!listing?.id) return;
@@ -296,6 +315,11 @@ const Annonce: React.FC = () => {
             {listing.city}{listing.neighborhood && `, ${listing.neighborhood}`}
           </span>
         </div>
+        {isOwnerVerified && (
+          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-violet-500/25 bg-violet-500/10 px-2.5 py-1 text-[10px] font-bold text-violet-700">
+            <ShieldCheck size={12} /> Propriétaire vérifié
+          </div>
+        )}
       </div>
 
       {/* ── Stats ─────────────────────────────────────────── */}

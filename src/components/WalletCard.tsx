@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Wallet } from '../lib/supabase';
+import { OwnerVerificationStatus, Wallet } from '../lib/supabase';
 import { formatMontant } from '../lib/utils';
 import { Eye, EyeOff, ArrowUpRight, ShieldCheck } from 'lucide-react';
 
 interface WalletCardProps {
   wallet: Wallet | null;
   loading?: boolean;
+  verificationStatus?: OwnerVerificationStatus;
 }
 
-export const WalletCard: React.FC<WalletCardProps> = ({ wallet, loading = false }) => {
+export const WalletCard: React.FC<WalletCardProps> = ({ wallet, loading = false, verificationStatus = 'non_verifie' }) => {
   const [showBalance, setShowBalance] = useState(true);
 
   if (loading) {
@@ -42,6 +43,7 @@ export const WalletCard: React.FC<WalletCardProps> = ({ wallet, loading = false 
   }
 
   const walletShort = wallet.id ? `•••• ${wallet.id.slice(-4).toUpperCase()}` : '•••• ••••';
+  const canWithdraw = verificationStatus === 'verifie';
 
   return (
     <div
@@ -88,12 +90,12 @@ export const WalletCard: React.FC<WalletCardProps> = ({ wallet, loading = false 
             <span className="text-[10px] font-space-grotesk">Sécurisé par FedaPay</span>
           </div>
           <Link
-            to="/pro/retrait"
+            to={canWithdraw ? '/pro/retrait' : '/pro/verification'}
             className="flex items-center gap-1.5 font-space-grotesk font-bold text-[13px] text-white px-4 py-2.5 rounded-xl active:scale-95 transition-transform"
             style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)' }}
           >
-            Retirer
-            <ArrowUpRight size={14} />
+            {canWithdraw ? 'Retirer' : verificationStatus === 'en_attente' ? 'En attente' : 'Vérifier'}
+            {canWithdraw ? <ArrowUpRight size={14} /> : <ShieldCheck size={14} />}
           </Link>
         </div>
       </div>

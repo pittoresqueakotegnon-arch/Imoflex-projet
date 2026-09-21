@@ -6,6 +6,10 @@ import BottomNav from '../../components/BottomNav';
 import WalletCard from '../../components/WalletCard';
 import { useToast } from '../../components/Toast';
 import { ArrowDownLeft, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
+import { useOwnerVerification } from '../../hooks/useOwnerVerification';
+import { OWNER_VERIFICATION_STATUS_META } from '../../lib/ownerVerification';
+import { Link } from 'react-router-dom';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
   complete: {
@@ -42,6 +46,7 @@ const Wallet: React.FC = () => {
   const { profile } = useAuth();
   const { wallet, withdrawals, loading, ensureWallet } = useWallet(profile?.id);
   const { showToast } = useToast();
+  const { verification, loading: verificationLoading } = useOwnerVerification(profile?.role === 'proprietaire');
 
   useEffect(() => {
     const init = async () => {
@@ -87,7 +92,22 @@ const Wallet: React.FC = () => {
 
       <div className="px-5 pb-32 space-y-6">
         {/* Hero card */}
-        <WalletCard wallet={wallet} loading={loading} />
+        <WalletCard wallet={wallet} loading={loading || verificationLoading} verificationStatus={verification.verification_status} />
+
+        {!verificationLoading && verification.verification_status !== 'verifie' && (
+          <Link to="/pro/verification" className="flex items-center justify-between gap-3 rounded-[20px] border p-4 active:scale-[0.99] transition-transform" style={{ background: 'var(--imx-surface)', borderColor: 'var(--imx-border)' }}>
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: 'var(--imx-accent-xlight)', color: 'var(--imx-accent)' }}>
+                <ShieldCheck size={19} />
+              </span>
+              <span className="min-w-0">
+                <span className="block font-nunito text-[14px] font-black text-[var(--imx-text-primary)]">{OWNER_VERIFICATION_STATUS_META[verification.verification_status].label}</span>
+                <span className="mt-0.5 block text-[11px] text-[var(--imx-text-secondary)]" style={{ fontFamily: 'Space Grotesk' }}>Vérifiez votre identité pour débloquer les retraits.</span>
+              </span>
+            </div>
+            <span className="flex-shrink-0 text-[12px] font-bold text-[var(--imx-accent)]">Voir</span>
+          </Link>
+        )}
 
         {/* Quick stats */}
         <div className="grid grid-cols-2 gap-3">
