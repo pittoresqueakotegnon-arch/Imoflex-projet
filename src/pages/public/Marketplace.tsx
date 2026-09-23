@@ -404,34 +404,34 @@ const Marketplace: React.FC = () => {
 
       {/* ── HEADER ────────────────────────────────────────────── */}
       <header
-        className="premium-header px-6 pb-2 flex items-center justify-between"
+        className="premium-header px-4 pb-2 flex items-center justify-between gap-2"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 20px)' }}
       >
-        <div className="flex flex-col flex-shrink-0 relative z-10">
-          <div className="flex items-center">
-            <span className="font-nunito font-black text-[22px] leading-none">
-              <span className="text-[#17132B]">Imo</span><span className="text-[#7B3FE4]">Flex</span>
-            </span>
-          </div>
+        <div className="flex-shrink-0">
+          <span className="font-nunito font-black text-[20px] leading-none">
+            <span className="text-[#17132B]">Imo</span><span className="text-[#7B3FE4]">Flex</span>
+          </span>
         </div>
 
-        <button onClick={() => { setSelectedCityInDrawer(null); setShowCityDrawer(true); }}
-          className="flex items-center gap-1.5 active:scale-95 transition-transform absolute left-1/2 -translate-x-1/2 z-10">
-          <MapPin size={16} className="text-[#7B3FE4] flex-shrink-0" />
-          <span className="text-[14px] font-bold text-[#17132B] font-space-grotesk whitespace-nowrap">
+        <button
+          onClick={() => { setSelectedCityInDrawer(null); setShowCityDrawer(true); }}
+          className="flex items-center gap-1 active:scale-95 transition-transform min-w-0 flex-1 justify-center max-w-[130px]"
+        >
+          <MapPin size={14} className="text-[#7B3FE4] flex-shrink-0" />
+          <span className="text-[13px] font-bold text-[#17132B] font-space-grotesk truncate">
             {filterCity || 'Cotonou'}
           </span>
-          <ChevronDown size={14} className="text-[#17132B] flex-shrink-0" />
+          <ChevronDown size={13} className="text-[#17132B] flex-shrink-0" />
         </button>
           
-        <div className="flex items-center gap-2 relative z-10">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <HeaderSupport />
           <HeaderBell />
           <div className="relative cursor-pointer flex-shrink-0" onClick={() => navigate(user ? '/profil' : '/login')}>
-            <div className="w-10 h-10 rounded-2xl overflow-hidden bg-[var(--imx-surface-2)] flex items-center justify-center border border-[var(--imx-border)] shadow-sm">
-              {profile?.avatar_url ? <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" /> : <User size={20} className="text-gray-400" />}
+            <div className="w-9 h-9 rounded-xl overflow-hidden bg-[var(--imx-surface-2)] flex items-center justify-center border border-[var(--imx-border)] shadow-sm">
+              {profile?.avatar_url ? <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" /> : <User size={18} className="text-gray-400" />}
             </div>
-            <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#7B3FE4] rounded-full border-[2px] border-white" />
+            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#7B3FE4] rounded-full border-[2px] border-white" />
           </div>
         </div>
       </header>
