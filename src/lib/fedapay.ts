@@ -126,9 +126,8 @@ export async function initiatePayment(
 
 export interface RequestWithdrawalParams {
   wallet_id: string;
-  amount: number;
-  operator: Operator;
-  destination_phone: string;
+  authorization_id: string;
+  pin: string;
   idempotency_key: string;
 }
 
@@ -141,18 +140,10 @@ export interface RequestWithdrawalResult {
 export async function requestWithdrawal(
   params: RequestWithdrawalParams
 ): Promise<RequestWithdrawalResult> {
-  // 🔴 CORRECTIF CRITIQUE : Même normalisation pour les retraits Propriétaire
-  const normalizedPhone = normalizeBjPhone(params.destination_phone);
-
-  if (normalizedPhone.length !== 10) {
-    throw new Error(`Numéro invalide : "${params.destination_phone}". Entrez 10 chiffres locaux (ex: 0197000000)`);
-  }
-
   const payload = {
     wallet_id: params.wallet_id,
-    amount: params.amount,
-    operator: params.operator,
-    destination_phone: normalizedPhone,
+    authorization_id: params.authorization_id,
+    pin: params.pin,
     idempotency_key: params.idempotency_key,
   };
 

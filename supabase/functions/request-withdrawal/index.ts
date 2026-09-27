@@ -5,9 +5,8 @@ import { maskPhone, fetchWithRetry } from "../_shared/security.ts";
 
 const withdrawalSchema = z.object({
   wallet_id: z.string().uuid("ID de wallet invalide"),
-  amount: z.number().int().positive("Le montant doit être supérieur à 0"),
-  operator: z.enum(["mtn", "moov", "celtiis"], { errorMap: () => ({ message: "Opérateur non supporté" }) }),
-  destination_phone: z.string().length(10, "Le numéro doit comporter 10 chiffres"),
+  authorization_id: z.string().uuid("ID d'autorisation invalide"),
+  pin: z.string().length(4, "Le PIN doit contenir 4 chiffres").regex(/^[0-9]{4}$/, "Le PIN ne doit contenir que des chiffres"),
   idempotency_key: z.string().uuid("Clé d'idempotence invalide"),
 });
 
@@ -58,10 +57,19 @@ Deno.serve(async (req: Request) => {
     }
 
     const ownerId = authData.user.id;
-    const { wallet_id: walletId, amount, operator, destination_phone: destinationPhone, idempotency_key: idempotencyKey } = parseResult.data;
+    const { wallet_id: walletId, authorization_id, pin, idempotency_key: idempotencyKey } = parseResult.data;
+    
+    // Service role needed to bypass RLS and read authorization details from our secure function
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // Call the original client auth to maintain RLS context in RPC
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: `Bearer ${jwt}` } } }
     );
 
     const { data: allowed, error: rateLimitError } = await supabase.rpc("check_rate_limit", {
@@ -74,13 +82,11 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: "Trop de demandes de retrait. Veuillez patienter avant de réessayer." }, 429);
     }
 
-    // La réservation du solde et la création du retrait sont une seule transaction.
-    const { data: createdRows, error: creationError } = await supabase.rpc("create_withdrawal_and_deduct", {
+    // Call the secure RPC with the user's JWT context
+    const { data: createdRows, error: creationError } = await userClient.rpc("execute_authorized_withdrawal", {
+      p_auth_id: authorization_id,
+      p_pin: pin,
       p_wallet_id: walletId,
-      p_owner_id: ownerId,
-      p_amount: amount,
-      p_operator: operator,
-      p_destination_phone: destinationPhone,
       p_idempotency_key: idempotencyKey,
     });
 
@@ -92,7 +98,6 @@ Deno.serve(async (req: Request) => {
     const withdrawal = (createdRows?.[0] ?? null) as CreatedWithdrawal | null;
     if (!withdrawal?.withdrawal_id) return jsonResponse({ error: "Impossible de créer le retrait" }, 500);
 
-    // Un retry réseau ne déclenche jamais un second payout avec la même clé.
     if (withdrawal.already_exists) {
       if (withdrawal.withdrawal_status === "echoue") {
         return jsonResponse({ error: "Cette tentative a échoué. Relancez la demande." }, 409);
@@ -103,6 +108,11 @@ Deno.serve(async (req: Request) => {
         message: "Cette demande est déjà en cours de traitement.",
       });
     }
+
+    // Fetch the withdrawal details for FedaPay
+    const { data: withdrawalData } = await supabase.from("withdrawals").select("amount, operator, destination_phone").eq("id", withdrawal.withdrawal_id).single();
+    if (!withdrawalData) return jsonResponse({ error: "Détails introuvables" }, 500);
+    const { amount, operator, destination_phone: destinationPhone } = withdrawalData;
 
     const fedapayKey = Deno.env.get("FEDAPAY_SECRET_KEY");
     if (!fedapayKey) {
@@ -128,7 +138,6 @@ Deno.serve(async (req: Request) => {
             amount,
             currency: { iso: "XOF" },
             mode: payoutMode,
-            // Un timeout reste rapprochable dans le tableau de bord du prestataire.
             description: `Retrait ImoFlex ${withdrawal.withdrawal_id}`,
             customer: {
               firstname: authData.user.user_metadata?.first_name || authData.user.user_metadata?.prenom || "Propriétaire",
@@ -165,7 +174,6 @@ Deno.serve(async (req: Request) => {
     try {
       payoutJson = rawResponse ? JSON.parse(rawResponse) : null;
     } catch {
-      // Une réponse 2xx illisible peut tout de même représenter un payout accepté.
       if (payoutResponse.ok) {
         await supabase.from("audit_logs").insert({
           user_id: ownerId,

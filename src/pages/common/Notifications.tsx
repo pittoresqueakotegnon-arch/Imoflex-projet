@@ -8,7 +8,6 @@ import {
   MessageSquare,
   Home,
   CheckCheck,
-  ChevronRight,
   X,
   Building2,
   Calendar,
@@ -16,13 +15,15 @@ import {
   User,
   ExternalLink,
   ShieldAlert,
+  ShieldCheck,
+  Bell,
+  ArrowRight,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotifications } from '../../hooks/useNotifications';
 import { supabase, Notification } from '../../lib/supabase';
 import { BackButton } from '../../components/BackButton';
-import EmptyState from '../../components/EmptyState';
 import { formatMontant } from '../../lib/utils';
 import { haptics } from '../../lib/haptics';
 
@@ -41,13 +42,14 @@ interface NotifDetails {
   destinationPhone?: string;
   period?: string;
   paymentId?: string;
-  leaseId?: string; // Pour la navigation vers /payer/:leaseId
+  leaseId?: string;
 }
 
 interface TypeConfig {
   icon: LucideIcon;
-  colorClass: string;
-  bgClass: string;
+  color: string;
+  bg: string;
+  dot: string;
   badgeLabel: string;
   category: 'finances' | 'demandes' | 'system';
 }
@@ -55,87 +57,123 @@ interface TypeConfig {
 const TYPE_CONFIGS: Record<string, TypeConfig> = {
   nouveau_versement: {
     icon: CheckCircle2,
-    colorClass: 'text-emerald-600',
-    bgClass: 'bg-emerald-50',
+    color: '#059669',
+    bg: '#ECFDF5',
+    dot: '#10B981',
     badgeLabel: 'Loyer reçu',
     category: 'finances',
   },
   confirmation: {
     icon: CheckCircle2,
-    colorClass: 'text-emerald-600',
-    bgClass: 'bg-emerald-50',
+    color: '#059669',
+    bg: '#ECFDF5',
+    dot: '#10B981',
     badgeLabel: 'Paiement validé',
     category: 'finances',
   },
   rappel: {
     icon: Clock,
-    colorClass: 'text-amber-600',
-    bgClass: 'bg-amber-50',
-    badgeLabel: 'Rappel d\'échéance',
+    color: '#D97706',
+    bg: '#FFFBEB',
+    dot: '#F59E0B',
+    badgeLabel: "Rappel d'échéance",
     category: 'finances',
   },
   retard: {
     icon: AlertTriangle,
-    colorClass: 'text-rose-600',
-    bgClass: 'bg-rose-50',
+    color: '#DC2626',
+    bg: '#FEF2F2',
+    dot: '#EF4444',
     badgeLabel: 'Loyer en retard',
     category: 'finances',
   },
   retrait_complete: {
     icon: Wallet,
-    colorClass: 'text-[#7B3FE4]',
-    bgClass: 'bg-[#F5F3FF]',
-    badgeLabel: 'Retrait validé',
+    color: '#7B3FE4',
+    bg: '#F5F3FF',
+    dot: '#7B3FE4',
+    badgeLabel: 'Retrait effectué',
     category: 'finances',
   },
   retrait_echoue: {
     icon: ShieldAlert,
-    colorClass: 'text-rose-600',
-    bgClass: 'bg-rose-50',
+    color: '#DC2626',
+    bg: '#FEF2F2',
+    dot: '#EF4444',
     badgeLabel: 'Retrait échoué',
+    category: 'finances',
+  },
+  alerte: {
+    icon: ShieldAlert,
+    color: '#DC2626',
+    bg: '#FEF2F2',
+    dot: '#EF4444',
+    badgeLabel: 'Alerte',
     category: 'finances',
   },
   nouveau_locataire: {
     icon: Home,
-    colorClass: 'text-indigo-600',
-    bgClass: 'bg-indigo-50',
+    color: '#4F46E5',
+    bg: '#EEF2FF',
+    dot: '#6366F1',
     badgeLabel: 'Nouveau locataire',
     category: 'demandes',
   },
   nouvelle_demande_contact: {
     icon: MessageSquare,
-    colorClass: 'text-blue-600',
-    bgClass: 'bg-blue-50',
+    color: '#2563EB',
+    bg: '#EFF6FF',
+    dot: '#3B82F6',
     badgeLabel: 'Demande de contact',
     category: 'demandes',
   },
   suppression_annonce_approuvee: {
     icon: CheckCircle2,
-    colorClass: 'text-emerald-600',
-    bgClass: 'bg-emerald-50',
+    color: '#059669',
+    bg: '#ECFDF5',
+    dot: '#10B981',
     badgeLabel: 'Annonce supprimée',
     category: 'demandes',
   },
   suppression_annonce_rejetee: {
     icon: AlertTriangle,
-    colorClass: 'text-rose-600',
-    bgClass: 'bg-rose-50',
+    color: '#DC2626',
+    bg: '#FEF2F2',
+    dot: '#EF4444',
     badgeLabel: 'Suppression rejetée',
     category: 'demandes',
   },
   suppression_annonce_demandee: {
     icon: Clock,
-    colorClass: 'text-amber-600',
-    bgClass: 'bg-amber-50',
+    color: '#D97706',
+    bg: '#FFFBEB',
+    dot: '#F59E0B',
     badgeLabel: 'Demande en cours',
     category: 'demandes',
+  },
+  owner_verified: {
+    icon: ShieldCheck,
+    color: '#7B3FE4',
+    bg: '#F5F3FF',
+    dot: '#7B3FE4',
+    badgeLabel: 'Identité vérifiée',
+    category: 'system',
+  },
+  owner_verification_rejected: {
+    icon: ShieldAlert,
+    color: '#DC2626',
+    bg: '#FEF2F2',
+    dot: '#EF4444',
+    badgeLabel: 'Vérification refusée',
+    category: 'system',
   },
 };
 
 const DEFAULT_TYPE_CONFIG: TypeConfig = {
-  icon: Clock,
-  colorClass: 'text-[#7B3FE4]',
-  bgClass: 'bg-[#F5F3FF]',
+  icon: Bell,
+  color: '#7B3FE4',
+  bg: '#F5F3FF',
+  dot: '#7B3FE4',
   badgeLabel: 'Information',
   category: 'system',
 };
@@ -152,12 +190,12 @@ function formatRelativeDate(isoDate: string): string {
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffMin < 2) return "À l'instant";
-  if (diffMin < 60) return `Il y a ${diffMin} min`;
+  if (diffMin < 60) return `${diffMin} min`;
   if (diffHours < 24 && date.getDate() === now.getDate()) {
     return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   }
   if (diffDays === 1 || (diffDays === 0 && date.getDate() !== now.getDate())) {
-    return `Hier à ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+    return `Hier · ${date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
   }
   if (diffDays < 7) {
     return date.toLocaleDateString('fr-FR', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
@@ -166,78 +204,88 @@ function formatRelativeDate(isoDate: string): string {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Composant NotifCard
+   Composant NotifCard — version premium
 ───────────────────────────────────────────────────────────── */
-function NotifCard({
-  notif,
-  onClick,
-}: {
-  notif: Notification;
-  onClick: () => void;
-}) {
+function NotifCard({ notif, onClick }: { notif: Notification; onClick: () => void }) {
   const config = TYPE_CONFIGS[notif.type] || DEFAULT_TYPE_CONFIG;
   const Icon = config.icon;
   const isUnread = !notif.is_read;
 
   return (
-    <div
+    <button
       onClick={onClick}
-      className={`group relative rounded-2xl p-4 transition-all duration-200 cursor-pointer border ${
-        isUnread
-          ? 'bg-white border-[#7B3FE4]/20 shadow-sm shadow-[#7B3FE4]/5'
-          : 'bg-white/80 hover:bg-white border-gray-100 hover:border-gray-200'
-      } active:scale-[0.99]`}
+      className="w-full text-left"
     >
-      <div className="flex items-start gap-3.5">
-        {/* Icône de type */}
-        <div
-          className={`w-11 h-11 rounded-2xl ${config.bgClass} ${config.colorClass} flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105`}
-        >
-          <Icon size={20} />
-        </div>
+      <div
+        className={`group relative rounded-2xl p-4 transition-all duration-200 active:scale-[0.99] ${
+          isUnread
+            ? 'bg-white shadow-sm'
+            : 'bg-white/70 hover:bg-white'
+        }`}
+        style={{
+          border: isUnread ? `1px solid ${config.color}22` : '1px solid #F3F4F6',
+          boxShadow: isUnread ? `0 2px 16px ${config.color}0d` : undefined,
+        }}
+      >
+        {/* Barre de couleur latérale si non lu */}
+        {isUnread && (
+          <div
+            className="absolute left-0 top-4 bottom-4 w-[3px] rounded-r-full"
+            style={{ background: config.dot }}
+          />
+        )}
 
-        {/* Contenu principal */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <span
-              className={`text-[11px] font-space-grotesk font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${config.bgClass} ${config.colorClass}`}
-            >
-              {config.badgeLabel}
-            </span>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="text-[11px] text-gray-400 font-space-grotesk">
-                {formatRelativeDate(notif.created_at)}
-              </span>
-              {isUnread && (
-                <span className="w-2 h-2 rounded-full bg-[#7B3FE4] flex-shrink-0" />
-              )}
-            </div>
+        <div className="flex items-start gap-3">
+          {/* Icône */}
+          <div
+            className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: config.bg, color: config.color }}
+          >
+            <Icon size={20} />
           </div>
 
-          <h3
-            className={`font-nunito text-[14px] leading-tight mb-1 truncate ${
-              isUnread ? 'font-black text-[#17132B]' : 'font-bold text-gray-800'
-            }`}
-          >
-            {notif.title}
-          </h3>
+          {/* Contenu */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <span
+                className="text-[10px] font-space-grotesk font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex-shrink-0"
+                style={{ background: config.bg, color: config.color }}
+              >
+                {config.badgeLabel}
+              </span>
+              <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
+                <span className="text-[11px] text-gray-400 font-space-grotesk whitespace-nowrap">
+                  {formatRelativeDate(notif.created_at)}
+                </span>
+                {isUnread && (
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ background: config.dot }}
+                  />
+                )}
+              </div>
+            </div>
 
-          <p className="text-[12px] text-gray-500 font-space-grotesk line-clamp-2 leading-relaxed">
-            {notif.body}
-          </p>
-        </div>
+            <h3
+              className={`font-nunito text-[14px] leading-snug mb-0.5 ${
+                isUnread ? 'font-black text-[#17132B]' : 'font-bold text-gray-700'
+              }`}
+            >
+              {notif.title}
+            </h3>
 
-        {/* Flèche subtile */}
-        <div className="self-center flex-shrink-0 text-gray-300 group-hover:text-[#7B3FE4] transition-colors">
-          <ChevronRight size={16} />
+            <p className="text-[12px] text-gray-500 font-space-grotesk line-clamp-2 leading-relaxed">
+              {notif.body}
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Composant DetailSheet
+   Composant DetailSheet — version premium
 ───────────────────────────────────────────────────────────── */
 function DetailSheet({
   notif,
@@ -258,155 +306,170 @@ function DetailSheet({
 
   const getActionText = () => {
     switch (notif.type) {
-      case 'confirmation':
-        return 'Voir le reçu & quittance';
-      case 'nouveau_versement':
-        return 'Voir le tableau de bord';
+      case 'confirmation': return 'Voir le reçu & quittance';
+      case 'nouveau_versement': return 'Voir le tableau de bord';
       case 'rappel':
-      case 'retard':
-        return 'Payer mon loyer';
+      case 'retard': return 'Payer mon loyer';
       case 'retrait_complete':
       case 'retrait_echoue':
-        return 'Voir mon solde';
-      case 'nouvelle_demande_contact':
-        return 'Voir les demandes';
-      default:
-        return 'Accéder aux détails';
+      case 'alerte': return 'Voir mon wallet';
+      case 'nouvelle_demande_contact': return 'Voir les demandes';
+      case 'owner_verified': return 'Faire un retrait';
+      case 'owner_verification_rejected': return 'Soumettre à nouveau';
+      default: return 'Accéder aux détails';
     }
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm"
+      style={{ animation: 'fadeIn 0.2s ease' }}
       onClick={onClose}
     >
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
+        @keyframes zoomIn { from { opacity:0; transform: scale(0.95) } to { opacity:1; transform: scale(1) } }
+        .detail-sheet { animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1) both; }
+        @media (min-width: 640px) { .detail-sheet { animation: zoomIn 0.25s cubic-bezier(0.16,1,0.3,1) both; } }
+      `}</style>
       <div
-        className="w-full max-w-md bg-white rounded-[28px] p-6 shadow-2xl border border-gray-100 max-h-[88vh] overflow-y-auto my-auto animate-in zoom-in-95"
+        className="detail-sheet w-full max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] shadow-2xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* En-tête */}
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <div className="flex items-center gap-3">
+        {/* Drag indicator */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-gray-200" />
+        </div>
+
+        {/* Header coloré */}
+        <div
+          className="px-6 pt-6 pb-5 flex items-start justify-between gap-4"
+          style={{
+            background: `linear-gradient(135deg, ${config.color}15, ${config.color}05)`,
+            borderBottom: `1px solid ${config.color}15`,
+          }}
+        >
+          <div className="flex items-center gap-4">
             <div
-              className={`w-12 h-12 rounded-2xl ${config.bgClass} ${config.colorClass} flex items-center justify-center flex-shrink-0`}
+              className="w-14 h-14 rounded-[18px] flex items-center justify-center flex-shrink-0 shadow-sm"
+              style={{ background: config.bg, color: config.color }}
             >
-              <Icon size={24} />
+              <Icon size={26} />
             </div>
             <div>
               <span
-                className={`text-[11px] font-space-grotesk font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${config.bgClass} ${config.colorClass}`}
+                className="text-[11px] font-space-grotesk font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
+                style={{ background: config.bg, color: config.color }}
               >
                 {config.badgeLabel}
               </span>
-              <p className="text-[12px] text-gray-400 font-space-grotesk mt-1">
+              <p className="text-[11px] text-gray-400 font-space-grotesk mt-1.5">
                 {new Date(notif.created_at).toLocaleDateString('fr-FR', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
+                  day: 'numeric', month: 'long', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit',
                 })}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 active:bg-gray-200 transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
           >
             <X size={16} />
           </button>
         </div>
 
-        {/* Titre & Corps */}
-        <h2 className="font-nunito font-black text-[18px] text-[#17132B] mb-2 leading-snug">
-          {notif.title}
-        </h2>
-        <p className="text-[14px] text-gray-600 font-space-grotesk leading-relaxed mb-6 whitespace-pre-line">
-          {notif.body}
-        </p>
+        {/* Corps */}
+        <div className="px-6 py-5">
+          <h2 className="font-nunito font-black text-[20px] text-[#17132B] mb-2 leading-snug">
+            {notif.title}
+          </h2>
+          <p className="text-[14px] text-gray-600 font-space-grotesk leading-relaxed mb-5 whitespace-pre-line">
+            {notif.body}
+          </p>
 
-        {/* Données complémentaires chargées */}
-        {loading ? (
-          <div className="bg-gray-50 rounded-2xl p-4 animate-pulse space-y-2 mb-6">
-            <div className="h-4 bg-gray-200 rounded-md w-1/3" />
-            <div className="h-4 bg-gray-200 rounded-md w-2/3" />
-          </div>
-        ) : details ? (
-          <div className="bg-[#F8F7FF] rounded-2xl p-4 border border-[#7B3FE4]/10 space-y-3 mb-6">
-            {details.amount !== undefined && (
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] text-gray-400 font-space-grotesk">Montant</span>
-                <span className="font-nunito font-900 text-[18px] text-[#7B3FE4]">
-                  {formatMontant(details.amount)} FCFA
-                </span>
-              </div>
-            )}
+          {/* Données complémentaires */}
+          {loading ? (
+            <div className="rounded-2xl p-4 space-y-3 mb-5" style={{ background: '#F9FAFB' }}>
+              <div className="h-3 bg-gray-200 rounded-md w-1/3 animate-pulse" />
+              <div className="h-4 bg-gray-200 rounded-md w-2/3 animate-pulse" />
+              <div className="h-3 bg-gray-200 rounded-md w-1/2 animate-pulse" />
+            </div>
+          ) : details && Object.values(details).some(Boolean) ? (
+            <div
+              className="rounded-2xl p-4 space-y-3 mb-5"
+              style={{ background: `${config.color}08`, border: `1px solid ${config.color}18` }}
+            >
+              {details.amount !== undefined && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-gray-400 font-space-grotesk">Montant</span>
+                  <span className="font-nunito font-900 text-[20px]" style={{ color: config.color }}>
+                    {formatMontant(details.amount)} FCFA
+                  </span>
+                </div>
+              )}
+              {details.period && (
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-gray-400 font-space-grotesk flex items-center gap-1.5">
+                    <Calendar size={13} /> Période
+                  </span>
+                  <span className="font-space-grotesk font-bold text-[#17132B]">{details.period}</span>
+                </div>
+              )}
+              {details.listingTitle && (
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-gray-400 font-space-grotesk flex items-center gap-1.5">
+                    <Building2 size={13} /> Logement
+                  </span>
+                  <span className="font-nunito font-bold text-[#17132B] max-w-[200px] truncate text-right">
+                    {details.listingTitle}
+                  </span>
+                </div>
+              )}
+              {details.senderName && (
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-gray-400 font-space-grotesk flex items-center gap-1.5">
+                    <User size={13} /> Demandeur
+                  </span>
+                  <span className="font-space-grotesk font-bold text-[#17132B]">{details.senderName}</span>
+                </div>
+              )}
+              {details.senderPhone && (
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-gray-400 font-space-grotesk flex items-center gap-1.5">
+                    <Phone size={13} /> Téléphone
+                  </span>
+                  <span className="font-mono text-[13px] font-bold text-[#17132B]">{details.senderPhone}</span>
+                </div>
+              )}
+              {details.destinationPhone && (
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-gray-400 font-space-grotesk flex items-center gap-1.5">
+                    <Phone size={13} /> Vers
+                  </span>
+                  <span className="font-mono text-[13px] font-bold text-[#17132B]">
+                    {details.destinationPhone}
+                    {details.operator && <span className="font-space-grotesk text-gray-500 ml-1">({details.operator.toUpperCase()})</span>}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : null}
 
-            {details.period && (
-              <div className="flex items-center justify-between text-[13px]">
-                <span className="text-gray-400 font-space-grotesk flex items-center gap-1.5">
-                  <Calendar size={14} /> Période
-                </span>
-                <span className="font-space-grotesk font-bold text-[#17132B]">
-                  {details.period}
-                </span>
-              </div>
-            )}
-
-            {details.listingTitle && (
-              <div className="flex items-center justify-between text-[13px]">
-                <span className="text-gray-400 font-space-grotesk flex items-center gap-1.5">
-                  <Building2 size={14} /> Logement
-                </span>
-                <span className="font-nunito font-bold text-[#17132B] max-w-[200px] truncate text-right">
-                  {details.listingTitle}
-                </span>
-              </div>
-            )}
-
-            {details.senderName && (
-              <div className="flex items-center justify-between text-[13px]">
-                <span className="text-gray-400 font-space-grotesk flex items-center gap-1.5">
-                  <User size={14} /> Demandeur
-                </span>
-                <span className="font-space-grotesk font-bold text-[#17132B]">
-                  {details.senderName}
-                </span>
-              </div>
-            )}
-
-            {details.senderPhone && (
-              <div className="flex items-center justify-between text-[13px]">
-                <span className="text-gray-400 font-space-grotesk flex items-center gap-1.5">
-                  <Phone size={14} /> Téléphone
-                </span>
-                <span className="font-mono text-[13px] font-bold text-[#17132B]">
-                  {details.senderPhone}
-                </span>
-              </div>
-            )}
-
-            {details.destinationPhone && (
-              <div className="flex items-center justify-between text-[13px]">
-                <span className="text-gray-400 font-space-grotesk flex items-center gap-1.5">
-                  <Phone size={14} /> Numéro de réception
-                </span>
-                <span className="font-mono text-[13px] font-bold text-[#17132B]">
-                  {details.destinationPhone} ({details.operator?.toUpperCase() || ''})
-                </span>
-              </div>
-            )}
-          </div>
-        ) : null}
-
-        {/* Bouton d'action contextuel */}
-        <button
-          onClick={onAction}
-          className="w-full bg-[#7B3FE4] text-white font-nunito font-900 text-[15px] rounded-2xl py-4 flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg shadow-[#7B3FE4]/25"
-        >
-          <span>{getActionText()}</span>
-          <ExternalLink size={16} />
-        </button>
+          {/* Bouton d'action */}
+          <button
+            onClick={onAction}
+            className="w-full text-white font-nunito font-900 text-[15px] rounded-2xl py-4 flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all"
+            style={{
+              background: `linear-gradient(135deg, ${config.color}, ${config.color}cc)`,
+              boxShadow: `0 8px 24px ${config.color}40`,
+            }}
+          >
+            <span>{getActionText()}</span>
+            <ArrowRight size={17} />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -418,13 +481,7 @@ function DetailSheet({
 export default function Notifications() {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const {
-    notifications,
-    unreadCount,
-    loading,
-    markAllRead,
-    markRead,
-  } = useNotifications(profile?.id);
+  const { notifications, unreadCount, loading, markAllRead, markRead } = useNotifications(profile?.id);
 
   const [tab, setTab] = useState<FilterTab>('all');
   const [selected, setSelected] = useState<Notification | null>(null);
@@ -435,10 +492,7 @@ export default function Notifications() {
 
   /* ── Chargement des détails associés ───────────── */
   const loadDetails = useCallback(async (notif: Notification) => {
-    if (!notif.related_id) {
-      setDetails(null);
-      return;
-    }
+    if (!notif.related_id) { setDetails(null); return; }
     setLoadingDetails(true);
     try {
       const d: NotifDetails = {};
@@ -455,7 +509,7 @@ export default function Notifications() {
           d.senderName = (data.users as any)?.full_name;
           d.listingTitle = (data.listings as any)?.title;
         }
-      } else if (['retrait_complete', 'retrait_echoue'].includes(notif.type)) {
+      } else if (['retrait_complete', 'retrait_echoue', 'alerte'].includes(notif.type)) {
         const { data } = await supabase
           .from('withdrawals')
           .select('amount, operator, destination_phone')
@@ -467,16 +521,9 @@ export default function Notifications() {
           d.destinationPhone = data.destination_phone;
         }
       } else if (['nouveau_versement', 'confirmation'].includes(notif.type)) {
-        // Tenter d'abord de récupérer le paiement associé
         const { data: pay } = await supabase
           .from('payments')
-          .select(`
-            id, amount, operator,
-            rent_periods:rent_period_id (
-              period_month, period_year,
-              leases:lease_id (properties:property_id (name))
-            )
-          `)
+          .select(`id, amount, operator, rent_periods:rent_period_id (period_month, period_year, leases:lease_id (properties:property_id (name)))`)
           .eq('id', notif.related_id)
           .maybeSingle();
 
@@ -491,7 +538,6 @@ export default function Notifications() {
             d.listingTitle = rp.leases?.properties?.name;
           }
         } else {
-          // Fallback sur rent_periods
           const { data: rp } = await supabase
             .from('rent_periods')
             .select('amount_due, period_month, period_year, leases(properties(name))')
@@ -515,7 +561,6 @@ export default function Notifications() {
           const months = ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
           d.period = `${months[(rp.period_month ?? 1) - 1]} ${rp.period_year}`;
           d.listingTitle = (rp.leases as any)?.properties?.name;
-          // Récupérer le lease_id pour naviguer vers /payer/:leaseId
           d.leaseId = (rp as any).lease_id || (rp.leases as any)?.id;
         }
       }
@@ -531,9 +576,7 @@ export default function Notifications() {
   /* ── Clic sur une notification ─────────────────── */
   const handleClick = async (notif: Notification) => {
     haptics.light();
-    if (!notif.is_read) {
-      await markRead(notif.id);
-    }
+    if (!notif.is_read) await markRead(notif.id);
     setDetails(null);
     setSelected(notif);
     loadDetails(notif);
@@ -546,24 +589,19 @@ export default function Notifications() {
     setSelected(null);
 
     if (notif.type === 'confirmation') {
-      if (details?.paymentId || notif.related_id) {
-        navigate(`/recu/${details?.paymentId || notif.related_id}`);
-      } else {
-        navigate('/historique');
-      }
+      navigate(details?.paymentId || notif.related_id ? `/recu/${details?.paymentId || notif.related_id}` : '/historique');
     } else if (notif.type === 'nouveau_versement') {
       navigate(role === 'proprietaire' ? '/pro/dashboard' : '/historique');
     } else if (['rappel', 'retard'].includes(notif.type)) {
-      // Naviguer vers /payer/:leaseId si on a le lease_id, sinon vers le dashboard
-      if (details?.leaseId) {
-        navigate(`/payer/${details.leaseId}`);
-      } else {
-        navigate('/dashboard');
-      }
-    } else if (['retrait_complete', 'retrait_echoue'].includes(notif.type)) {
+      navigate(details?.leaseId ? `/payer/${details.leaseId}` : '/dashboard');
+    } else if (['retrait_complete', 'retrait_echoue', 'alerte'].includes(notif.type)) {
       navigate('/pro/wallet');
     } else if (notif.type === 'nouvelle_demande_contact') {
       navigate(role === 'proprietaire' ? '/pro/demandes' : '/mes-demandes');
+    } else if (notif.type === 'owner_verified') {
+      navigate('/pro/retrait');
+    } else if (notif.type === 'owner_verification_rejected') {
+      navigate('/pro/verification');
     } else {
       navigate(role === 'proprietaire' ? '/pro/dashboard' : '/');
     }
@@ -573,14 +611,8 @@ export default function Notifications() {
   const filtered = useMemo(() => {
     return notifications.filter((n) => {
       if (tab === 'unread') return !n.is_read;
-      if (tab === 'finances') {
-        const cfg = TYPE_CONFIGS[n.type] || DEFAULT_TYPE_CONFIG;
-        return cfg.category === 'finances';
-      }
-      if (tab === 'demandes') {
-        const cfg = TYPE_CONFIGS[n.type] || DEFAULT_TYPE_CONFIG;
-        return cfg.category === 'demandes';
-      }
+      if (tab === 'finances') return (TYPE_CONFIGS[n.type] || DEFAULT_TYPE_CONFIG).category === 'finances';
+      if (tab === 'demandes') return (TYPE_CONFIGS[n.type] || DEFAULT_TYPE_CONFIG).category === 'demandes';
       return true;
     });
   }, [notifications, tab]);
@@ -590,27 +622,21 @@ export default function Notifications() {
     const today: Notification[] = [];
     const thisWeek: Notification[] = [];
     const older: Notification[] = [];
-
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     const startOfWeek = startOfToday - 6 * 24 * 60 * 60 * 1000;
 
     filtered.forEach((n) => {
       const time = new Date(n.created_at).getTime();
-      if (time >= startOfToday) {
-        today.push(n);
-      } else if (time >= startOfWeek) {
-        thisWeek.push(n);
-      } else {
-        older.push(n);
-      }
+      if (time >= startOfToday) today.push(n);
+      else if (time >= startOfWeek) thisWeek.push(n);
+      else older.push(n);
     });
 
     const list: { label: string; items: Notification[] }[] = [];
     if (today.length > 0) list.push({ label: "Aujourd'hui", items: today });
     if (thisWeek.length > 0) list.push({ label: 'Cette semaine', items: thisWeek });
     if (older.length > 0) list.push({ label: 'Plus ancien', items: older });
-
     return list;
   }, [filtered]);
 
@@ -623,70 +649,57 @@ export default function Notifications() {
 
   return (
     <div
-      className="min-h-screen bg-[#F8F7FF] flex flex-col"
-      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 32px)' }}
+      className="min-h-screen flex flex-col"
+      style={{ background: '#F6F5FF', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 32px)' }}
     >
-      {/* ── Header ────────────────────────────────────── */}
+      {/* ── Header premium ────────────────────────────── */}
       <header
-        className="sticky top-0 z-30 bg-white/95 backdrop-blur-md px-5 pb-3 border-b border-gray-100"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
+        className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100/80"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: '12px' }}
       >
-        <div className="flex items-center justify-between mb-3">
+        <div className="px-5 flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <BackButton />
             <div>
-              <h1 className="font-nunito font-900 text-xl text-[#17132B] leading-none">
+              <h1 className="font-nunito font-900 text-[22px] text-[#17132B] leading-none">
                 Notifications
               </h1>
-              {unreadCount > 0 ? (
-                <p className="text-[12px] text-[#7B3FE4] font-space-grotesk font-semibold mt-0.5">
-                  {unreadCount} non lue{unreadCount > 1 ? 's' : ''}
-                </p>
-              ) : (
-                <p className="text-[12px] text-gray-400 font-space-grotesk mt-0.5">
-                  Toutes vos alertes
-                </p>
-              )}
+              <p className="text-[12px] font-space-grotesk mt-0.5" style={{ color: unreadCount > 0 ? '#7B3FE4' : '#9CA3AF' }}>
+                {unreadCount > 0 ? `${unreadCount} non lue${unreadCount > 1 ? 's' : ''}` : 'Tout est à jour ✓'}
+              </p>
             </div>
           </div>
 
           {unreadCount > 0 && (
             <button
-              onClick={() => {
-                haptics.light();
-                markAllRead();
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-space-grotesk font-bold bg-[#F5F3FF] text-[#7B3FE4] active:bg-[#EDE9FE] transition-colors"
+              onClick={() => { haptics.light(); markAllRead(); }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-space-grotesk font-bold transition-colors active:scale-95"
+              style={{ background: '#F5F3FF', color: '#7B3FE4' }}
             >
-              <CheckCheck size={14} />
-              <span>Tout lire</span>
+              <CheckCheck size={13} />
+              Tout lire
             </button>
           )}
         </div>
 
-        {/* ── Onglets de filtres ──────────────────────── */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pt-1">
+        {/* Filtres */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide px-5">
           {tabs.map((t) => {
             const active = tab === t.key;
             return (
               <button
                 key={t.key}
-                onClick={() => {
-                  haptics.light();
-                  setTab(t.key);
-                }}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-space-grotesk font-bold transition-all active:scale-95 ${
-                  active
-                    ? 'bg-[#7B3FE4] text-white shadow-sm shadow-[#7B3FE4]/20'
-                    : 'bg-gray-50 text-gray-600 border border-gray-100'
+                onClick={() => { haptics.light(); setTab(t.key); }}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-[12px] font-space-grotesk font-bold transition-all active:scale-95 ${
+                  active ? 'text-white' : 'text-gray-500 bg-gray-50 border border-gray-100'
                 }`}
+                style={active ? { background: 'linear-gradient(135deg, #7B3FE4, #A855F7)', boxShadow: '0 4px 12px #7B3FE430' } : {}}
               >
-                <span>{t.label}</span>
+                {t.label}
                 {t.count !== undefined && t.count > 0 && (
                   <span
-                    className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full min-w-[16px] text-center ${
-                      active ? 'bg-white/25 text-white' : 'bg-[#7B3FE4]/10 text-[#7B3FE4]'
-                    }`}
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+                    style={active ? { background: 'rgba(255,255,255,0.25)', color: 'white' } : { background: '#EDE9FE', color: '#7B3FE4' }}
                   >
                     {t.count}
                   </span>
@@ -697,47 +710,48 @@ export default function Notifications() {
         </div>
       </header>
 
-      {/* ── Contenu / Liste ───────────────────────────── */}
+      {/* ── Contenu ───────────────────────────────────── */}
       <main className="flex-1 px-4 py-4 max-w-lg mx-auto w-full">
         {loading ? (
           <div className="space-y-3 pt-2">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="bg-white rounded-2xl p-4 flex items-center gap-3 animate-pulse border border-gray-100"
-              >
-                <div className="w-11 h-11 rounded-2xl bg-gray-100 flex-shrink-0" />
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="bg-white rounded-2xl p-4 flex items-center gap-3 border border-gray-100">
+                <div className="w-11 h-11 rounded-2xl bg-gray-100 flex-shrink-0 animate-pulse" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-3 bg-gray-100 rounded-md w-1/4" />
-                  <div className="h-4 bg-gray-100 rounded-md w-3/4" />
-                  <div className="h-3 bg-gray-100 rounded-md w-1/2" />
+                  <div className="h-3 bg-gray-100 rounded-md w-1/4 animate-pulse" />
+                  <div className="h-4 bg-gray-100 rounded-md w-3/4 animate-pulse" />
+                  <div className="h-3 bg-gray-100 rounded-md w-1/2 animate-pulse" />
                 </div>
               </div>
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="pt-12">
-            <EmptyState
-              title={tab === 'unread' ? 'Aucune notification non lue' : 'Aucune notification'}
-              description={
-                tab === 'unread'
-                  ? 'Vous êtes à jour ! Toutes vos alertes ont été consultées.'
-                  : 'Vos alertes et mises à jour de loyer apparaîtront ici.'
-              }
-            />
+          <div className="pt-20 flex flex-col items-center text-center">
+            <div className="w-20 h-20 rounded-[28px] bg-[#F5F3FF] flex items-center justify-center mb-5">
+              <Bell size={36} className="text-[#7B3FE4]" />
+            </div>
+            <h2 className="font-nunito font-900 text-[20px] text-[#17132B] mb-2">
+              {tab === 'unread' ? 'Tout à jour !' : 'Aucune notification'}
+            </h2>
+            <p className="font-space-grotesk text-[14px] text-gray-400 max-w-[260px] leading-relaxed">
+              {tab === 'unread'
+                ? 'Vous avez consulté toutes vos alertes.'
+                : 'Vos alertes de loyer et mises à jour apparaîtront ici.'}
+            </p>
           </div>
         ) : (
           <div className="space-y-6">
             {groups.map(({ label, items }) => (
               <div key={label}>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[11px] font-space-grotesk font-bold uppercase tracking-wider text-gray-400">
+                {/* Séparateur de groupe */}
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-[11px] font-space-grotesk font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap">
                     {label}
                   </span>
-                  <div className="flex-1 h-px bg-gray-200" />
+                  <div className="flex-1 h-px bg-gray-200/70" />
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {items.map((notif) => (
                     <NotifCard
                       key={notif.id}
@@ -752,7 +766,7 @@ export default function Notifications() {
         )}
       </main>
 
-      {/* ── Bottom Sheet de détail ─────────────────────── */}
+      {/* ── Detail Sheet ─────────────────────────────── */}
       {selected && (
         <DetailSheet
           notif={selected}

@@ -10,6 +10,18 @@ import {
 import App from './App.tsx';
 import './index.css';
 
+import { registerSW } from 'virtual:pwa-register';
+
+// Démarre le service worker en mode autoUpdate
+const updateSW = registerSW({
+  onNeedRefresh() {
+    console.log("Nouvelle version disponible !");
+  },
+  onOfflineReady() {
+    console.log("L'application est prête à être utilisée hors ligne.");
+  },
+});
+
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
 if (sentryDsn) {
   Sentry.init({

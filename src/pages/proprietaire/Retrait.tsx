@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Check, ArrowRight, Wallet2, Phone, AlertTriangle, Copy, Clock3, ShieldCheck } from "lucide-react";
+import { ChevronLeft, Check, ArrowRight, Wallet2, Phone, AlertTriangle, Copy, Clock3, ShieldCheck, Lock } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useWallet } from "../../hooks/useWallet";
 import { requestWithdrawal, normalizeBjPhone } from "../../lib/fedapay";
 import { formatMontant } from "../../lib/utils";
 import { useToast } from "../../components/Toast";
-import { Operator } from "../../lib/supabase";
+import { Operator, supabase } from "../../lib/supabase";
 import { logAction } from "../../lib/audit";
 import { haptics } from "../../lib/haptics";
 import { useOwnerVerification } from "../../hooks/useOwnerVerification";
 import { OWNER_VERIFICATION_STATUS_META } from "../../lib/ownerVerification";
 
-type Step = "form" | "confirm" | "success";
+type Step = "form" | "setup_pin" | "confirm" | "success";
 
 const OPERATOR_CONFIG: Record<Operator, { label: string; color: string; bg: string }> = {
   mtn:     { label: "MTN Mobile Money", color: "#FBBF24", bg: "#FFFBEB" },
@@ -49,6 +49,12 @@ const Retrait: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
+  
+  // Security
+  const [hasPin, setHasPin] = useState<boolean | null>(null);
+  const [newPin, setNewPin] = useState("");
+  const [pin, setPin] = useState("");
+  const [authId, setAuthId] = useState<string | null>(null);
   const withdrawalIdempotencyKey = useRef(crypto.randomUUID());
 
   useEffect(() => {
@@ -61,8 +67,14 @@ const Retrait: React.FC = () => {
 
   useEffect(() => {
     const init = async () => {
-      try { await ensureWallet(); }
-      catch (err) { console.error("Error ensuring wallet:", err); showToast("Erreur lors de l'initialisation du wallet", "error"); }
+      try { 
+        await ensureWallet(); 
+        if (profile?.id) {
+          const { data } = await supabase.from('users').select('has_withdrawal_pin').eq('id', profile.id).single();
+          setHasPin(data?.has_withdrawal_pin ?? false);
+        }
+      }
+      catch (err) { console.error("Error ensuring wallet:", err); showToast("Erreur d'initialisation", "error"); }
     };
     init();
   }, [profile?.id, ensureWallet, showToast]);
@@ -96,9 +108,7 @@ const Retrait: React.FC = () => {
     return null;
   };
 
-  // L'interface explique le blocage, mais le même contrôle est aussi appliqué
-  // côté SQL avant tout débit du wallet : aucun contournement client possible.
-  if (verificationLoading) {
+  if (verificationLoading || hasPin === null) {
     return (
       <div className="min-h-screen premium-page flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[var(--imx-accent)] border-t-transparent rounded-full animate-spin" />
@@ -143,24 +153,73 @@ const Retrait: React.FC = () => {
     );
   }
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     const err = validateForm();
     if (err) { setError(err); return; }
     setError(null);
     haptics.light();
-    setStep("confirm");
+
+    if (!hasPin) {
+      setStep("setup_pin");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error: authError } = await supabase.rpc("create_withdrawal_authorization", {
+        p_amount: parsedAmount,
+        p_destination_phone: normalizeBjPhone(phoneNumber),
+        p_operator: selectedOperator
+      });
+      if (authError) throw authError;
+      setAuthId(data);
+      setPin("");
+      setStep("confirm");
+    } catch (err: any) {
+      setError(err.message || "Erreur de création d'autorisation");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetupPin = async () => {
+    if (newPin.length !== 4) return setError("Le code doit contenir 4 chiffres");
+    setLoading(true);
+    setError(null);
+    try {
+      const { error: pinError } = await supabase.rpc("set_initial_withdrawal_pin", { p_pin: newPin });
+      if (pinError) throw pinError;
+      setHasPin(true);
+      showToast("Code configuré avec succès", "success");
+      
+      // Directement continuer avec l'autorisation
+      const { data, error: authError } = await supabase.rpc("create_withdrawal_authorization", {
+        p_amount: parsedAmount,
+        p_destination_phone: normalizeBjPhone(phoneNumber),
+        p_operator: selectedOperator
+      });
+      if (authError) throw authError;
+      setAuthId(data);
+      setPin("");
+      setStep("confirm");
+    } catch (err: any) {
+      setError(err.message || "Erreur de configuration du code");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleConfirm = async () => {
-    if (!wallet || !profile?.id) return;
+    if (!wallet || !profile?.id || !authId) return;
+    if (pin.length !== 4) return setError("Saisissez votre code à 4 chiffres");
+
     setLoading(true);
     setError(null);
     try {
       const result = await requestWithdrawal({
         wallet_id: wallet.id,
-        amount: parsedAmount,
-        operator: selectedOperator,
-        destination_phone: phoneNumber,
+        authorization_id: authId,
+        pin: pin,
         idempotency_key: withdrawalIdempotencyKey.current,
       });
 
@@ -206,7 +265,7 @@ const Retrait: React.FC = () => {
             </div>
           </div>
           <h1 className="font-nunito font-900 text-white text-[24px] text-center leading-tight mb-2 px-6">
-            Retrait demande avec succes
+            Retrait demandé avec succès
           </h1>
           <p className="font-space-grotesk text-white/80 text-[14px] text-center px-8">
             <strong className="text-white">{formatMontant(successData.amount)}</strong> en cours de traitement vers {opCfg.label}
@@ -242,10 +301,10 @@ const Retrait: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center justify-between py-2.5">
-              <span className="font-space-grotesk text-[12px] text-gray-500">Reference</span>
+              <span className="font-space-grotesk text-[12px] text-gray-500">Référence</span>
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[12px] text-[#17132B] font-semibold">{cleanRef}</span>
-                <button onClick={async () => { try { await navigator.clipboard.writeText(successData.withdrawalId); showToast("Reference copiee", "success"); } catch { showToast("Copie impossible", "error"); } }}
+                <button onClick={async () => { try { await navigator.clipboard.writeText(successData.withdrawalId); showToast("Référence copiée", "success"); } catch { showToast("Copie impossible", "error"); } }}
                   className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center active:bg-gray-200">
                   <Copy size={11} className="text-gray-500" />
                 </button>
@@ -262,6 +321,52 @@ const Retrait: React.FC = () => {
           <button onClick={() => { haptics.light(); navigate("/pro/dashboard"); }}
             className="w-full border-2 border-gray-200 text-[#17132B] font-nunito font-800 text-[14px] rounded-2xl py-3 active:opacity-60">
             Retour au tableau de bord
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ====== SETUP PIN ====== */
+  if (step === "setup_pin") {
+    return (
+      <div className="min-h-screen bg-white flex flex-col" style={{ paddingBottom: "calc(env(safe-area-inset-bottom,0px)+32px)" }}>
+        <div className="px-6 pb-4 border-b border-gray-100 flex items-center gap-4" style={{ paddingTop: "calc(env(safe-area-inset-top,0px)+20px)" }}>
+          <button onClick={() => { haptics.light(); setStep("form"); }}
+            className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center active:bg-gray-200 flex-shrink-0">
+            <ChevronLeft size={20} className="text-[#17132B]" />
+          </button>
+          <h1 className="font-nunito font-900 text-[18px] text-[#17132B]">Sécurité des retraits</h1>
+        </div>
+        <div className="flex-1 px-6 py-8 flex flex-col items-center justify-center gap-6">
+          <div className="w-16 h-16 rounded-full bg-[#F5F3FF] flex items-center justify-center mb-2">
+            <Lock size={32} className="text-[#7B3FE4]" />
+          </div>
+          <div className="text-center">
+            <h2 className="font-nunito font-900 text-[20px] text-[#17132B]">Créer un code de retrait</h2>
+            <p className="font-space-grotesk text-[13px] text-gray-500 mt-2">Pour sécuriser vos fonds, configurez un code personnel à 4 chiffres. Ce code vous sera demandé à chaque retrait.</p>
+          </div>
+          
+          <input 
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            value={newPin}
+            onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
+            className="w-48 text-center text-[32px] tracking-[1em] font-mono border-b-2 border-gray-300 focus:border-[#7B3FE4] outline-none py-2"
+            placeholder="••••"
+          />
+
+          {error && (
+            <div className="rounded-[16px] p-4 flex items-start gap-3 bg-red-50 border border-red-200 w-full mt-4">
+              <AlertTriangle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="font-space-grotesk text-[13px] text-red-600">{error}</p>
+            </div>
+          )}
+          
+          <button onClick={handleSetupPin} disabled={loading || newPin.length !== 4}
+            className="w-full mt-auto bg-[#7B3FE4] text-white font-nunito font-900 text-[16px] rounded-2xl py-4 flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg shadow-[#7B3FE4]/30 disabled:opacity-60">
+            {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Enregistrer et continuer"}
           </button>
         </div>
       </div>
@@ -294,31 +399,31 @@ const Retrait: React.FC = () => {
                 <div className="w-3 h-3 rounded-full" style={{ background: opCfg.color }} />
               </div>
               <div>
-                <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Operateur</p>
-                <p className="font-nunito font-800 text-[14px] text-[#17132B]">{opCfg.label}</p>
-              </div>
-            </div>
-            <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                <Phone size={15} className="text-gray-500" />
-              </div>
-              <div>
-                <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Numero de reception</p>
-                <p className="font-space-grotesk font-semibold text-[14px] text-[#17132B]">+229 {maskPhone(cleanPhone)}</p>
+                <p className="text-[10px] text-gray-400 font-space-grotesk font-bold uppercase tracking-wide">Vers</p>
+                <p className="font-nunito font-800 text-[14px] text-[#17132B]">{opCfg.label} • +229 {maskPhone(cleanPhone)}</p>
               </div>
             </div>
             <div className="px-5 py-3 border-b border-gray-100 flex justify-between items-center">
-              <span className="text-[12px] text-gray-400 font-space-grotesk">Montant demande</span>
-              <span className="font-nunito font-900 text-[15px] text-[#17132B]">{formatMontant(parsedAmount)}</span>
-            </div>
-            <div className="px-5 py-3 border-b border-gray-100 flex justify-between items-center">
-              <span className="text-[12px] text-gray-400 font-space-grotesk">Frais de retrait</span>
+              <span className="text-[12px] text-gray-400 font-space-grotesk">Frais</span>
               <span className="font-space-grotesk font-bold text-[12px] text-[#10B981]">Gratuit</span>
             </div>
             <div className="px-5 py-3 flex justify-between items-center">
               <span className="font-space-grotesk font-semibold text-[13px] text-[#17132B]">Vous recevrez</span>
               <span className="font-nunito font-900 text-[16px] text-[#7B3FE4]">{formatMontant(amountReceived)}</span>
             </div>
+          </div>
+
+          <div className="mt-4 flex flex-col items-center">
+            <p className="font-nunito font-800 text-[#17132B] mb-3">Saisissez votre code de retrait :</p>
+            <input 
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+              className="w-48 text-center text-[32px] tracking-[1em] font-mono border-b-2 border-gray-300 focus:border-[#7B3FE4] outline-none py-2"
+              placeholder="••••"
+            />
           </div>
 
           {error && (
@@ -330,18 +435,12 @@ const Retrait: React.FC = () => {
         </div>
 
         <div className="px-6 flex flex-col gap-3">
-          <button onClick={handleConfirm} disabled={loading}
+          <button onClick={handleConfirm} disabled={loading || pin.length !== 4}
             className="w-full bg-[#7B3FE4] text-white font-nunito font-900 text-[16px] rounded-2xl py-4 flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg shadow-[#7B3FE4]/30 disabled:opacity-60">
             {loading ? (
               <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />Traitement en cours...</>
             ) : "Confirmer le retrait"}
           </button>
-          {!loading && (
-            <button onClick={() => { haptics.light(); setStep("form"); }}
-              className="w-full text-[#17132B] font-nunito font-800 text-[15px] rounded-2xl py-3 active:opacity-60 transition-opacity text-center">
-              Modifier
-            </button>
-          )}
         </div>
       </div>
     );
@@ -373,7 +472,6 @@ const Retrait: React.FC = () => {
               <p className="font-nunito font-900 text-[22px] text-[#17132B] leading-tight">{formatMontant(availableBalance)}</p>
             </div>
           </div>
-          <p className="font-space-grotesk text-[11px] text-gray-400">Montant disponible pour retrait immediat</p>
         </div>
 
         {/* Zone montant */}
@@ -398,15 +496,9 @@ const Retrait: React.FC = () => {
             <span className="font-nunito font-900 text-[18px] text-[#7B3FE4]">FCFA</span>
           </div>
 
-          {/* Feedback */}
           {parsedAmount > availableBalance && availableBalance > 0 && (
             <p className="text-red-500 text-[12px] font-space-grotesk font-bold flex items-center justify-center gap-1 mb-3">
-              <AlertTriangle size={12} /> Montant superieur au solde disponible
-            </p>
-          )}
-          {parsedAmount > 0 && parsedAmount <= availableBalance && (
-            <p className="text-[#10B981] text-[12px] font-space-grotesk font-semibold text-center mb-3">
-              Solde apres retrait : {formatMontant(availableBalance - parsedAmount)}
+              <AlertTriangle size={12} /> Montant supérieur au solde disponible
             </p>
           )}
 
@@ -458,33 +550,15 @@ const Retrait: React.FC = () => {
 
         {/* Numero Mobile Money */}
         <div className="bg-white rounded-[24px] p-5 border border-gray-100 shadow-sm">
-          <p className="font-space-grotesk text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Numero Mobile Money</p>
+          <p className="font-space-grotesk text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Numéro Mobile Money</p>
           <div className="flex items-center gap-2 rounded-[16px] border border-gray-200 focus-within:border-[#7B3FE4] transition-colors overflow-hidden px-4 py-3.5">
             <span className="font-space-grotesk text-[14px] text-gray-500 font-semibold flex-shrink-0">+229</span>
             <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)}
               className="flex-1 bg-transparent outline-none font-space-grotesk text-[15px] text-[#17132B] font-semibold"
               placeholder="01 97 00 00 00" />
           </div>
-          <p className="font-space-grotesk text-[11px] text-gray-400 mt-2">Verifiez bien ce numero avant de confirmer.</p>
         </div>
 
-        {/* Recapitulatif */}
-        <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-50 flex justify-between items-center">
-            <span className="font-space-grotesk text-[12px] text-gray-500">Montant demande</span>
-            <span className="font-nunito font-900 text-[14px] text-[#17132B]">{parsedAmount > 0 ? formatMontant(parsedAmount) : "—"}</span>
-          </div>
-          <div className="px-5 py-3 border-b border-gray-50 flex justify-between items-center">
-            <span className="font-space-grotesk text-[12px] text-gray-500">Frais de retrait</span>
-            <span className="font-space-grotesk font-bold text-[12px] text-[#10B981]">Gratuit</span>
-          </div>
-          <div className="px-5 py-3 flex justify-between items-center">
-            <span className="font-space-grotesk font-semibold text-[13px] text-[#17132B]">Vous recevrez</span>
-            <span className="font-nunito font-900 text-[16px] text-[#7B3FE4]">{parsedAmount > 0 ? formatMontant(amountReceived) : "—"}</span>
-          </div>
-        </div>
-
-        {/* Erreur */}
         {error && (
           <div className="rounded-[16px] p-4 flex items-start gap-3 bg-red-50 border border-red-200">
             <AlertTriangle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
@@ -493,12 +567,11 @@ const Retrait: React.FC = () => {
         )}
       </div>
 
-      {/* Bouton principal */}
       <div className="px-5 pt-3">
-        <button onClick={handleContinue}
-          className="w-full rounded-[18px] py-4 font-nunito font-900 text-[16px] text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-[#7B3FE4]/30"
+        <button onClick={handleContinue} disabled={loading}
+          className="w-full rounded-[18px] py-4 font-nunito font-900 text-[16px] text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-[#7B3FE4]/30 disabled:opacity-60"
           style={{ background: "linear-gradient(135deg, #7B3FE4, #5B2DC7)" }}>
-          Continuer <ArrowRight size={18} />
+          {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <>Continuer <ArrowRight size={18} /></>}
         </button>
       </div>
     </div>

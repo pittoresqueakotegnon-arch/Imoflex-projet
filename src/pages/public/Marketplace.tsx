@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, MapPin, Building2, Home, Grid, ChevronRight, User, ChevronDown, Heart, Store, Bed, Bath, Maximize, Plus, ShieldCheck, X, Check, Tag } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -17,6 +17,7 @@ import { formatMontant } from '../../lib/utils';
 import { OptimizedImage } from '../../components/OptimizedImage';
 import { useToast } from '../../components/Toast';
 import { haptics } from '../../lib/haptics';
+import { PromoCarousel } from '../../components/PromoCarousel';
 
 const PROPERTY_TYPE_OPTIONS: { value: PropertyType; label: string }[] = [
   { value: 'chambre', label: 'Chambre' },
@@ -527,28 +528,13 @@ const Marketplace: React.FC = () => {
 
               {/* ── CTA BANNER ───────────────────────────────────────── */}
               {showCtaBanner && (
-                <div className="px-6 mb-8">
-                  <div className="bg-[#7B3FE4] rounded-[24px] p-5 relative overflow-hidden shadow-xl shadow-[#7B3FE4]/20 flex items-center min-h-[145px]">
-                    <button onClick={() => { sessionStorage.setItem('ctaBannerDismissed', 'true'); setShowCtaBanner(false); }}
-                      className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full bg-white/20 text-white z-10 active:bg-white/30">
-                      <X size={14} />
-                    </button>
-                    <div className="absolute -left-4 bottom-[-10px] opacity-20 flex-shrink-0">
-                      <Home size={100} className="text-white" />
-                    </div>
-                    <div className="relative z-10 pl-[70px] flex flex-col justify-center flex-1">
-                      <h3 className="font-nunito font-900 text-[14px] text-white mb-1.5 leading-tight">Vous avez un bien immobilier ?</h3>
-                      <p className="font-space-grotesk text-[10px] text-white/90 mb-3.5 font-medium leading-[1.3]">
-                        Publiez votre annonce et trouvez rapidement des acheteurs ou locataires.
-                      </p>
-                      <button onClick={handleCtaPublish}
-                        className="bg-white text-[#7B3FE4] font-nunito font-900 rounded-full pl-4 pr-1.5 py-1.5 text-[11px] flex items-center gap-2 shadow-lg active:scale-95 transition-transform w-fit self-start">
-                        Publier une annonce
-                        <div className="w-6 h-6 rounded-full bg-[#7B3FE4] flex items-center justify-center"><Plus size={13} className="text-white" /></div>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <PromoCarousel 
+                  onDismiss={() => {
+                    sessionStorage.setItem('ctaBannerDismissed', 'true');
+                    setShowCtaBanner(false);
+                  }}
+                  onPublishClick={handleCtaPublish}
+                />
               )}
 
               {/* ── AUTRES ANNONCES (VERTICALES) ───────────────────────── */}

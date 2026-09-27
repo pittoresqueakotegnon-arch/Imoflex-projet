@@ -55,22 +55,17 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
   const handleScroll = () => {
     const el = messagesContainerRef.current;
     if (!el) return;
-    // Show scroll button if user scrolled up more than 100px
     setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 100);
   };
 
   useEffect(() => {
     if (isOpen) {
       loadOrCreateConversation();
-    } else {
-      // Do not clear conversation, allow visitor to reopen and see history
     }
   }, [isOpen, user]);
 
-  // Ensure we scroll to bottom when messages change
   useEffect(() => {
     if (messages.length > 0) {
-      // Use setTimeout to ensure DOM has updated
       setTimeout(() => scrollToBottom(true), 100);
     }
   }, [messages]);
@@ -144,7 +139,6 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
     const tempId = `temp_${Date.now()}`;
     const newMsgObj: Message = { id: tempId, sender_type: 'user', message: textToSend, created_at: new Date().toISOString() };
     
-    // Add to UI immediately
     setMessages(prev => [...prev, newMsgObj]);
     setTimeout(() => scrollToBottom(true), 50);
 
@@ -222,7 +216,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
           z-index: 99999 !important;
           display: flex !important;
           flex-direction: column !important;
-          background: #F8F9FA !important; /* Soft light background */
+          background: #F8F9FA !important;
           animation: imxChatOpen 0.3s cubic-bezier(0.25, 1, 0.5, 1) both;
           box-shadow: 0 0 40px rgba(0,0,0,0.15) !important;
         }
@@ -379,7 +373,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
       `}</style>
 
       <div className="imx-support-overlay">
-        {/* â•â•â•â•â•â•â• HEADER â•â•â•â•â•â•â• */}
+        {/* ══════ HEADER ══════ */}
         <div className="imx-header-bg" style={{ paddingTop: '16px', paddingBottom: '20px', paddingLeft: '16px', paddingRight: '16px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '14px' }}>
           <button onClick={onClose} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: 'none', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
             <ArrowLeft size={20} color="white" />
@@ -405,15 +399,15 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
 
           <div style={{ flex: 1 }}>
             <h2 style={{ color: 'white', fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: '18px', margin: 0 }}>
-              Ã‰quipe ImoFlex
+              Équipe ImoFlex
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', margin: '2px 0 0', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 500 }}>
-              {isOnline ? 'En ligne Â· RÃ©pond rapidement' : statusText}
+              {isOnline ? 'En ligne · Répond rapidement' : statusText}
             </p>
           </div>
         </div>
 
-        {/* â•â•â•â•â•â•â• MESSAGES â•â•â•â•â•â•â• */}
+        {/* ══════ MESSAGES ══════ */}
         <div
           ref={messagesContainerRef}
           onScroll={handleScroll}
@@ -426,17 +420,17 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
                 Connectez-vous pour contacter le support
               </h3>
               <p style={{ color: '#4B5563', fontSize: '14px', margin: 0, lineHeight: 1.5, maxWidth: '280px', fontFamily: 'Space Grotesk, sans-serif' }}>
-                Votre compte protÃ¨ge la confidentialitÃ© de vos Ã©changes et de vos piÃ¨ces jointes.
+                Votre compte protège la confidentialité de vos échanges et de vos pièces jointes.
               </p>
             </div>
           ) : isLoading ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', minHeight: '200px' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '3px solid #E5E7EB', borderTopColor: '#7B3FE4', animation: 'spin 0.8s linear infinite' }} />
               <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-              <span style={{ color: '#6B7280', fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif' }}>Chargementâ€¦</span>
+              <span style={{ color: '#6B7280', fontSize: '13px', fontFamily: 'Space Grotesk, sans-serif' }}>Chargement…</span>
             </div>
           ) : messages.length === 0 ? (
-            /* â”€â”€â”€ Ã‰TAT VIDE CLAIR â”€â”€â”€ */
+            /* ─── ÉTAT VIDE ─── */
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '24px 16px', minHeight: '60vh' }}>
               <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(123,63,228,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', padding: '4px' }}>
                  <div style={{ width: '100%', height: '100%', borderRadius: '16px', overflow: 'hidden' }}>
@@ -448,12 +442,12 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
                 Bonjour !
               </h3>
               <p style={{ color: '#4B5563', fontSize: '14px', margin: '0 0 32px', lineHeight: 1.5, maxWidth: '280px', fontFamily: 'Space Grotesk, sans-serif' }}>
-                Notre Ã©quipe est lÃ  pour vous aider. Envoyez-nous votre question, nous vous rÃ©pondrons rapidement.
+                Notre équipe est là pour vous aider. Envoyez-nous votre question, nous vous répondrons rapidement.
               </p>
 
-              {/* Quick suggestions */}
+              {/* Suggestions rapides */}
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {['Comment rechercher un logement ?', 'Comment contacter un propriÃ©taire ?', 'Signaler une annonce suspecte', 'ProblÃ¨me de paiement'].map((q) => (
+                {['Comment rechercher un logement ?', 'Comment contacter un propriétaire ?', 'Signaler une annonce suspecte', 'Problème de paiement'].map((q) => (
                   <button key={q} className="imx-quick-btn" onClick={() => {
                     setNewMessage(q);
                     setTimeout(() => handleSendMessage(undefined, q), 0);
@@ -493,7 +487,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
                     <div key={msg.id} className="imx-msg-animate"
                       style={{ display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start', marginTop: firstInGroup ? '12px' : '2px' }}>
 
-                      {/* Bubble */}
+                      {/* Bulle */}
                       <div style={{ maxWidth: '85%' }}>
                         <div className={isUser ? 'imx-msg-user' : 'imx-msg-admin'}
                           style={{ borderRadius: isUser ? brUser : brAdmin, padding: '10px 14px', opacity: isTemp ? 0.7 : 1 }}>
@@ -502,7 +496,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
                               <a href={msg.screenshot_url} target="_blank" rel="noreferrer">
                                 <img src={msg.screenshot_url} alt="Capture" style={{ borderRadius: '8px', maxWidth: '100%', maxHeight: '200px', objectFit: 'cover', display: 'block' }} />
                               </a>
-                              {msg.message !== "Capture d'Ã©cran" && (
+                              {msg.message !== "Capture d'écran" && (
                                 <p style={{ margin: '8px 0 0', fontSize: '14px', fontFamily: 'Space Grotesk, sans-serif' }}>{msg.message}</p>
                               )}
                             </div>
@@ -512,7 +506,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
                         </div>
                       </div>
 
-                      {/* Time */}
+                      {/* Heure */}
                       {lastInGroup && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '11px', color: '#9CA3AF', fontFamily: 'Space Grotesk, sans-serif', paddingRight: isUser ? '4px' : 0, paddingLeft: !isUser ? '4px' : 0 }}>
                           {format(new Date(msg.created_at), 'HH:mm', { locale: fr })}
@@ -527,7 +521,6 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
             ))
           )}
 
-          {/* This empty div is the target for scroll to bottom */}
           <div ref={messagesEndRef} style={{ height: '16px' }} />
           
           {showScrollBtn && (
@@ -537,7 +530,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
           )}
         </div>
 
-        {/* â•â•â•â•â•â•â• INPUT â•â•â•â•â•â•â• */}
+        {/* ══════ INPUT ══════ */}
         {user && <div className="imx-input-area">
           <form onSubmit={handleSendMessage} className="imx-chat-input-wrapper">
             <button type="button" className="imx-attach-btn" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
@@ -554,7 +547,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
               className="imx-chat-input"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Ã‰crivez votre message..."
+              placeholder="Écrivez votre message..."
             />
 
             <button type="submit" className="imx-send-btn" disabled={!newMessage.trim() || isSending}>
@@ -571,4 +564,3 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
 
   return createPortal(modalContent, document.body);
 };
-
