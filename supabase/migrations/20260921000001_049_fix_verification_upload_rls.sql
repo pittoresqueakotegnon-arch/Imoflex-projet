@@ -8,6 +8,7 @@ WITH CHECK (
   AND array_length(storage.foldername(name), 1) = 2
   AND lower(regexp_replace(name, '^.*/', '')) ~ '^identity_(front|back)\.(jpg|jpeg|png|webp|pdf)$'
   AND lower(storage.extension(name)) IN ('jpg', 'jpeg', 'png', 'webp', 'pdf')
+  AND COALESCE((metadata->>'size')::BIGINT, 0) BETWEEN 1 AND 10485760
   AND EXISTS (
     SELECT 1
     FROM public.owner_verification_requests r

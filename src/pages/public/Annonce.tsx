@@ -226,6 +226,7 @@ const Annonce: React.FC = () => {
           <>
             <OptimizedImage
               src={getOptimizedUrl(currentPhoto?.photo_url, 'medium') || ''}
+              fallbackSrc={currentPhoto.photo_url}
               alt={`Photo ${currentPhotoIndex + 1}`}
               className="relative w-full h-full object-cover cursor-pointer"
               loading="eager"
@@ -291,7 +292,12 @@ const Annonce: React.FC = () => {
                   : 'opacity-50 hover:opacity-100 border border-white/10'
               }`}
             >
-              <OptimizedImage src={getOptimizedUrl(photo.photo_url, 'thumb') || ''} alt="" className="w-full h-full object-cover" />
+              <OptimizedImage
+                src={getOptimizedUrl(photo.photo_url, 'thumb') || ''}
+                fallbackSrc={photo.photo_url}
+                alt=""
+                className="w-full h-full object-cover"
+              />
             </button>
           ))}
         </div>

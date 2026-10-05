@@ -68,8 +68,6 @@ export const PromoCarousel: React.FC<PromoCarouselProps> = ({ onDismiss, onPubli
   const handleTouchStart = () => setIsPaused(true);
   const handleTouchEnd = () => setIsPaused(false);
 
-  const currentItem = CAROUSEL_DATA[currentIndex];
-
   return (
     <div className="px-6 mb-8">
       <style>{customStyles}</style>
@@ -92,7 +90,7 @@ export const PromoCarousel: React.FC<PromoCarouselProps> = ({ onDismiss, onPubli
           className="flex transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] h-full absolute inset-0"
           style={{ transform: `translateX(-${currentIndex * 100}%)` }}
         >
-          {CAROUSEL_DATA.map((item, index) => (
+          {CAROUSEL_DATA.map((item) => (
             <div key={item.id} className="w-full h-full flex-shrink-0 relative flex flex-col justify-end p-6">
               
               {/* Background Image full cover */}

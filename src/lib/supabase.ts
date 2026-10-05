@@ -36,6 +36,9 @@ export type NotificationType =
   | 'nouvelle_demande_contact'
   | 'retrait_complete'
   | 'retrait_echoue'
+  | 'alerte'
+  | 'owner_verified'
+  | 'owner_verification_rejected'
   | 'suppression_annonce_approuvee'
   | 'suppression_annonce_rejetee'
   | 'suppression_annonce_demandee';

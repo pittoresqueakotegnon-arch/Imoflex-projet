@@ -241,6 +241,7 @@ Deno.serve(async (req: Request) => {
         .from("payments")
         .select("id, fedapay_transaction_id, status")
         .eq("idempotency_key", idempotency_key)
+        .eq("tenant_id", tenant_id)
         .maybeSingle();
 
       if (existingPayment) {
@@ -302,25 +303,26 @@ Deno.serve(async (req: Request) => {
 
     // La ligne locale doit exister AVANT tout Push FedaPay : le webhook peut
     // alors toujours retrouver le paiement, même s'il arrive instantanément.
-    const { data: payment, error: paymentError } = await supabase
-      .from("payments")
-      .insert({
-        rent_period_id,
-        tenant_id,
-        amount,
-        payment_method: "mobile_money",
-        operator,
-        status: "en_attente",
-        fedapay_transaction_id: fedapayTxId,
-        idempotency_key: idempotency_key || null,
-      })
-      .select()
-      .single();
+    // Le montant affiché par le client n'est jamais une source d'autorité.
+    // Cette RPC verrouille l'échéance, réserve les paiements en attente et
+    // refuse tout montant supérieur au solde réellement payable.
+    const { data: paymentRows, error: paymentError } = await supabase.rpc(
+      "create_pending_rent_payment",
+      {
+        p_rent_period_id: rent_period_id,
+        p_tenant_id: tenant_id,
+        p_amount: amount,
+        p_operator: operator,
+        p_fedapay_transaction_id: fedapayTxId,
+        p_idempotency_key: idempotency_key || null,
+      },
+    );
+    const payment = paymentRows?.[0];
 
-    if (paymentError) {
+    if (paymentError || !payment?.payment_id) {
       return new Response(
-        JSON.stringify({ error: paymentError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: paymentError?.message || "Impossible de réserver ce paiement" }),
+        { status: paymentError?.message.includes("solde") ? 409 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -341,7 +343,7 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           error: "La demande de paiement est enregistrée mais sa confirmation est en cours. Vérifiez votre historique avant de réessayer.",
-          payment_id: payment.id,
+          payment_id: payment.payment_id,
         }),
         { status: isUnavailable ? 503 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -349,7 +351,7 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({
-        payment_id: payment.id,
+        payment_id: payment.payment_id,
         fedapay_transaction_id: fedapayTxId,
         status: "en_attente",
         payment_url: paymentUrl,

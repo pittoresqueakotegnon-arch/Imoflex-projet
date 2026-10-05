@@ -3,6 +3,7 @@ import { ImageSkeleton } from './ImageSkeleton';
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
+  fallbackSrc?: string;
   alt: string;
   className?: string;
   skeletonClassName?: string;
@@ -12,19 +13,23 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
 
 export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   src,
+  fallbackSrc,
   alt,
   className = '',
   skeletonClassName = '',
   loading = 'lazy',
   fetchPriority,
+  onError: onImageError,
   ...props
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState(false);
+  const [activeSrc, setActiveSrc] = useState(src);
 
   useEffect(() => {
     setIsLoaded(false);
     setError(false);
+    setActiveSrc(src);
   }, [src]);
 
   return (
@@ -34,7 +39,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
       )}
       
       <img
-        src={src}
+        src={activeSrc}
         alt={alt}
         decoding="async"
         loading={loading}
@@ -43,7 +48,13 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
           isLoaded ? 'opacity-100' : 'opacity-90'
         }`}
         onLoad={() => setIsLoaded(true)}
-        onError={() => {
+        onError={(event) => {
+          onImageError?.(event);
+          if (fallbackSrc && activeSrc !== fallbackSrc) {
+            setIsLoaded(false);
+            setActiveSrc(fallbackSrc);
+            return;
+          }
           setError(true);
           setIsLoaded(true);
         }}

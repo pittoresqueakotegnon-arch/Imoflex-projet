@@ -1,6 +1,6 @@
 ﻿import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, MapPin, Building2, Home, Grid, ChevronRight, User, ChevronDown, Heart, Store, Bed, Bath, Maximize, Plus, ShieldCheck, X, Check, Tag } from 'lucide-react';
+import { Search, SlidersHorizontal, MapPin, Building2, Home, Grid, ChevronRight, User, ChevronDown, Heart, Store, Bed, Bath, Maximize, ShieldCheck, X, Check, Tag } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useListings } from '../../hooks/useListings';
 import { useAuthGate } from '../../hooks/useAuthGate';

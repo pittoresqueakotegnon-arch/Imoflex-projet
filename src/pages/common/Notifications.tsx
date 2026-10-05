@@ -13,7 +13,6 @@ import {
   Calendar,
   Phone,
   User,
-  ExternalLink,
   ShieldAlert,
   ShieldCheck,
   Bell,

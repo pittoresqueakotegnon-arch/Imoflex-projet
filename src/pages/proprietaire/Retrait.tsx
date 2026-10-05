@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Check, ArrowRight, Wallet2, Phone, AlertTriangle, Copy, Clock3, ShieldCheck, Lock } from "lucide-react";
+import { ChevronLeft, Check, ArrowRight, Wallet2, AlertTriangle, Copy, Clock3, ShieldCheck, Lock } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useWallet } from "../../hooks/useWallet";
 import { requestWithdrawal, normalizeBjPhone } from "../../lib/fedapay";

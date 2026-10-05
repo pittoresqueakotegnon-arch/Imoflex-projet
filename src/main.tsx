@@ -13,7 +13,7 @@ import './index.css';
 import { registerSW } from 'virtual:pwa-register';
 
 // Démarre le service worker en mode autoUpdate
-const updateSW = registerSW({
+void registerSW({
   onNeedRefresh() {
     console.log("Nouvelle version disponible !");
   },
