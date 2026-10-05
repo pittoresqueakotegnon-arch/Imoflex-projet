@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, AlertCircle, Clock, CreditCard, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, AlertCircle, Clock, CreditCard, CheckCircle2, Building2, MapPin, SearchX, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, Payment } from '../../lib/supabase';
 import { formatMontant, daysUntilDeadline, getMonthName, operatorLabel } from '../../lib/utils';
+import { haptics } from '../../lib/haptics';
 
 interface RentPeriodLite {
   id: string;
@@ -87,18 +88,19 @@ export default function LogementDetail() {
 
   if (loading) {
     return (
-      <div className="page-container pb-24">
-        <header className="sticky-header px-4 py-4 flex items-center justify-between">
-          <button className="p-2 w-10 h-10 rounded-full bg-[var(--imx-surface)] animate-pulse" />
-        </header>
-        <div className="px-4 py-4 space-y-6 mt-4">
-          <div className="space-y-3">
-            <div className="h-8 bg-[var(--imx-surface)] rounded w-3/4 animate-pulse" />
-            <div className="h-4 bg-[var(--imx-surface)] rounded w-1/2 animate-pulse" />
+      <div className="min-h-screen bg-[#F8F7FC] flex flex-col pt-8 px-6 pb-24">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse" />
+          <div className="flex-1">
+            <div className="h-6 bg-gray-200 rounded-md w-3/4 mb-2 animate-pulse" />
+            <div className="h-4 bg-gray-200 rounded-md w-1/2 animate-pulse" />
           </div>
-          <div className="h-40 bg-[var(--imx-surface)] rounded-2xl animate-pulse" />
-          <div className="h-20 bg-[var(--imx-surface)] rounded-2xl animate-pulse" />
-          <div className="h-20 bg-[var(--imx-surface)] rounded-2xl animate-pulse" />
+        </div>
+        <div className="h-48 bg-gray-200 rounded-[28px] animate-pulse mb-8" />
+        <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse" />
+        <div className="space-y-4">
+          <div className="h-16 bg-gray-200 rounded-2xl animate-pulse" />
+          <div className="h-16 bg-gray-200 rounded-2xl animate-pulse" />
         </div>
       </div>
     );
@@ -106,13 +108,14 @@ export default function LogementDetail() {
 
   if (notFound) {
     return (
-      <div className="min-h-screen premium-page text-[var(--imx-text-primary)] p-6 flex flex-col">
-        <button onClick={() => navigate('/dashboard')} className="p-2 hover:bg-[var(--imx-surface-2)] rounded-lg transition-colors w-fit">
-          <ChevronLeft size={24} />
+      <div className="min-h-screen bg-[#F8F7FC] flex flex-col items-center justify-center p-6">
+        <SearchX size={64} className="text-gray-300 mb-4" />
+        <h2 className="font-nunito font-900 text-xl text-gray-800 mb-2">Logement introuvable</h2>
+        <p className="text-gray-500 font-space-grotesk text-center mb-8">Ce logement n'existe pas ou n'est plus actif.</p>
+        <button onClick={() => { haptics.light(); navigate('/dashboard'); }}
+          className="bg-white border border-gray-200 shadow-sm px-6 py-3 rounded-2xl font-nunito font-bold text-gray-700 flex items-center gap-2 hover:bg-gray-50 active:scale-95 transition-all">
+          <ChevronLeft size={20} /> Retour à l'accueil
         </button>
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-[var(--imx-text-secondary)]">Logement introuvable ou inactif</p>
-        </div>
       </div>
     );
   }
@@ -126,105 +129,158 @@ export default function LogementDetail() {
   const isLate = daysUntil < 0 && remaining > 0;
 
   return (
-    <div className="min-h-screen premium-page text-[var(--imx-text-primary)] flex flex-col p-6">
-      <div className="flex items-center gap-4 mb-6">
-        <button onClick={() => navigate('/dashboard')} className="p-3 bg-[var(--imx-surface-2)] hover:bg-[#2A1E5C] rounded-2xl transition-colors">
-          <ChevronLeft size={20} className="text-[var(--imx-text-primary)]" />
-        </button>
+    <div className="min-h-screen flex flex-col bg-[#F8F7FC]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px)+32px)' }}>
+      {/* HEADER SECTION */}
+      <div className="px-6 pb-6 pt-8 bg-white border-b border-gray-100 shadow-sm relative z-10" style={{ paddingTop: 'calc(env(safe-area-inset-top,0px)+24px)' }}>
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={() => { haptics.light(); navigate('/dashboard'); }}
+            className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0 border border-gray-100 active:scale-95 transition-transform">
+            <ChevronLeft size={22} className="text-gray-700" />
+          </button>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F5F3FF] border border-[#EBE5FF]">
+            <ShieldCheck size={12} className="text-[#7B3FE4]" />
+            <span className="text-[10px] font-space-grotesk font-bold text-[#7B3FE4] uppercase tracking-wider">Logement Actif</span>
+          </div>
+        </div>
+        
         <div>
-          <h1 className="font-nunito font-900 text-[19px] text-[var(--imx-text-primary)] leading-tight">{propertyName}</h1>
+          <h1 className="font-nunito font-900 text-[22px] text-[#17132B] leading-tight mb-2" style={{ wordBreak: 'break-word' }}>
+            {propertyName}
+          </h1>
           {propertyAddress && (
-            <p className="text-[var(--imx-text-secondary)] text-[12px]" style={{ fontFamily: 'Space Grotesk' }}>{propertyAddress}</p>
+            <p className="text-gray-500 text-[13px] font-space-grotesk flex items-start gap-1.5 leading-snug">
+              <MapPin size={14} className="flex-shrink-0 mt-0.5 text-gray-400" />
+              <span>{propertyAddress}</span>
+            </p>
           )}
         </div>
       </div>
 
-      {currentPeriod ? (
-        <>
-          <div
-            className="loyer-hero rounded-3xl p-6 text-white relative mb-6"
-            style={{ border: isLate ? '1px solid rgba(239,68,68,0.4)' : '1px solid var(--imx-border)' }}
-          >
-            <p className="text-white/80 text-[10px] font-space-grotesk font-bold uppercase tracking-wider mb-4 relative z-10">
-              Loyer — {getMonthName(now.getMonth() + 1, now.getFullYear())}
-            </p>
-
-            <div className="mb-5 relative z-10">
-              <p className="font-nunito font-black text-[2.2rem] leading-none">
-                {paid.toLocaleString('fr-FR')} <span className="text-[1.3rem] font-normal text-white/80">FCFA</span>
+      <div className="flex-1 px-5 py-6 flex flex-col gap-8">
+        {/* CARD LOYER */}
+        {currentPeriod ? (
+          <div className="relative rounded-[28px] p-6 shadow-xl overflow-hidden transition-all"
+            style={{ 
+              background: 'linear-gradient(135deg, #3B0E8C 0%, #7B3FE4 60%, #A855F7 100%)',
+              boxShadow: '0 20px 40px -12px rgba(123, 63, 228, 0.4)'
+            }}>
+            {/* Decor éléments */}
+            <div className="absolute top-0 right-0 w-48 h-48 bg-white opacity-5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl -ml-10 -mb-10 pointer-events-none" />
+            
+            <div className="relative z-10 flex items-center justify-between mb-5">
+              <p className="text-white/80 text-[11px] font-space-grotesk font-bold uppercase tracking-[0.15em] flex items-center gap-2">
+                <Clock size={14} className="opacity-70" /> Loyer {getMonthName(now.getMonth() + 1, now.getFullYear())}
               </p>
-              <p className="text-white/70 text-xs mt-1" style={{ fontFamily: 'Space Grotesk' }}>
-                Payé sur {formatMontant(due)}
+              {remaining > 0 && (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
+                  {isLate ? <AlertCircle size={12} className="text-[#FF8080]" /> : <div className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />}
+                  <span className="text-[10px] font-bold text-white font-space-grotesk">
+                    {isLate ? `Retard ${Math.abs(daysUntil)}j` : `${daysUntil} jours restants`}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="relative z-10 mb-6">
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="font-nunito font-900 text-white text-[2.5rem] leading-none tracking-tight">
+                  {paid.toLocaleString('fr-FR')}
+                </span>
+                <span className="text-white/80 font-space-grotesk font-semibold text-[1.1rem]">FCFA</span>
+              </div>
+              <p className="text-white/70 text-[13px] font-space-grotesk flex items-center gap-1.5">
+                Payé sur un total de <strong className="text-white font-nunito text-[14px]">{formatMontant(due)}</strong>
               </p>
             </div>
 
-            <div className="mb-4 relative z-10">
-              <div className="h-2 rounded-full w-full bg-white/20 overflow-hidden">
-                <div className="h-full rounded-full transition-all" style={{ width: `${percentage}%`, background: isLate ? '#EF4444' : '#22C55E' }} />
-              </div>
-              <div className="flex justify-between mt-2 text-[10px] font-bold" style={{ fontFamily: 'Space Grotesk' }}>
-                <span className="text-white">{Math.round(percentage)}% payé</span>
+            <div className="relative z-10 mb-6 bg-white/10 p-4 rounded-[20px] backdrop-blur-sm border border-white/10">
+              <div className="flex justify-between mb-2 text-[11px] font-bold font-space-grotesk">
+                <span className="text-white flex items-center gap-1.5"><CheckCircle2 size={12} className="text-green-400" /> {Math.round(percentage)}% payé</span>
                 <span className="text-white/70">{Math.round(100 - percentage)}% restant</span>
               </div>
-            </div>
-
-            {remaining > 0 && (
-              <div
-                className="mb-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full relative z-10"
-                style={{
-                  background: isLate ? 'rgba(239, 68, 68, 0.25)' : 'rgba(245, 158, 11, 0.25)',
-                  border: `1px solid ${isLate ? 'rgba(239, 68, 68, 0.4)' : 'rgba(245, 158, 11, 0.4)'}`,
-                }}
-              >
-                {isLate ? <AlertCircle size={13} className="text-[#FF8080]" /> : <Clock size={13} className="text-amber-300" />}
-                <span className="text-[10px] font-bold text-white" style={{ fontFamily: 'Space Grotesk' }}>
-                  {isLate ? `En retard de ${Math.abs(daysUntil)} jours` : `Échéance dans ${daysUntil} jours`}
-                </span>
+              <div className="h-2.5 rounded-full w-full bg-black/20 overflow-hidden shadow-inner">
+                <div className="h-full rounded-full transition-all duration-1000 ease-out relative" 
+                  style={{ width: `${percentage}%`, background: isLate ? 'linear-gradient(90deg, #F87171, #EF4444)' : 'linear-gradient(90deg, #34D399, #10B981)' }}>
+                  <div className="absolute inset-0 bg-white/20" style={{ backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent)', backgroundSize: '1rem 1rem' }} />
+                </div>
               </div>
-            )}
+            </div>
 
             <button
-              onClick={() => navigate(`/payer/${leaseId}`)}
+              onClick={() => { haptics.medium(); navigate(`/payer/${leaseId}`); }}
               disabled={remaining === 0}
-              className="w-full text-white font-bold rounded-2xl py-4 flex items-center justify-center gap-2 relative z-10 disabled:opacity-50 shadow-md active:scale-[0.98] transition-transform"
-              style={{ background: 'var(--imx-accent-light)', fontFamily: 'Sora', fontSize: '14px' }}
+              className="w-full text-[#7B3FE4] font-nunito font-900 rounded-[20px] py-4 flex items-center justify-center gap-2 relative z-10 disabled:opacity-60 disabled:bg-white/50 bg-white shadow-lg shadow-black/10 active:scale-[0.98] transition-all text-[15px] hover:bg-gray-50"
             >
-              {remaining === 0 ? <CheckCircle2 size={18} /> : <CreditCard size={18} />}
-              {remaining === 0 ? 'Loyer soldé' : 'Effectuer un versement'}
+              {remaining === 0 ? <CheckCircle2 size={20} className="text-green-500" /> : <CreditCard size={20} />}
+              {remaining === 0 ? 'Loyer intégralement soldé' : 'Effectuer un versement'}
             </button>
           </div>
-        </>
-      ) : (
-        <div className="rounded-3xl p-6 mb-6" style={{ background: 'var(--imx-surface-2)' }}>
-          <p className="text-[var(--imx-text-secondary)] text-sm" style={{ fontFamily: 'Space Grotesk' }}>
-            Aucune période de loyer en cours pour ce logement.
-          </p>
-        </div>
-      )}
-
-      <h2 className="font-nunito font-black text-[var(--imx-text-primary)] text-[15px] mb-4">Versements pour ce logement</h2>
-      {leasePayments.length === 0 ? (
-        <p className="text-[var(--imx-text-secondary)] text-[13px]" style={{ fontFamily: 'Space Grotesk' }}>Aucun versement pour l'instant.</p>
-      ) : (
-        <div className="space-y-3">
-          {leasePayments.map((payment) => (
-            <div key={payment.id} className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--imx-surface)' }}>
-                  <div className="w-4 h-4 rounded-full" style={{ background: '#FBBF24' }}></div>
-                </div>
-                <div>
-                  <p className="text-[14px] font-bold text-[var(--imx-text-primary)] mb-0.5 font-nunito">Versement {operatorLabel(payment.operator || 'mtn')}</p>
-                  <p className="text-[var(--imx-text-secondary)] text-[11px]" style={{ fontFamily: 'Space Grotesk' }}>
-                    {new Date(payment.created_at).toLocaleDateString('fr-FR')}
-                  </p>
-                </div>
-              </div>
-              <p className="text-[var(--imx-text-primary)] font-black text-[15px] font-nunito">- {new Intl.NumberFormat('fr-FR').format(payment.amount)}</p>
+        ) : (
+          <div className="rounded-[24px] p-8 mb-6 flex flex-col items-center justify-center text-center bg-white border border-gray-100 shadow-sm">
+            <div className="w-16 h-16 rounded-full bg-[#F5F3FF] flex items-center justify-center mb-4">
+              <CheckCircle2 size={32} className="text-[#7B3FE4]" />
             </div>
-          ))}
+            <h3 className="font-nunito font-900 text-[18px] text-[#17132B] mb-2">Tout est en ordre</h3>
+            <p className="text-gray-500 text-[14px] font-space-grotesk">
+              Aucune période de loyer n'est actuellement exigible pour ce logement.
+            </p>
+          </div>
+        )}
+
+        {/* VERSEMENTS LIST */}
+        <div>
+          <div className="flex items-center justify-between mb-4 px-1">
+            <h2 className="font-nunito font-900 text-[#17132B] text-[18px]">Historique récent</h2>
+            <span className="text-[12px] font-space-grotesk text-[#7B3FE4] font-bold bg-[#F5F3FF] px-2.5 py-1 rounded-full">Derniers paiements</span>
+          </div>
+          
+          {leasePayments.length === 0 ? (
+            <div className="bg-white rounded-[24px] border border-gray-100 p-8 flex flex-col items-center text-center shadow-sm">
+              <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">
+                <CreditCard size={24} className="text-gray-300" />
+              </div>
+              <p className="text-gray-500 text-[14px] font-space-grotesk">Aucun versement n'a été effectué pour ce logement pour le moment.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {leasePayments.map((payment) => {
+                const op = payment.operator || 'mtn';
+                const isMTN = op === 'mtn';
+                const isMoov = op === 'moov';
+                const opColor = isMTN ? '#FBBF24' : isMoov ? '#3B82F6' : '#10B981';
+                const opBg = isMTN ? '#FFFBEB' : isMoov ? '#EFF6FF' : '#ECFDF5';
+                
+                return (
+                  <div key={payment.id} onClick={() => navigate(`/recu/${payment.id}`)}
+                    className="bg-white rounded-[20px] p-4 flex items-center justify-between border border-gray-100 shadow-sm active:scale-[0.98] transition-transform cursor-pointer">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0" style={{ background: opBg }}>
+                        <div className="w-4 h-4 rounded-full shadow-sm" style={{ background: opColor }} />
+                      </div>
+                      <div>
+                        <p className="text-[15px] font-900 text-[#17132B] mb-0.5 font-nunito flex items-center gap-1.5">
+                          {operatorLabel(op)}
+                          {payment.status === 'valide' && <ShieldCheck size={12} className="text-green-500" />}
+                        </p>
+                        <p className="text-gray-400 text-[12px] font-space-grotesk font-medium">
+                          {new Date(payment.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <p className="text-[#17132B] font-900 text-[16px] font-nunito bg-gray-50 px-3 py-1.5 rounded-full">
+                        {formatMontant(payment.amount)}
+                      </p>
+                      <ArrowRight size={16} className="text-gray-300" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
