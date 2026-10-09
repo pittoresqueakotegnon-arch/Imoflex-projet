@@ -1,7 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import * as crypto from "node:crypto";
-import { Buffer } from "node:buffer";
+import { verifyFedapaySignature } from "../_shared/webhook_signature.ts";
 import { safeLog } from "../_shared/security.ts";
 
 // ── Helper : envoyer une notification push (best-effort, ne bloque pas) ───────
@@ -58,25 +57,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Calcul du HMAC SHA-256 en mode Node crypto
-    const expectedSignature = crypto
-      .createHmac("sha256", webhookSecret)
-      .update(rawBody, "utf8")
-      .digest("hex");
-
-    const expectedBuf = Buffer.from(expectedSignature, "hex");
-    let signatureBuf: Buffer;
-    try {
-      signatureBuf = Buffer.from(signatureHeader, "hex");
-    } catch {
-      return new Response(
-        JSON.stringify({ error: "Format de signature invalide" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // timingSafeEqual pour éviter les failles temporelles
-    if (expectedBuf.length !== signatureBuf.length || !crypto.timingSafeEqual(expectedBuf, signatureBuf)) {
+    // Vérification de la signature (format horodaté FedaPay ou ancien format du projet)
+    const signatureCheck = verifyFedapaySignature(rawBody, signatureHeader, webhookSecret);
+    if (!signatureCheck.valid) {
+      console.warn(`[webhook] signature rejetée : ${signatureCheck.reason}`);
       return new Response(
         JSON.stringify({ error: "Signature invalide" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -119,7 +103,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (eventName === "transaction.approved" || eventName === "transaction.declined") {
+    if (eventName === "transaction.approved" || eventName === "transaction.declined" || eventName === "transaction.canceled") {
+      const normalizedEvent = eventName === "transaction.approved" ? "transaction.approved" : "transaction.declined";
       const transactionId = entity?.id?.toString() || entity?.reference;
       
       if (!transactionId) {
@@ -129,12 +114,34 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      // Contrôle du montant confirmé par FedaPay : en cas d'écart, le paiement n'est PAS crédité
+      if (normalizedEvent === "transaction.approved" && entity?.amount != null) {
+        const { data: expectedPayment } = await supabase
+          .from("payments")
+          .select("id, amount, status")
+          .eq("fedapay_transaction_id", transactionId)
+          .maybeSingle();
+        if (expectedPayment && expectedPayment.status === "en_attente" && Number(entity.amount) !== Number(expectedPayment.amount)) {
+          await supabase.from("audit_logs").insert({
+            user_id: null,
+            action: "payment_amount_mismatch",
+            entity_type: "payments",
+            entity_id: expectedPayment.id,
+            details: { expected: expectedPayment.amount, received: Number(entity.amount), source: "webhook" },
+          });
+          return new Response(
+            JSON.stringify({ received: true, status: "amount_mismatch_held" }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
       // Appel au RPC atomique (qui fait les locks et idempontence)
       const { data: rpcResult, error: rpcError } = await supabase.rpc(
         "process_payment_webhook",
         {
           p_fedapay_tx_id: transactionId,
-          p_event_type: eventName,
+          p_event_type: normalizedEvent,
         }
       );
 
@@ -246,11 +253,13 @@ Deno.serve(async (req: Request) => {
       const ownerId = wallet.owner_id;
 
       if (eventName === "payout.sent") {
-        if (withdrawal.status !== "complete") {
-          await supabase
-            .from("withdrawals")
-            .update({ status: "complete", completed_at: new Date().toISOString() })
-            .eq("id", withdrawal.id);
+        const { data: completed, error: completeError } = await supabase.rpc("reconcile_withdrawal_status", {
+          p_withdrawal_id: withdrawal.id,
+          p_new_status: "complete",
+        });
+        if (completeError) throw completeError;
+
+        if (completed) {
 
           await supabase.from("notifications").insert({
             user_id: ownerId,

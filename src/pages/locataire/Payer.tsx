@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Sparkles, AlertTriangle, Smartphone, ChevronLeft, Check, Building2, Calendar, User, CreditCard, Phone, ArrowRight } from "lucide-react";
 
@@ -51,6 +51,9 @@ export default function Payer() {
   const [error, setError] = useState("");
   const [checking, setChecking] = useState(false);
   const [pollingPaymentId, setPollingPaymentId] = useState<string | null>(null);
+  // Une même tentative de paiement garde la même clé : un double clic ne crée pas deux paiements.
+  const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
+  const resetIdempotencyKey = () => { idempotencyKeyRef.current = crypto.randomUUID(); };
 
   const [successData, setSuccessData] = useState<{
     amount: number;
@@ -192,6 +195,7 @@ export default function Payer() {
           clearTimeout(timeoutId);
           supabase.removeChannel(channel);
           setPollingPaymentId(null);
+      resetIdempotencyKey();
           setProcessing(false);
 
           if (updated.status === "valide") {
@@ -219,6 +223,7 @@ export default function Payer() {
     const timeoutId = setTimeout(() => {
       supabase.removeChannel(channel);
       setPollingPaymentId(null);
+      resetIdempotencyKey();
       setProcessing(false);
       showUssdTimeoutError();
       setStep("confirm");
@@ -254,6 +259,7 @@ export default function Payer() {
         showToast("Le paiement a échoué selon FedaPay.", "error");
         setProcessing(false);
         setPollingPaymentId(null);
+      resetIdempotencyKey();
         setStep("confirm");
       } else if (result.synced && result.status === "en_attente") {
         showToast("Paiement encore en cours côté Mobile Money. Patientez encore un moment.", "success");
@@ -276,6 +282,7 @@ export default function Payer() {
         operator: selectedOperator!,
         rent_period_id: currentRentPeriod!.id,
         phone_number: phoneNumber,
+        idempotency_key: idempotencyKeyRef.current,
       });
 
       if (selectedOperator === "celtiis" && result.payment_url) {
@@ -288,6 +295,7 @@ export default function Payer() {
       }
     } catch (err) {
       diagnoseAndShowError(err, "Paiement FedaPay");
+      resetIdempotencyKey();
       setProcessing(false);
     }
   };

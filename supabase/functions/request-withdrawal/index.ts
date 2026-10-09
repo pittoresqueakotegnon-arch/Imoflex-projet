@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod";
 import { maskPhone, fetchWithRetry } from "../_shared/security.ts";
+import { getFedapayBaseUrl, startPayout, unwrapPayout } from "../_shared/payouts.ts";
 
 const withdrawalSchema = z.object({
   wallet_id: z.string().uuid("ID de wallet invalide"),
@@ -11,9 +12,10 @@ const withdrawalSchema = z.object({
 });
 
 type CreatedWithdrawal = {
-  withdrawal_id: string;
-  withdrawal_status: "en_traitement" | "complete" | "echoue";
+  withdrawal_id: string | null;
+  withdrawal_status: "en_traitement" | "complete" | "echoue" | null;
   already_exists: boolean;
+  error_code: string | null;
 };
 
 const corsHeaders = {
@@ -27,11 +29,6 @@ function jsonResponse(body: Record<string, unknown>, status = 200): Response {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
-
-function extractPayout(json: unknown): { id?: string | number } {
-  const value = json as Record<string, unknown> | null;
-  return (value?.["v1/payout"] ?? value?.payout ?? value ?? {}) as { id?: string | number };
 }
 
 Deno.serve(async (req: Request) => {
@@ -58,18 +55,10 @@ Deno.serve(async (req: Request) => {
 
     const ownerId = authData.user.id;
     const { wallet_id: walletId, authorization_id, pin, idempotency_key: idempotencyKey } = parseResult.data;
-    
-    // Service role needed to bypass RLS and read authorization details from our secure function
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    // Call the original client auth to maintain RLS context in RPC
-    const userClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: `Bearer ${jwt}` } } }
     );
 
     const { data: allowed, error: rateLimitError } = await supabase.rpc("check_rate_limit", {
@@ -82,8 +71,9 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: "Trop de demandes de retrait. Veuillez patienter avant de réessayer." }, 429);
     }
 
-    // Call the secure RPC with the user's JWT context
-    const { data: createdRows, error: creationError } = await userClient.rpc("execute_authorized_withdrawal", {
+    // La fonction SQL n'est plus exécutable par les utilisateurs : l'identité vient du jeton vérifié ci-dessus.
+    const { data: createdRows, error: creationError } = await supabase.rpc("execute_authorized_withdrawal", {
+      p_user_id: ownerId,
       p_auth_id: authorization_id,
       p_pin: pin,
       p_wallet_id: walletId,
@@ -96,6 +86,16 @@ Deno.serve(async (req: Request) => {
     }
 
     const withdrawal = (createdRows?.[0] ?? null) as CreatedWithdrawal | null;
+
+    if (withdrawal?.error_code === "pin_incorrect") {
+      return jsonResponse({ error: "Code de retrait incorrect", code: "pin_incorrect" }, 400);
+    }
+    if (withdrawal?.error_code === "pin_locked") {
+      return jsonResponse({
+        error: "Retraits temporairement bloqués après plusieurs codes incorrects. Réessayez dans 15 minutes.",
+        code: "pin_locked",
+      }, 429);
+    }
     if (!withdrawal?.withdrawal_id) return jsonResponse({ error: "Impossible de créer le retrait" }, 500);
 
     if (withdrawal.already_exists) {
@@ -109,8 +109,11 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Fetch the withdrawal details for FedaPay
-    const { data: withdrawalData } = await supabase.from("withdrawals").select("amount, operator, destination_phone").eq("id", withdrawal.withdrawal_id).single();
+    const { data: withdrawalData } = await supabase
+      .from("withdrawals")
+      .select("amount, operator, destination_phone")
+      .eq("id", withdrawal.withdrawal_id)
+      .single();
     if (!withdrawalData) return jsonResponse({ error: "Détails introuvables" }, 500);
     const { amount, operator, destination_phone: destinationPhone } = withdrawalData;
 
@@ -120,13 +123,16 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: refundError ? "FedaPay non configuré et remboursement à vérifier" : "FedaPay non configuré" }, 500);
     }
 
-    const fedapayBaseUrl = Deno.env.get("FEDAPAY_BASE_URL") || "https://api.fedapay.com/v1";
+    const fedapayBaseUrl = getFedapayBaseUrl();
     const payoutMode = operator === "mtn"
       ? Deno.env.get("FEDAPAY_MODE_MTN") || "mtn_open"
       : operator === "celtiis"
       ? Deno.env.get("FEDAPAY_MODE_CELTIIS") || "sbin"
       : Deno.env.get("FEDAPAY_MODE_MOOV") || "moov";
 
+    // ÉTAPE 1 : création du payout. merchant_reference = identifiant du retrait ImoFlex :
+    // elle empêche tout doublon et permet de retrouver le payout si la réponse est perdue.
+    // Aucune relance automatique (maxRetries: 1 = une seule tentative).
     let payoutResponse: Response;
     try {
       payoutResponse = await fetchWithRetry(
@@ -139,6 +145,7 @@ Deno.serve(async (req: Request) => {
             currency: { iso: "XOF" },
             mode: payoutMode,
             description: `Retrait ImoFlex ${withdrawal.withdrawal_id}`,
+            merchant_reference: withdrawal.withdrawal_id,
             customer: {
               firstname: authData.user.user_metadata?.first_name || authData.user.user_metadata?.prenom || "Propriétaire",
               lastname: authData.user.user_metadata?.last_name || authData.user.user_metadata?.nom || "ImoFlex",
@@ -159,7 +166,7 @@ Deno.serve(async (req: Request) => {
           amount,
           destination_phone: maskPhone(destinationPhone),
           error: error instanceof Error ? error.message : "Erreur réseau inconnue",
-          note: "Wallet conservé débité : rapprocher le payout FedaPay avant toute action manuelle.",
+          note: "Le payout a pu être créé chez FedaPay : le rapprochement le retrouve par référence marchande.",
         },
       });
       return jsonResponse({
@@ -202,7 +209,7 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: providerMessage }, 502);
     }
 
-    const payoutId = extractPayout(payoutJson).id;
+    const payoutId = unwrapPayout(payoutJson).id;
     if (!payoutId) {
       await supabase.from("audit_logs").insert({
         user_id: ownerId,
@@ -226,12 +233,36 @@ Deno.serve(async (req: Request) => {
         entity_id: withdrawal.withdrawal_id,
         details: { fedapay_payout_id: String(payoutId), database_error: updateError.message },
       });
+      // Le rapprochement retrouvera le payout par référence marchande.
       return jsonResponse({ withdrawal_id: withdrawal.withdrawal_id, status: "en_traitement" }, 202);
+    }
+
+    // ÉTAPE 2 : lancement du payout (sans cet appel, FedaPay le laisse « pending »).
+    // En cas d'échec, le payout reste créé : le rapprochement réessaie l'envoi.
+    try {
+      const started = await startPayout(fedapayKey, String(payoutId));
+      if (!started.ok) {
+        await supabase.from("audit_logs").insert({
+          user_id: ownerId,
+          action: "payout_start_failed",
+          entity_type: "withdrawals",
+          entity_id: withdrawal.withdrawal_id,
+          details: { fedapay_payout_id: String(payoutId), http_status: started.status, response: started.body },
+        });
+      }
+    } catch (error) {
+      await supabase.from("audit_logs").insert({
+        user_id: ownerId,
+        action: "payout_start_failed",
+        entity_type: "withdrawals",
+        entity_id: withdrawal.withdrawal_id,
+        details: { fedapay_payout_id: String(payoutId), error: error instanceof Error ? error.message : "Erreur inconnue" },
+      });
     }
 
     await supabase.from("notifications").insert({
       user_id: ownerId,
-      type: "retrait_complete",
+      type: "confirmation",
       related_id: withdrawal.withdrawal_id,
       title: "Retrait en cours",
       body: `Votre retrait de ${amount} FCFA vers ${destinationPhone} est en traitement.`,

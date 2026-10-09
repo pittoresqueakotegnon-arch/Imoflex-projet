@@ -155,8 +155,28 @@ Deno.serve(async (req: Request) => {
     let eventType: string | null = null;
     if (fedapayStatus === "approved") {
       eventType = "transaction.approved";
-    } else if (["declined", "canceled", "failed"].includes(fedapayStatus)) {
+    } else if (["declined", "canceled", "failed", "expired"].includes(fedapayStatus)) {
       eventType = "transaction.declined";
+    }
+
+    // Contrôle du montant confirmé par FedaPay : en cas d'écart, le paiement n'est PAS crédité
+    if (
+      eventType === "transaction.approved" &&
+      tx?.amount != null &&
+      typeof payment.amount === "number" &&
+      Number(tx.amount) !== Number(payment.amount)
+    ) {
+      await supabase.from("audit_logs").insert({
+        user_id: null,
+        action: "payment_amount_mismatch",
+        entity_type: "payments",
+        entity_id: payment.id,
+        details: { expected: payment.amount, received: Number(tx.amount), source: "check-payment-status" },
+      });
+      return new Response(
+        JSON.stringify({ status: payment.status, synced: false, error: "Écart de montant : vérification manuelle requise" }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     if (eventType) {

@@ -25,14 +25,14 @@
 
 ```powershell
 # Lier le projet local au projet Cloud ImoFlex
-supabase link --project-ref jogvvjiuumrswwamanqk
+supabase link --project-ref <VOTRE_PROJECT_REF>
 
 # Vérifier la liaison
 supabase status
 ```
 
 > Le `project-ref` est visible dans l'URL de votre Dashboard :
-> `https://supabase.com/dashboard/project/jogvvjiuumrswwamanqk`
+> `https://supabase.com/dashboard/project/<VOTRE_PROJECT_REF>`
 
 ---
 
@@ -124,20 +124,21 @@ supabase functions delete <nom_de_la_fonction>
 ### Appeler une fonction Cloud depuis PowerShell
 
 ```powershell
-# Appeler reconcile-payments manuellement
+# Appeler reconcile-payments manuellement (ces fonctions exigent la clé service_role, jamais la clé anon)
+# Ne jamais enregistrer cette clé dans un fichier du dépôt.
 $headers = @{
-    "Authorization" = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpvZ3Z2aml1dW1yc3d3YW1hbnFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5OTk2NzgsImV4cCI6MjA5ODU3NTY3OH0.jQBt1R7dxli8oNJ2aQt--tB3M8U_-pe8GfeLEd5AD7g"
+    "Authorization" = "Bearer <CLE_SERVICE_ROLE_A_RENSEIGNER_LOCALEMENT>"
     "Content-Type"  = "application/json"
 }
-Invoke-RestMethod -Uri "https://jogvvjiuumrswwamanqk.supabase.co/functions/v1/reconcile-payments" `
+Invoke-RestMethod -Uri "https://<VOTRE_PROJECT_REF>.supabase.co/functions/v1/reconcile-payments" `
     -Method POST -Headers $headers -Body '{}'
 
 # Appeler cleanup-orphaned-listing-photos manuellement
-Invoke-RestMethod -Uri "https://jogvvjiuumrswwamanqk.supabase.co/functions/v1/cleanup-orphaned-listing-photos" `
+Invoke-RestMethod -Uri "https://<VOTRE_PROJECT_REF>.supabase.co/functions/v1/cleanup-orphaned-listing-photos" `
     -Method POST -Headers $headers -Body '{}'
 
 # Appeler admin-system-health
-Invoke-RestMethod -Uri "https://jogvvjiuumrswwamanqk.supabase.co/functions/v1/admin-system-health" `
+Invoke-RestMethod -Uri "https://<VOTRE_PROJECT_REF>.supabase.co/functions/v1/admin-system-health" `
     -Method GET -Headers $headers
 ```
 
@@ -151,7 +152,8 @@ supabase secrets list
 
 # Ajouter / mettre à jour un secret
 supabase secrets set FEDAPAY_WEBHOOK_SECRET=votre_secret_ici
-supabase secrets set FEDAPAY_API_KEY=votre_cle_api_ici
+supabase secrets set FEDAPAY_SECRET_KEY=votre_cle_secrete_ici
+supabase secrets set FEDAPAY_BASE_URL=https://sandbox-api.fedapay.com/v1   # test ; production : https://api.fedapay.com/v1
 
 # Ajouter plusieurs secrets en une seule commande
 supabase secrets set CLE1=valeur1 CLE2=valeur2
@@ -285,7 +287,7 @@ supabase functions list
 supabase login
 
 # 2. Liaison au projet
-supabase link --project-ref jogvvjiuumrswwamanqk
+supabase link --project-ref <VOTRE_PROJECT_REF>
 
 # 3. Appliquer les migrations
 supabase db push --yes
@@ -303,7 +305,7 @@ supabase secrets list
 
 ```powershell
 # 🔗 Lier le projet
-supabase link --project-ref jogvvjiuumrswwamanqk
+supabase link --project-ref <VOTRE_PROJECT_REF>
 
 # 🗄️ Appliquer les migrations
 supabase db push --yes
@@ -345,4 +347,4 @@ supabase storage ls ss:///listing-photos
 
 ---
 
-*Projet : ImoFlex • Ref : `jogvvjiuumrswwamanqk` • CLI : v2.109.1 • Windows PowerShell*
+*Projet : ImoFlex • Ref : `<VOTRE_PROJECT_REF>` • CLI : v2.109.1 • Windows PowerShell*

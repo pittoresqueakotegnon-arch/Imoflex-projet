@@ -51,7 +51,86 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // 1. Anonymiser le profil (garde l'historique référentiel : baux, paiements)
+    const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
+    const refuse = (error: string, code: string) =>
+      new Response(JSON.stringify({ error, code }), { status: 409, headers: jsonHeaders });
+
+    // 0. Contrôles préalables : aucune suppression tant que de l'argent ou un bail est en jeu
+    const { data: wallet } = await supabase
+      .from("wallets")
+      .select("id, available_balance")
+      .eq("owner_id", userId)
+      .maybeSingle();
+
+    if (wallet && Number(wallet.available_balance) > 0) {
+      return refuse(
+        `Votre wallet contient ${wallet.available_balance} FCFA. Retirez vos fonds avant de supprimer votre compte.`,
+        "wallet_not_empty",
+      );
+    }
+    if (wallet) {
+      const { count: pendingWithdrawals } = await supabase
+        .from("withdrawals")
+        .select("id", { count: "exact", head: true })
+        .eq("wallet_id", wallet.id)
+        .eq("status", "en_traitement");
+      if ((pendingWithdrawals ?? 0) > 0) {
+        return refuse("Un retrait est en cours de traitement. Réessayez une fois celui-ci terminé.", "withdrawal_pending");
+      }
+    }
+
+    const { count: activeTenantLeases } = await supabase
+      .from("leases")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", userId)
+      .eq("status", "actif");
+    if ((activeTenantLeases ?? 0) > 0) {
+      return refuse("Vous avez un bail actif. Il doit être terminé avant de supprimer votre compte.", "active_lease");
+    }
+
+    const { data: ownedProperties } = await supabase.from("properties").select("id").eq("owner_id", userId);
+    const ownedPropertyIds = (ownedProperties ?? []).map((property: { id: string }) => property.id);
+    let ownerHasLeases = false;
+    if (ownedPropertyIds.length > 0) {
+      const { count: activeOwnerLeases } = await supabase
+        .from("leases")
+        .select("id", { count: "exact", head: true })
+        .in("property_id", ownedPropertyIds)
+        .eq("status", "actif");
+      if ((activeOwnerLeases ?? 0) > 0) {
+        return refuse("Un de vos logements a un locataire actif. Terminez le bail avant de supprimer votre compte.", "active_lease");
+      }
+      const { count: allOwnerLeases } = await supabase
+        .from("leases")
+        .select("id", { count: "exact", head: true })
+        .in("property_id", ownedPropertyIds);
+      ownerHasLeases = (allOwnerLeases ?? 0) > 0;
+    }
+
+    const { count: pendingPayments } = await supabase
+      .from("payments")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", userId)
+      .eq("status", "en_attente");
+    if ((pendingPayments ?? 0) > 0) {
+      return refuse("Un paiement est en attente de confirmation. Réessayez une fois celui-ci terminé.", "payment_pending");
+    }
+
+    const { count: tenantLeaseCount } = await supabase
+      .from("leases")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", userId);
+    const { count: tenantPaymentCount } = await supabase
+      .from("payments")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", userId);
+
+    // Historique financier ou locatif à conserver : on anonymise et on désactive le compte
+    // au lieu de le supprimer (les clés étrangères RESTRICT interdisent de supprimer ces lignes).
+    const hasHistory = (tenantLeaseCount ?? 0) > 0 || (tenantPaymentCount ?? 0) > 0 || !!wallet || ownerHasLeases;
+    const anonymizedEmail = `deleted-${userId}@imoflex.invalid`;
+
+    // 1. Anonymiser le profil (y compris l'e-mail)
     const { error: updateErr } = await supabase
       .from("users")
       .update({
@@ -59,6 +138,9 @@ Deno.serve(async (req: Request) => {
         full_name: "Compte supprimé",
         phone: null,
         mobile_money_number: null,
+        email: anonymizedEmail,
+        avatar_url: null,
+        fcm_token: null,
       })
       .eq("id", userId);
 
@@ -66,25 +148,45 @@ Deno.serve(async (req: Request) => {
       console.error("Erreur anonymisation profil:", updateErr);
       return new Response(
         JSON.stringify({ error: "Échec de l'anonymisation du profil" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: jsonHeaders }
       );
     }
 
-    // 2. Détruire réellement le compte Auth — sans ça, l'utilisateur peut se
-    // reconnecter immédiatement avec les mêmes identifiants après "suppression".
+    // 2. Empêcher toute reconnexion
+    try {
+      await supabase.auth.admin.signOut(jwt, "global");
+    } catch (signOutErr) {
+      console.warn("Révocation des sessions impossible (non bloquant):", signOutErr);
+    }
+
+    if (hasHistory) {
+      const { error: banErr } = await supabase.auth.admin.updateUserById(userId, {
+        email: anonymizedEmail,
+        email_confirm: true,
+        password: `${crypto.randomUUID()}${crypto.randomUUID()}`,
+        ban_duration: "876000h",
+        user_metadata: {},
+      });
+      if (banErr) {
+        console.error("Erreur désactivation compte Auth:", banErr);
+        return new Response(
+          JSON.stringify({ error: "Le profil a été anonymisé mais la désactivation du compte a échoué. Contactez le support." }),
+          { status: 500, headers: jsonHeaders }
+        );
+      }
+      return new Response(JSON.stringify({ success: true, mode: "anonymized" }), { status: 200, headers: jsonHeaders });
+    }
+
     const { error: deleteAuthErr } = await supabase.auth.admin.deleteUser(userId);
     if (deleteAuthErr) {
       console.error("Erreur suppression compte Auth:", deleteAuthErr);
       return new Response(
         JSON.stringify({ error: "Le profil a été anonymisé mais la suppression du compte a échoué. Contactez le support." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: jsonHeaders }
       );
     }
 
-    return new Response(
-      JSON.stringify({ success: true }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ success: true, mode: "deleted" }), { status: 200, headers: jsonHeaders });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erreur interne";
     return new Response(

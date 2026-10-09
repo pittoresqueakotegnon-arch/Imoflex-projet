@@ -116,7 +116,7 @@ Deno.serve(async (req: Request) => {
         let eventType: string | null = null;
         if (fedapayStatus === "approved") {
           eventType = "transaction.approved";
-        } else if (["declined", "canceled", "failed"].includes(fedapayStatus)) {
+        } else if (["declined", "canceled", "failed", "expired"].includes(fedapayStatus)) {
           eventType = "transaction.declined";
         }
 
@@ -124,6 +124,26 @@ Deno.serve(async (req: Request) => {
           // Encore en attente côté Fedapay
           summary.unchanged++;
           summary.details.push({ id: payment.id, transaction_id: transactionId, status: "en_attente", reason: `Toujours en attente (Fedapay: ${fedapayStatus})` });
+          continue;
+        }
+
+        // Contrôle du montant confirmé par FedaPay : en cas d'écart, le paiement n'est PAS crédité
+        if (
+          eventType === "transaction.approved" &&
+          transactionObj?.amount != null &&
+          Number(transactionObj.amount) !== Number(payment.amount)
+        ) {
+          if (!dryRun) {
+            await supabase.from("audit_logs").insert({
+              user_id: null,
+              action: "payment_amount_mismatch",
+              entity_type: "payments",
+              entity_id: payment.id,
+              details: { expected: payment.amount, received: Number(transactionObj.amount), source: "reconcile-payments" },
+            });
+          }
+          summary.errors++;
+          summary.details.push({ id: payment.id, transaction_id: transactionId, status: "en_attente", reason: "Écart de montant FedaPay : paiement non crédité" });
           continue;
         }
 
