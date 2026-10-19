@@ -1,11 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Phone, Calendar, MapPin, CreditCard, AlertTriangle, CheckCircle2, Clock3, MessageCircle, WalletCards } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { supabase, LeaseContract, PropertyInspection } from '../../lib/supabase';
+import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/Toast';
 import { getCurrentMonth, getMonthName } from '../../lib/utils';
 import BottomNav from '../../components/BottomNav';
 import { BackButton } from '../../components/BackButton';
+import { ContractCard } from '../../components/ContractCard';
+import { InspectionCard } from '../../components/InspectionCard';
+import { CreateContractModal } from '../../components/CreateContractModal';
+import { CreateInspectionModal } from '../../components/CreateInspectionModal';
+import { CompareInspectionsModal } from '../../components/CompareInspectionsModal';
+import { fetchLeaseContract, fetchInspections } from '../../lib/leaseDocumentsService';
 
 interface LeaseDetails {
   id: string;
@@ -57,9 +64,30 @@ const ProgressBar: React.FC<{ current: number; total: number }> = ({ current, to
 const FicheBail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const { showToast } = useToast();
   const [lease, setLease] = useState<LeaseDetails | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Documents : contrat & états des lieux
+  const [contract, setContract] = useState<LeaseContract | null>(null);
+  const [inspections, setInspections] = useState<PropertyInspection[]>([]);
+  const [isCreateContractOpen, setIsCreateContractOpen] = useState(false);
+  const [isCreateInspectionOpen, setIsCreateInspectionOpen] = useState(false);
+  const [isCompareOpen, setIsCompareOpen] = useState(false);
+
+  const loadDocuments = useCallback(async (leaseId: string) => {
+    try {
+      const [c, insps] = await Promise.all([
+        fetchLeaseContract(leaseId),
+        fetchInspections(leaseId),
+      ]);
+      setContract(c);
+      setInspections(insps);
+    } catch (docErr) {
+      console.warn('Erreur chargement documents bail:', docErr);
+    }
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -122,6 +150,9 @@ const FicheBail: React.FC = () => {
           tenant: tenantData ?? { full_name: 'Locataire', phone: '' },
           rent_periods: (leaseData as any).rent_periods ?? [],
         });
+
+        // Charger documents associés
+        await loadDocuments(leaseData.id);
       } catch (err: any) {
         console.error('Erreur FicheBail:', err);
         showToast('Impossible de charger les informations du bail.', 'error');
@@ -132,7 +163,7 @@ const FicheBail: React.FC = () => {
     };
 
     fetchLease();
-  }, [id, navigate, showToast]);
+  }, [id, navigate, showToast, loadDocuments]);
 
   if (loading) {
     return (
@@ -383,6 +414,44 @@ const FicheBail: React.FC = () => {
           </div>
         </div>
 
+        {/* SECTION : CONTRAT DE BAIL OFFICIEL (LOI BÉNINOISE N° 2022-30) */}
+        <div>
+          <ContractCard
+            leaseId={lease.id}
+            contract={contract}
+            userRole="proprietaire"
+            userName={profile?.full_name || 'Propriétaire'}
+            propertyName={lease.property?.name || 'Logement'}
+            propertyAddress={lease.property?.address || '—'}
+            monthlyRent={lease.property?.monthly_rent || 0}
+            startDate={lease.start_date}
+            ownerName={profile?.full_name || 'Bailleur'}
+            tenantName={lease.tenant?.full_name || 'Locataire'}
+            ownerPhone={profile?.phone || undefined}
+            tenantPhone={lease.tenant?.phone || undefined}
+            onRefresh={() => loadDocuments(lease.id)}
+            onOpenCreateModal={() => setIsCreateContractOpen(true)}
+          />
+        </div>
+
+        {/* SECTION : ÉTAT DES LIEUX PHOTOGRAPHIQUE (ENTRÉE & SORTIE) */}
+        <div>
+          <InspectionCard
+            leaseId={lease.id}
+            inspections={inspections}
+            userRole="proprietaire"
+            userName={profile?.full_name || 'Propriétaire'}
+            propertyName={lease.property?.name || 'Logement'}
+            propertyAddress={lease.property?.address || '—'}
+            ownerName={profile?.full_name || 'Bailleur'}
+            tenantName={lease.tenant?.full_name || 'Locataire'}
+            contractNumber={contract?.contract_number}
+            onRefresh={() => loadDocuments(lease.id)}
+            onOpenCreateModal={() => setIsCreateInspectionOpen(true)}
+            onOpenCompareModal={() => setIsCompareOpen(true)}
+          />
+        </div>
+
         {/* SECTION 3: HISTORIQUE DES VERSEMENTS */}
         <div>
           <h3 className="font-nunito font-black text-[var(--imx-text-primary)] text-[15px] mb-3 ml-1">Historique des paiements</h3>
@@ -475,6 +544,33 @@ const FicheBail: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modaux de gestion documentaire */}
+      <CreateContractModal
+        isOpen={isCreateContractOpen}
+        onClose={() => setIsCreateContractOpen(false)}
+        leaseId={lease.id}
+        defaultRent={lease.property?.monthly_rent || 0}
+        defaultAddress={lease.property?.address || ''}
+        defaultStartDate={lease.start_date}
+        onSuccess={() => loadDocuments(lease.id)}
+      />
+
+      <CreateInspectionModal
+        isOpen={isCreateInspectionOpen}
+        onClose={() => setIsCreateInspectionOpen(false)}
+        leaseId={lease.id}
+        userId={profile?.id || ''}
+        existingEntry={Boolean(inspections.find(i => i.inspection_type === 'entree'))}
+        onSuccess={() => loadDocuments(lease.id)}
+      />
+
+      <CompareInspectionsModal
+        isOpen={isCompareOpen}
+        onClose={() => setIsCompareOpen(false)}
+        entryInspection={inspections.find(i => i.inspection_type === 'entree')}
+        exitInspection={inspections.find(i => i.inspection_type === 'sortie')}
+      />
       
       <BottomNav />
     </div>

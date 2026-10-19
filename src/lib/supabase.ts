@@ -175,6 +175,77 @@ export interface ListingPhoto {
   is_cover: boolean;
 }
 
+export interface LeaseContract {
+  id: string;
+  lease_id: string;
+  contract_number: string;
+  version: number;
+  status: 'brouillon' | 'en_attente_locataire' | 'en_attente_proprietaire' | 'signe' | 'resilie';
+  monthly_rent: number;
+  deposit_amount?: number;
+  advance_amount?: number;
+  charges_amount?: number;
+  payment_deadline_day: number;
+  duration_months: number;
+  start_date: string;
+  end_date?: string | null;
+  property_usage: string;
+  notice_period_months: number;
+  special_clauses?: string | null;
+  owner_consent: boolean;
+  owner_signed_at?: string | null;
+  owner_signature_svg?: string | null;
+  owner_signer_name?: string | null;
+  owner_signer_ip?: string | null;
+  tenant_consent: boolean;
+  tenant_signed_at?: string | null;
+  tenant_signature_svg?: string | null;
+  tenant_signer_name?: string | null;
+  tenant_signer_ip?: string | null;
+  document_hash?: string | null;
+  pdf_storage_path?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type InspectionConditionState = 'neuf' | 'bon' | 'moyen' | 'mauvais' | 'degrade';
+
+export interface PropertyInspectionItem {
+  id: string;
+  inspection_id: string;
+  room_name: string;
+  element_name: string;
+  condition_state: InspectionConditionState;
+  comment?: string | null;
+  photo_paths: string[];
+  display_order: number;
+  created_at: string;
+}
+
+export interface PropertyInspection {
+  id: string;
+  lease_id: string;
+  inspection_type: 'entree' | 'sortie';
+  inspection_date: string;
+  status: 'brouillon' | 'en_attente_validation' | 'valide' | 'conteste';
+  conducted_by_id?: string | null;
+  water_meter_reading?: string | null;
+  electric_meter_reading?: string | null;
+  keys_handed_count: number;
+  keys_description?: string | null;
+  general_observations?: string | null;
+  tenant_reserves?: string | null;
+  owner_confirmed_at?: string | null;
+  owner_signature_svg?: string | null;
+  tenant_confirmed_at?: string | null;
+  tenant_signature_svg?: string | null;
+  pdf_report_path?: string | null;
+  document_hash?: string | null;
+  items?: PropertyInspectionItem[];
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Favorite {
   id: string;
   user_id: string;

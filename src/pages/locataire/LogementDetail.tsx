@@ -1,10 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, AlertCircle, Clock, CreditCard, CheckCircle2, MapPin, SearchX, ArrowRight, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, AlertCircle, Clock, CreditCard, CheckCircle2, MapPin, SearchX, ArrowRight, ShieldCheck, FileText } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { supabase, Payment } from '../../lib/supabase';
+import { supabase, Payment, LeaseContract, PropertyInspection } from '../../lib/supabase';
 import { formatMontant, daysUntilDeadline, getMonthName, operatorLabel } from '../../lib/utils';
 import { haptics } from '../../lib/haptics';
+import { ContractCard } from '../../components/ContractCard';
+import { InspectionCard } from '../../components/InspectionCard';
+import { CompareInspectionsModal } from '../../components/CompareInspectionsModal';
+import { fetchLeaseContract, fetchInspections } from '../../lib/leaseDocumentsService';
 
 interface RentPeriodLite {
   id: string;
@@ -20,10 +24,32 @@ export default function LogementDetail() {
 
   const [propertyName, setPropertyName] = useState('');
   const [propertyAddress, setPropertyAddress] = useState('');
+  const [monthlyRent, setMonthlyRent] = useState(0);
+  const [startDate, setStartDate] = useState('');
+  const [ownerName, setOwnerName] = useState('Bailleur');
+  const [ownerPhone, setOwnerPhone] = useState<string | undefined>(undefined);
   const [currentPeriod, setCurrentPeriod] = useState<RentPeriodLite | null>(null);
   const [leasePayments, setLeasePayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  // Documents
+  const [contract, setContract] = useState<LeaseContract | null>(null);
+  const [inspections, setInspections] = useState<PropertyInspection[]>([]);
+  const [isCompareOpen, setIsCompareOpen] = useState(false);
+
+  const loadDocuments = useCallback(async (lId: string) => {
+    try {
+      const [c, insps] = await Promise.all([
+        fetchLeaseContract(lId),
+        fetchInspections(lId),
+      ]);
+      setContract(c);
+      setInspections(insps);
+    } catch (err) {
+      console.warn('Erreur chargement documents locataire:', err);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,7 +58,7 @@ export default function LogementDetail() {
       try {
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
-          .select('id, tenant_id, status, properties:property_id(name, address)')
+          .select('id, tenant_id, start_date, status, properties:property_id(name, address, monthly_rent, owner_id)')
           .eq('id', leaseId)
           .eq('tenant_id', profile.id)
           .eq('status', 'actif')
@@ -45,8 +71,25 @@ export default function LogementDetail() {
           return;
         }
 
-        setPropertyName((leaseData as any).properties?.name || 'Logement');
-        setPropertyAddress((leaseData as any).properties?.address || '');
+        const prop = (leaseData as any).properties;
+        setPropertyName(prop?.name || 'Logement');
+        setPropertyAddress(prop?.address || '');
+        setMonthlyRent(prop?.monthly_rent || 0);
+        setStartDate(leaseData.start_date || '');
+
+        // Récupérer le nom du propriétaire
+        if (prop?.owner_id) {
+          const { data: ownerData } = await supabase
+            .from('users')
+            .select('full_name, phone')
+            .eq('id', prop.owner_id)
+            .maybeSingle();
+
+          if (ownerData) {
+            setOwnerName(ownerData.full_name || 'Bailleur');
+            setOwnerPhone(ownerData.phone || undefined);
+          }
+        }
 
         const now = new Date();
         const { data: periodData, error: periodError } = await supabase
@@ -76,6 +119,9 @@ export default function LogementDetail() {
           return rest as Payment;
         });
         setLeasePayments(cleaned);
+
+        // Charger documents (contrat et états des lieux)
+        await loadDocuments(leaseId);
       } catch (err) {
         console.error('[LogementDetail] Error fetching data:', err);
       } finally {
@@ -84,7 +130,7 @@ export default function LogementDetail() {
     };
 
     fetchData();
-  }, [profile?.id, leaseId]);
+  }, [profile?.id, leaseId, loadDocuments]);
 
   if (loading) {
     return (
@@ -228,6 +274,39 @@ export default function LogementDetail() {
           </div>
         )}
 
+        {/* SECTION : DOCUMENTS & CONTRAT DE BAIL (LOCATAIRE) */}
+        <div className="flex flex-col gap-5">
+          <ContractCard
+            leaseId={leaseId!}
+            contract={contract}
+            userRole="locataire"
+            userName={profile?.full_name || 'Locataire'}
+            propertyName={propertyName}
+            propertyAddress={propertyAddress}
+            monthlyRent={monthlyRent}
+            startDate={startDate}
+            ownerName={ownerName}
+            tenantName={profile?.full_name || 'Locataire'}
+            ownerPhone={ownerPhone}
+            tenantPhone={profile?.phone || undefined}
+            onRefresh={() => loadDocuments(leaseId!)}
+          />
+
+          <InspectionCard
+            leaseId={leaseId!}
+            inspections={inspections}
+            userRole="locataire"
+            userName={profile?.full_name || 'Locataire'}
+            propertyName={propertyName}
+            propertyAddress={propertyAddress}
+            ownerName={ownerName}
+            tenantName={profile?.full_name || 'Locataire'}
+            contractNumber={contract?.contract_number}
+            onRefresh={() => loadDocuments(leaseId!)}
+            onOpenCompareModal={() => setIsCompareOpen(true)}
+          />
+        </div>
+
         {/* VERSEMENTS LIST */}
         <div>
           <div className="flex items-center justify-between mb-4 px-1">
@@ -281,6 +360,13 @@ export default function LogementDetail() {
           )}
         </div>
       </div>
+
+      <CompareInspectionsModal
+        isOpen={isCompareOpen}
+        onClose={() => setIsCompareOpen(false)}
+        entryInspection={inspections.find(i => i.inspection_type === 'entree')}
+        exitInspection={inspections.find(i => i.inspection_type === 'sortie')}
+      />
     </div>
   );
 }
