@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, X, Plus } from 'lucide-react';
+import { ArrowLeft, X, Plus, RotateCcw, CheckCircle2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, PropertyType } from '../../lib/supabase';
@@ -13,11 +13,57 @@ import { processImage } from '../../lib/imageOptimization';
 const PROPERTY_TYPES: PropertyType[] = ['chambre', 'studio', 'appartement', 'maison', 'bureau', 'parcelle'];
 const AMENITIES = ['Électricité', 'Eau courante', 'Parking', 'Climatisation', 'WiFi', 'Sécurité', 'Balcon', 'Meublé'];
 
+const DRAFT_KEY_PREFIX = 'imoflex_listing_draft_';
+const getDraftKey = (userId?: string) => `${DRAFT_KEY_PREFIX}${userId || 'current'}`;
+
+interface UploadedPhoto {
+  id: string;
+  thumbUrl: string;
+  publicBaseUrl: string;
+}
+
+interface ListingDraft {
+  listingId: string;
+  step: number;
+  uploadedPhotos: UploadedPhoto[];
+  title: string;
+  propertyType: PropertyType;
+  monthlyRent: string;
+  city: string;
+  neighborhood: string;
+  address: string;
+  depositAmount: string;
+  advanceAmount: string;
+  bedrooms: string;
+  selectedAmenities: string[];
+  description: string;
+  houseRules: string;
+  acceptsProgressive: boolean;
+  savedAt: string;
+}
+
+const getStoredDraft = (userId?: string): ListingDraft | null => {
+  try {
+    const raw = localStorage.getItem(getDraftKey(userId)) || localStorage.getItem(getDraftKey('current'));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed;
+  } catch (err) {
+    console.error('Erreur lecture brouillon:', err);
+    return null;
+  }
+};
+
 const Publier: React.FC = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { showToast } = useToast();
-  const [step, setStep] = useState(1);
+
+  // Chargement du brouillon existant au montage
+  const initialDraftRef = useRef<ListingDraft | null>(getStoredDraft(profile?.id));
+  const initialDraft = initialDraftRef.current;
+
+  const [step, setStep] = useState<number>(() => initialDraft?.step || 1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -26,27 +72,156 @@ const Publier: React.FC = () => {
   const [uploadStatus, setUploadStatus] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  // Generate listing ID upfront for storage naming convention
-  const [listingId] = useState(() => uuidv4());
+  // Generate or restore listing ID upfront for storage naming convention
+  const [listingId, setListingId] = useState<string>(() => initialDraft?.listingId || uuidv4());
 
   // Step 1: Photos & basic info
-  // We store the photoId and the thumbUrl for preview, plus the publicBaseUrl to save in DB
-  const [uploadedPhotos, setUploadedPhotos] = useState<{ id: string, thumbUrl: string, publicBaseUrl: string }[]>([]);
-  const [title, setTitle] = useState('');
-  const [propertyType, setPropertyType] = useState<PropertyType>('appartement');
-  const [monthlyRent, setMonthlyRent] = useState('');
-  const [city, setCity] = useState('Cotonou');
-  const [neighborhood, setNeighborhood] = useState('');
-  const [address, setAddress] = useState('');
+  const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>(() => initialDraft?.uploadedPhotos || []);
+  const [title, setTitle] = useState(() => initialDraft?.title || '');
+  const [propertyType, setPropertyType] = useState<PropertyType>(() => initialDraft?.propertyType || 'appartement');
+  const [monthlyRent, setMonthlyRent] = useState(() => initialDraft?.monthlyRent || '');
+  const [city, setCity] = useState(() => initialDraft?.city || 'Cotonou');
+  const [neighborhood, setNeighborhood] = useState(() => initialDraft?.neighborhood || '');
+  const [address, setAddress] = useState(() => initialDraft?.address || '');
 
   // Step 2: Details & equipment
-  const [depositAmount, setDepositAmount] = useState('');
-  const [advanceAmount, setAdvanceAmount] = useState('');
-  const [bedrooms, setBedrooms] = useState('');
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-  const [description, setDescription] = useState('');
-  const [houseRules, setHouseRules] = useState('');
-  const [acceptsProgressive, setAcceptsProgressive] = useState(false);
+  const [depositAmount, setDepositAmount] = useState(() => initialDraft?.depositAmount || '');
+  const [advanceAmount, setAdvanceAmount] = useState(() => initialDraft?.advanceAmount || '');
+  const [bedrooms, setBedrooms] = useState(() => initialDraft?.bedrooms || '');
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>(() => initialDraft?.selectedAmenities || []);
+  const [description, setDescription] = useState(() => initialDraft?.description || '');
+  const [houseRules, setHouseRules] = useState(() => initialDraft?.houseRules || '');
+  const [acceptsProgressive, setAcceptsProgressive] = useState(() => initialDraft?.acceptsProgressive || false);
+
+  // Draft banner indicator
+  const [hasRestoredDraft, setHasRestoredDraft] = useState<boolean>(() => {
+    return Boolean(
+      initialDraft &&
+      ((initialDraft.uploadedPhotos && initialDraft.uploadedPhotos.length > 0) ||
+        (initialDraft.title && initialDraft.title.trim() !== '') ||
+        (initialDraft.address && initialDraft.address.trim() !== ''))
+    );
+  });
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(() => {
+    if (initialDraft?.savedAt) {
+      try {
+        return new Date(initialDraft.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+
+  // Sauvegarde automatique dès qu'une information ou une image change
+  useEffect(() => {
+    const hasContent =
+      uploadedPhotos.length > 0 ||
+      title.trim() !== '' ||
+      monthlyRent.trim() !== '' ||
+      neighborhood.trim() !== '' ||
+      address.trim() !== '' ||
+      depositAmount.trim() !== '' ||
+      advanceAmount.trim() !== '' ||
+      bedrooms.trim() !== '' ||
+      selectedAmenities.length > 0 ||
+      description.trim() !== '' ||
+      houseRules.trim() !== '';
+
+    if (!hasContent) return;
+
+    const draftData: ListingDraft = {
+      listingId,
+      step,
+      uploadedPhotos,
+      title,
+      propertyType,
+      monthlyRent,
+      city,
+      neighborhood,
+      address,
+      depositAmount,
+      advanceAmount,
+      bedrooms,
+      selectedAmenities,
+      description,
+      houseRules,
+      acceptsProgressive,
+      savedAt: new Date().toISOString(),
+    };
+
+    try {
+      const serialized = JSON.stringify(draftData);
+      localStorage.setItem(getDraftKey(profile?.id), serialized);
+      localStorage.setItem(getDraftKey('current'), serialized);
+      setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    } catch (e) {
+      console.error('Erreur sauvegarde automatique du brouillon:', e);
+    }
+  }, [
+    profile?.id,
+    listingId,
+    step,
+    uploadedPhotos,
+    title,
+    propertyType,
+    monthlyRent,
+    city,
+    neighborhood,
+    address,
+    depositAmount,
+    advanceAmount,
+    bedrooms,
+    selectedAmenities,
+    description,
+    houseRules,
+    acceptsProgressive,
+  ]);
+
+  // Avertir si fermeture accidentelle de la fenêtre
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const hasContent = uploadedPhotos.length > 0 || title.trim() !== '' || address.trim() !== '';
+      if (hasContent) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [uploadedPhotos.length, title, address]);
+
+  // Réinitialiser / effacer le brouillon pour recommencer à zéro
+  const handleClearDraft = () => {
+    if (window.confirm('Voulez-vous vraiment effacer ce brouillon et repartir de zéro ?')) {
+      try {
+        localStorage.removeItem(getDraftKey(profile?.id));
+        localStorage.removeItem(getDraftKey('current'));
+      } catch (e) {
+        console.error(e);
+      }
+      setListingId(uuidv4());
+      setUploadedPhotos([]);
+      setTitle('');
+      setPropertyType('appartement');
+      setMonthlyRent('');
+      setCity('Cotonou');
+      setNeighborhood('');
+      setAddress('');
+      setDepositAmount('');
+      setAdvanceAmount('');
+      setBedrooms('');
+      setSelectedAmenities([]);
+      setDescription('');
+      setHouseRules('');
+      setAcceptsProgressive(false);
+      setStep(1);
+      setHasRestoredDraft(false);
+      setLastSavedTime(null);
+      setError(null);
+      showToast('Brouillon effacé. Vous repartez de zéro.', 'info');
+    }
+  };
 
   const handlePhotoUpload = async (file: File, index: number) => {
     if (!profile?.id) return;
@@ -187,6 +362,14 @@ const Publier: React.FC = () => {
         details: { title, city, propertyType, monthlyRent: parseInt(monthlyRent) }
       });
 
+      // Nettoyage du brouillon sauvegardé
+      try {
+        localStorage.removeItem(getDraftKey(profile.id));
+        localStorage.removeItem(getDraftKey('current'));
+      } catch (cleanErr) {
+        console.error('Erreur nettoyage brouillon:', cleanErr);
+      }
+
       showToast('Annonce publiée avec succès !', 'success');
       navigate('/pro/annonces');
     } catch (err) {
@@ -200,15 +383,68 @@ const Publier: React.FC = () => {
     return (
       <div className="page-container">
         <div className="px-4 pt-6 pb-4">
-          <div className="flex items-center gap-3 mb-6">
-            <button
-              onClick={() => navigate('/pro/annonces')}
-              className="p-2 hover:bg-[var(--imx-surface-2)] rounded-lg transition"
-            >
-              <ArrowLeft size={24} />
-            </button>
-            <h1 className="text-2xl font-nunito font-900">Nouvelle annonce</h1>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/pro/annonces')}
+                className="p-2 hover:bg-[var(--imx-surface-2)] rounded-lg transition"
+                title="Retour aux annonces"
+              >
+                <ArrowLeft size={24} />
+              </button>
+              <div>
+                <h1 className="text-2xl font-nunito font-900">Nouvelle annonce</h1>
+                <p className="text-[11px] text-[var(--imx-text-secondary)] font-space-grotesk">
+                  Étape 1/2 : Photos & informations de base
+                </p>
+              </div>
+            </div>
+
+            {(uploadedPhotos.length > 0 || title.trim() !== '' || address.trim() !== '') && (
+              <button
+                type="button"
+                onClick={handleClearDraft}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition"
+                title="Effacer le formulaire et recommencer à zéro"
+              >
+                <RotateCcw size={13} />
+                <span className="hidden sm:inline">Recommencer</span>
+              </button>
+            )}
           </div>
+
+          {/* Bannière de brouillon restauré */}
+          {hasRestoredDraft && (
+            <div className="mb-4 p-3 rounded-2xl bg-[var(--imx-surface-2)] border border-[var(--imx-accent)]/30 flex items-center justify-between gap-3 animate-fade-in">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[var(--imx-text-primary)]">
+                    Brouillon conservé
+                  </p>
+                  <p className="text-[11px] text-[var(--imx-text-secondary)] truncate font-space-grotesk">
+                    {uploadedPhotos.length > 0 ? `${uploadedPhotos.length} photo(s) déjà chargée(s) • ` : ''}
+                    Vos saisies ont été automatiquement reprises.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearDraft}
+                className="flex-shrink-0 text-[11px] text-red-400 hover:text-red-300 font-semibold underline"
+              >
+                Tout effacer
+              </button>
+            </div>
+          )}
+
+          {/* Indicateur de sauvegarde automatique discrète */}
+          {lastSavedTime && !hasRestoredDraft && (
+            <div className="mb-4 flex items-center justify-end gap-1.5 text-[10px] text-[var(--imx-text-muted)] font-space-grotesk">
+              <CheckCircle2 size={12} className="text-emerald-400" />
+              <span>Sauvegardé automatiquement à {lastSavedTime}</span>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-500/10 border border-red-500 rounded-lg p-3 mb-4">
@@ -387,15 +623,40 @@ const Publier: React.FC = () => {
   return (
     <div className="page-container">
       <div className="px-4 pt-6 pb-4">
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setStep(1)}
+              className="p-2 hover:bg-[var(--imx-surface-2)] rounded-lg transition"
+              title="Retour à l'étape 1"
+            >
+              <ArrowLeft size={24} />
+            </button>
+            <div>
+              <h1 className="text-2xl font-nunito font-900">Détails du bien</h1>
+              <p className="text-[11px] text-[var(--imx-text-secondary)] font-space-grotesk">
+                Étape 2/2 : Conditions & équipements
+              </p>
+            </div>
+          </div>
+
           <button
-            onClick={() => setStep(1)}
-            className="p-2 hover:bg-[var(--imx-surface-2)] rounded-lg transition"
+            type="button"
+            onClick={handleClearDraft}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition"
+            title="Effacer le formulaire et recommencer à zéro"
           >
-            <ArrowLeft size={24} />
+            <RotateCcw size={13} />
+            <span className="hidden sm:inline">Recommencer</span>
           </button>
-          <h1 className="text-2xl font-nunito font-900">Détails du bien</h1>
         </div>
+
+        {lastSavedTime && (
+          <div className="mb-4 flex items-center justify-end gap-1.5 text-[10px] text-[var(--imx-text-muted)] font-space-grotesk">
+            <CheckCircle2 size={12} className="text-emerald-400" />
+            <span>Sauvegardé automatiquement à {lastSavedTime}</span>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-500/10 border border-red-500 rounded-lg p-3 mb-4">
