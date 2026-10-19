@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Trash2, Camera, Check, AlertCircle, Info } from 'lucide-react';
+import { X, Plus, Trash2, Camera, Check, AlertCircle } from 'lucide-react';
 import { createInspection, addInspectionItem, uploadInspectionPhoto } from '../lib/leaseDocumentsService';
 import { useToast } from './Toast';
 

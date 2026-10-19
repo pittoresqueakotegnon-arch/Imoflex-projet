@@ -18,7 +18,6 @@ export const CreateContractModal: React.FC<CreateContractModalProps> = ({
   onClose,
   leaseId,
   defaultRent,
-  defaultAddress,
   defaultStartDate,
   onSuccess,
 }) => {

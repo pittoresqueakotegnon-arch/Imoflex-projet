@@ -247,7 +247,7 @@ export const generateLeaseContractPDF = (data: ContractPdfData): jsPDF => {
     if (data.ownerSignatureImage) {
       try {
         doc.addImage(data.ownerSignatureImage, 'PNG', margin + 4, y + 17, colWidth - 8, 22, undefined, 'FAST');
-      } catch (e) {
+      } catch {
         doc.text("[Signature manuscrite enregistrée]", margin + 4, y + 25);
       }
     }
@@ -280,7 +280,7 @@ export const generateLeaseContractPDF = (data: ContractPdfData): jsPDF => {
     if (data.tenantSignatureImage) {
       try {
         doc.addImage(data.tenantSignatureImage, 'PNG', margin + colWidth + 10, y + 17, colWidth - 8, 22, undefined, 'FAST');
-      } catch (e) {
+      } catch {
         doc.text("[Signature manuscrite enregistrée]", margin + colWidth + 10, y + 25);
       }
     }

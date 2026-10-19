@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { ClipboardCheck, CheckCircle2, Clock, Download, Plus, AlertCircle, Eye, Columns } from 'lucide-react';
+import { ClipboardCheck, CheckCircle2, Clock, Download, Plus, Columns } from 'lucide-react';
 import { PropertyInspection } from '../lib/supabase';
 import { generateInspectionReportPDF } from '../lib/inspectionPdf';
-import { confirmInspection, getSecureDocumentUrl } from '../lib/leaseDocumentsService';
+import { confirmInspection } from '../lib/leaseDocumentsService';
 import { SignatureModal } from './SignatureModal';
 import { useToast } from './Toast';
 
@@ -22,7 +22,6 @@ interface InspectionCardProps {
 }
 
 export const InspectionCard: React.FC<InspectionCardProps> = ({
-  leaseId,
   inspections,
   userRole,
   userName,

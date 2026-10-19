@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { FileText, CheckCircle2, Clock, Download, ShieldCheck, PenTool, AlertTriangle, ChevronRight } from 'lucide-react';
+import { FileText, CheckCircle2, Clock, Download, PenTool } from 'lucide-react';
 import { LeaseContract } from '../lib/supabase';
 import { generateLeaseContractPDF } from '../lib/contractPdf';
-import { signLeaseContract, getSecureDocumentUrl } from '../lib/leaseDocumentsService';
+import { signLeaseContract } from '../lib/leaseDocumentsService';
 import { SignatureModal } from './SignatureModal';
 import { useToast } from './Toast';
 import { formatMontant } from '../lib/utils';
@@ -27,7 +27,6 @@ interface ContractCardProps {
 }
 
 export const ContractCard: React.FC<ContractCardProps> = ({
-  leaseId,
   contract,
   userRole,
   userName,
@@ -51,7 +50,6 @@ export const ContractCard: React.FC<ContractCardProps> = ({
 
   const isOwner = userRole === 'proprietaire';
   const hasUserSigned = isOwner ? contract?.owner_consent : contract?.tenant_consent;
-  const isFullySigned = contract?.status === 'signe';
 
   // Statut visuel
   const getStatusBadge = () => {

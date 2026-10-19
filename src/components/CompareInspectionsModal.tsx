@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Columns, ArrowRight, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { X, Columns, AlertTriangle } from 'lucide-react';
 import { PropertyInspection } from '../lib/supabase';
 
 interface CompareInspectionsModalProps {

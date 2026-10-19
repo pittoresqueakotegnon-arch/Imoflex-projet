@@ -284,7 +284,7 @@ export const generateInspectionReportPDF = (data: InspectionPdfData): jsPDF => {
     if (data.ownerSignatureImage) {
       try {
         doc.addImage(data.ownerSignatureImage, 'PNG', margin + 4, y + 16, colWidth - 8, 20, undefined, 'FAST');
-      } catch (e) {
+      } catch {
         doc.text("[Signature enregistrée]", margin + 4, y + 22);
       }
     }
@@ -312,7 +312,7 @@ export const generateInspectionReportPDF = (data: InspectionPdfData): jsPDF => {
     if (data.tenantSignatureImage) {
       try {
         doc.addImage(data.tenantSignatureImage, 'PNG', margin + colWidth + 10, y + 16, colWidth - 8, 20, undefined, 'FAST');
-      } catch (e) {
+      } catch {
         doc.text("[Signature enregistrée]", margin + colWidth + 10, y + 22);
       }
     }
