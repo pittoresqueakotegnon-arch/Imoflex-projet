@@ -8,7 +8,7 @@ import {
   ShieldCheck, Receipt, Wallet, MessageCircle, HelpCircle,
   ChevronRight, KeyRound, Home, User, Camera, Trash2,
   ClipboardList, Heart, AlertTriangle, Pencil, Save, X,
-  Building2, Users, Plus, ArrowUpRight, Clock3, Star,
+  Building2, Users, Plus, ArrowUpRight, Clock3, Star, Lock,
 } from 'lucide-react';
 import { LegalModal } from '../../components/LegalModal';
 import { useWallet } from '../../hooks/useWallet';
@@ -126,6 +126,7 @@ export default function Profil() {
   const [editPhone, setEditPhone] = useState('');
 
   const isOwner = profile?.role === 'proprietaire';
+  const [hasWithdrawalPin, setHasWithdrawalPin] = useState<boolean | null>(null);
 
   const { wallet, loading: walletLoading, error: walletError } = useWallet(
     isOwner ? profile?.id : undefined,
@@ -134,6 +135,30 @@ export default function Profil() {
 
   const [ownerMetrics, setOwnerMetrics] = useState<OwnerMetrics | null>(null);
   const [ownerMetricsLoading, setOwnerMetricsLoading] = useState(isOwner);
+
+  // ── Statut PIN de retrait proprietaire ───────────────────────────────────────
+  useEffect(() => {
+    let active = true;
+    if (!isOwner || !profile?.id) {
+      setHasWithdrawalPin(null);
+      return;
+    }
+    const fetchPinStatus = async () => {
+      try {
+        // Le PIN est stocké dans withdrawal_pins (pas de colonne has_withdrawal_pin sur users)
+        const { count, error } = await supabase
+          .from('withdrawal_pins')
+          .select('user_id', { count: 'exact', head: true })
+          .eq('user_id', profile.id);
+        if (error) throw error;
+        if (active) setHasWithdrawalPin((count ?? 0) > 0);
+      } catch (err: unknown) {
+        console.error('[Profil] error fetching withdrawal pin status:', err);
+      }
+    };
+    fetchPinStatus();
+    return () => { active = false; };
+  }, [isOwner, profile?.id]);
 
   // ── Chargement metriques proprietaire ────────────────────────────────────────
   useEffect(() => {
@@ -565,6 +590,13 @@ export default function Profil() {
                   label="Coordonnees Mobile Money"
                   trailing={mmTrailing}
                   to="/profil/mobile-money"
+                />
+                <ProfilRow
+                  icon={<Lock size={15} />}
+                  iconColor="#8B5CF6"
+                  label="Code PIN de retrait"
+                  trailing={hasWithdrawalPin === null ? undefined : hasWithdrawalPin ? "Actif" : "À configurer"}
+                  to="/profil/code-retrait"
                 />
                 <ProfilRow
                   icon={<KeyRound size={15} />}

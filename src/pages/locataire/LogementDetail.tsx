@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, AlertCircle, Clock, CreditCard, CheckCircle2, Building2, MapPin, SearchX, ArrowRight, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, AlertCircle, Clock, CreditCard, CheckCircle2, MapPin, SearchX, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, Payment } from '../../lib/supabase';
 import { formatMontant, daysUntilDeadline, getMonthName, operatorLabel } from '../../lib/utils';

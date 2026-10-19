@@ -23,6 +23,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
     // Retraits
     en_traitement:{ label: 'EN COURS',      className: 'badge-solid-amber' },
     traite:       { label: 'TRAITÉ ✓',      className: 'badge-solid-green' },
+    complete:     { label: 'TERMINÉ ✓',     className: 'badge-solid-green' },
     rejete:       { label: 'REJETÉ',        className: 'badge-solid-amber' },
   };
 

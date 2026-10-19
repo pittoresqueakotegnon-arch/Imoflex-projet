@@ -44,8 +44,8 @@ WHERE table_schema = 'public' AND table_name = 'notifications' AND grantee = 'au
 BEGIN;
   -- Variables de test (à adapter)
   CREATE TEMP TABLE _t AS SELECT
-    '00000000-0000-0000-0000-000000000001'::uuid AS owner_id,
-    '00000000-0000-0000-0000-000000000002'::uuid AS wallet_id;
+    '98ab7b3d-baab-464d-b121-c7b27636c8f3'::uuid AS owner_id,
+    'd4a82700-8794-4446-8d47-9dec3eaf99b0'::uuid AS wallet_id;
 
   -- Prépare un code connu (1234) pour le propriétaire de test
   INSERT INTO public.withdrawal_pins (user_id, pin_hash)

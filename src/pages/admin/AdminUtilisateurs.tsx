@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Ban, AlertTriangle } from 'lucide-react';
+import { Ban, AlertTriangle, KeyRound } from 'lucide-react';
 import { supabase, UserRole } from '../../lib/supabase';
 import { useToast } from '../../components/Toast';
 import { useAuth } from '../../hooks/useAuth';
@@ -16,6 +16,8 @@ interface AdminUserRow {
   account_status?: string;
   is_active: boolean;
   created_at: string;
+  // Présence d'un code PIN de retrait (déduite de la jointure withdrawal_pins)
+  has_pin?: boolean;
   properties?: { count: number }[];
   leases?: { count: number }[];
 }
@@ -34,6 +36,11 @@ const AdminUtilisateurs: React.FC = () => {
     color: string;
   } | null>(null);
 
+  // Modal réinitialisation code PIN
+  const [resetPinModal, setResetPinModal] = useState<{ userId: string; userName: string } | null>(null);
+  const [resetReason, setResetReason] = useState('');
+  const [resettingPin, setResettingPin] = useState(false);
+
   const PAGE_SIZE = 20;
 
   useEffect(() => {
@@ -47,18 +54,58 @@ const AdminUtilisateurs: React.FC = () => {
 
       const { data, error } = await supabase
         .from('users')
-        .select('id, full_name, email, role, account_status, is_active, created_at, properties(count), leases(count)')
+        .select('id, full_name, email, role, account_status, is_active, created_at, properties(count), leases(count), withdrawal_pins(user_id)')
         .order('created_at', { ascending: false })
         .range(from, to);
 
       if (error) throw error;
 
-      setUsers((data || []) as AdminUserRow[]);
+      // Transformer les données : withdrawal_pins retourne un tableau, on déduit has_pin
+      const rows: AdminUserRow[] = (data || []).map((u: any) => ({
+        ...u,
+        has_pin: Array.isArray(u.withdrawal_pins) ? u.withdrawal_pins.length > 0 : false,
+      }));
+      setUsers(rows);
     } catch (error) {
       console.error('Error fetching users:', error);
       showToast('Erreur lors du chargement des utilisateurs', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResetWithdrawalPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetPinModal) return;
+
+    const trimmedReason = resetReason.trim();
+    if (trimmedReason.length < 5) {
+      showToast('Le motif doit comporter au moins 5 caractères.', 'error');
+      return;
+    }
+
+    setResettingPin(true);
+    try {
+      const { data, error } = await supabase.rpc('admin_reset_withdrawal_pin', {
+        p_user_id: resetPinModal.userId,
+        p_reason: trimmedReason,
+      });
+
+      if (error) throw error;
+
+      if (data === true) {
+        showToast(`Code PIN de ${resetPinModal.userName} réinitialisé avec succès`, 'success');
+        setResetPinModal(null);
+        setResetReason('');
+        fetchUsers();
+      } else {
+        throw new Error('Échec de la réinitialisation.');
+      }
+    } catch (err: unknown) {
+      console.error('Erreur réinitialisation PIN:', err);
+      showToast(err instanceof Error ? err.message : 'Erreur réinitialisation', 'error');
+    } finally {
+      setResettingPin(false);
     }
   };
 
@@ -234,7 +281,26 @@ const AdminUtilisateurs: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="flex gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {user.role === 'proprietaire' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResetPinModal({ userId: user.id, userName: user.full_name });
+                        setResetReason('');
+                      }}
+                      title="Réinitialiser le code PIN de retrait"
+                      className="text-xs font-semibold px-2.5 py-1 rounded-lg transition border flex items-center gap-1.5"
+                      style={{
+                        background: user.has_pin ? 'rgba(139, 92, 246, 0.15)' : 'rgba(156, 163, 175, 0.1)',
+                        color: user.has_pin ? '#A78BFA' : 'var(--adm-text-dim)',
+                        borderColor: user.has_pin ? 'rgba(139, 92, 246, 0.3)' : 'var(--adm-border)',
+                      }}
+                    >
+                      <KeyRound size={13} />
+                      {user.has_pin ? 'Réinit. PIN' : 'Sans PIN'}
+                    </button>
+                  )}
                   {((user as any).account_status === 'suspendu' || (user as any).account_status === 'banni') && (
                     <button
                       onClick={() => handleChangeStatus(user.id, 'actif')}
@@ -321,6 +387,76 @@ const AdminUtilisateurs: React.FC = () => {
                 Confirmer
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Réinitialisation Code PIN de retrait */}
+      {resetPinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.75)' }}>
+          <div className="rounded-2xl border p-6 w-full max-w-sm shadow-2xl" style={{ background: 'var(--adm-surface)', borderColor: 'var(--adm-border)' }}>
+            <div
+              className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center text-violet-400"
+              style={{ background: 'rgba(139, 92, 246, 0.15)', border: '1px solid rgba(139, 92, 246, 0.3)' }}
+            >
+              <KeyRound size={22} />
+            </div>
+            <h3 className="font-nunito font-900 text-base text-center mb-1" style={{ color: 'var(--adm-text)' }}>
+              Réinitialiser le code PIN
+            </h3>
+            <p className="text-xs text-center text-[var(--adm-text-dim)] mb-4 leading-relaxed">
+              Propriétaire : <strong>{resetPinModal.userName}</strong>. Cette action efface le code secret actuel et débloque le compte pour permettre une nouvelle configuration sécurisée.
+            </p>
+            <form onSubmit={handleResetWithdrawalPin} className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label htmlFor="reset-reason" className="block text-xs font-bold uppercase tracking-wider text-[var(--adm-text-muted)]">
+                    Motif obligatoire (min. 5 car.)
+                  </label>
+                  <span className={`text-[10px] font-mono ${resetReason.trim().length >= 5 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                    {resetReason.trim().length}/5 min
+                  </span>
+                </div>
+                <textarea
+                  id="reset-reason"
+                  rows={2}
+                  value={resetReason}
+                  onChange={(e) => setResetReason(e.target.value)}
+                  placeholder="Ex : Oubli de code signalé au support client"
+                  className="w-full rounded-xl border p-2.5 text-xs outline-none focus:border-[var(--adm-accent)]"
+                  style={{
+                    background: 'var(--adm-surface-alt)',
+                    color: 'var(--adm-text)',
+                    borderColor: 'var(--adm-border)',
+                  }}
+                  required
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setResetPinModal(null)}
+                  disabled={resettingPin}
+                  className="flex-1 py-2 rounded-xl text-xs font-semibold border transition"
+                  style={{ background: 'var(--adm-surface-alt)', color: 'var(--adm-text-muted)', borderColor: 'var(--adm-border)' }}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={resettingPin || resetReason.trim().length < 5}
+                  className="flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5"
+                  style={{
+                    background: 'rgba(139, 92, 246, 0.2)',
+                    color: '#A78BFA',
+                    border: '1px solid rgba(139, 92, 246, 0.4)',
+                    opacity: resettingPin || resetReason.trim().length < 5 ? 0.5 : 1,
+                  }}
+                >
+                  {resettingPin ? 'Réinitialisation...' : 'Confirmer'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

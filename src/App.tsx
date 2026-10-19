@@ -73,6 +73,7 @@ const AdminOwnerVerifications = lazy(() => import('./pages/admin/AdminOwnerVerif
 const Profil            = lazy(() => import('./pages/common/Profil'));
 const ProfilMobileMoney = lazy(() => import('./pages/common/ProfilMobileMoney'));
 const ProfilMotDePasse  = lazy(() => import('./pages/common/ProfilMotDePasse'));
+const ProfilCodeRetrait = lazy(() => import('./pages/common/ProfilCodeRetrait'));
 const Notifications     = lazy(() => import('./pages/common/Notifications'));
 
 // ── Fallback de chargement ultra-léger ───────────────────────────────────────
@@ -378,6 +379,16 @@ function AppRoutes() {
                   <MobileFrame>
                     <RoleGuard allowedRoles={['locataire', 'proprietaire', 'admin']} redirectTo="/login">
                       <ProfilMotDePasse />
+                    </RoleGuard>
+                  </MobileFrame>
+                }
+              />
+              <Route
+                path="/profil/code-retrait"
+                element={
+                  <MobileFrame>
+                    <RoleGuard allowedRoles={['proprietaire', 'admin']} redirectTo="/login">
+                      <ProfilCodeRetrait />
                     </RoleGuard>
                   </MobileFrame>
                 }
