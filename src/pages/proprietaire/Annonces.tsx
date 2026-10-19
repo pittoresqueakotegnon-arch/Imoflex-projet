@@ -9,6 +9,7 @@ import EmptyState from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
 import { DemandeSuppressionModal } from '../../components/DemandeSuppressionModal';
 import { PullToRefresh } from '../../components/PullToRefresh';
+import { getOptimizedUrl } from '../../lib/utils';
 
 interface AnnounceListItem extends ListingSummary {
   contactRequestsCount: number;
@@ -164,9 +165,10 @@ const Annonces: React.FC = () => {
                   <div className="w-[88px] h-[88px] rounded-[16px] overflow-hidden flex-shrink-0" style={{ background: 'var(--imx-surface-2)' }}>
                     {coverPhoto?.photo_url ? (
                       <img
-                        src={coverPhoto.photo_url}
+                        src={getOptimizedUrl(coverPhoto.photo_url, 'thumb') || coverPhoto.photo_url}
                         alt={listing.title}
                         className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).src = coverPhoto.photo_url; }}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center" style={{ color: 'var(--imx-text-muted)' }}>

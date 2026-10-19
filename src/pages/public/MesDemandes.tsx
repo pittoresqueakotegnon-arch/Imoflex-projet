@@ -6,7 +6,7 @@ import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
 import { MessageSquare, Clock, CheckCircle, ChevronRight, MapPin, CheckCircle2, Home } from 'lucide-react';
 import { OptimizedImage } from '../../components/OptimizedImage';
-import { formatMontant } from '../../lib/utils';
+import { formatMontant, getOptimizedUrl } from '../../lib/utils';
 
 interface ContactRequestWithListing {
   id: string;
@@ -234,7 +234,8 @@ const MesDemandes: React.FC = () => {
                   >
                     {coverPhoto ? (
                       <OptimizedImage
-                        src={coverPhoto.photo_url}
+                        src={getOptimizedUrl(coverPhoto.photo_url, 'thumb') || coverPhoto.photo_url}
+                        fallbackSrc={coverPhoto.photo_url}
                         alt={listing?.title || ''}
                         className="w-full h-full"
                       />

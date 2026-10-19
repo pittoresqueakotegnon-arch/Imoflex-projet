@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useListing } from '../../hooks/useListings';
 import { useToast } from '../../components/Toast';
 import { supabase } from '../../lib/supabase';
-import { formatMontant } from '../../lib/utils';
+import { formatMontant, getOptimizedUrl } from '../../lib/utils';
 import { Building2 } from 'lucide-react';
 import { BackButton } from '../../components/BackButton';
 
@@ -120,7 +120,7 @@ const Contact: React.FC = () => {
           <div className="card p-3 flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden bg-[var(--imx-surface-2)]">
               {coverPhoto?.photo_url ? (
-                <img src={coverPhoto.photo_url} alt={listing.title} className="w-full h-full object-cover" />
+                <img src={getOptimizedUrl(coverPhoto.photo_url, 'thumb') || coverPhoto.photo_url} alt={listing.title} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = coverPhoto.photo_url; }} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-[var(--imx-text-muted)]">
                   <Building2 size={24} />

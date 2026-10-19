@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, MapPin, Building2, Home, Grid, ChevronRight, User, ChevronDown, Heart, Store, Bed, Bath, Maximize, ShieldCheck, X, Check, Tag } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -13,7 +13,7 @@ import { SplashScreen } from '../../components/SplashScreen';
 import { PullToRefresh } from '../../components/PullToRefresh';
 import { ListingCardSkeleton } from '../../components/Skeleton';
 import { supabase, PropertyType } from '../../lib/supabase';
-import { formatMontant } from '../../lib/utils';
+import { formatMontant, getOptimizedUrl } from '../../lib/utils';
 import { OptimizedImage } from '../../components/OptimizedImage';
 import { useToast } from '../../components/Toast';
 import { haptics } from '../../lib/haptics';
@@ -201,7 +201,9 @@ const Marketplace: React.FC = () => {
 
   const renderListingCard = (listing: any, isHorizontal: boolean, priority: boolean = false) => {
     const coverPhoto = listing.listing_photos?.find((p: any) => p.is_cover) || listing.listing_photos?.[0];
-    const photoUrl = coverPhoto?.photo_url;
+    const rawPhotoUrl = coverPhoto?.photo_url;
+    const photoUrl = rawPhotoUrl ? (getOptimizedUrl(rawPhotoUrl, isHorizontal ? 'thumb' : 'medium') || rawPhotoUrl) : null;
+    const fallbackPhotoUrl = rawPhotoUrl ? (getOptimizedUrl(rawPhotoUrl, 'hd') || rawPhotoUrl) : undefined;
     const isNew = listing.created_at && new Date(listing.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
     const isFav = favorites.includes(listing.id);
 
@@ -210,7 +212,13 @@ const Marketplace: React.FC = () => {
         <div className={`bg-white rounded-[20px] overflow-hidden border border-gray-100 shadow-[0_4px_16px_rgba(23,19,43,0.04)] h-full flex flex-col`}>
           <div className={`relative ${isHorizontal ? 'h-[140px]' : 'h-[200px]'} w-full bg-gray-100 overflow-hidden`}>
             {photoUrl ? (
-              <OptimizedImage src={photoUrl} alt={listing.title} className="w-full h-full object-cover" loading={priority ? "eager" : "lazy"} />
+              <OptimizedImage 
+                src={photoUrl} 
+                fallbackSrc={fallbackPhotoUrl}
+                alt={listing.title} 
+                className="w-full h-full object-cover" 
+                loading={priority ? "eager" : "lazy"} 
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-300"><Building2 size={32} /></div>
             )}

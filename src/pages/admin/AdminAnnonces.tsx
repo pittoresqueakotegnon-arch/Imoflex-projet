@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import { supabase, Listing } from '../../lib/supabase';
-import { propertyTypeLabel } from '../../lib/utils';
+import { propertyTypeLabel, getOptimizedUrl } from '../../lib/utils';
 import EmptyState from '../../components/EmptyState';
 import { useToast } from '../../components/Toast';
 import { useAuth } from '../../hooks/useAuth';
@@ -287,10 +287,11 @@ const AdminAnnonces: React.FC = () => {
                   <div className="flex gap-4 mb-3">
                     {coverPhoto && (
                       <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                        <img
-                          src={coverPhoto.photo_url}
+                      <img
+                          src={getOptimizedUrl(coverPhoto.photo_url, 'thumb') || coverPhoto.photo_url}
                           alt={listing.title}
                           className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).src = coverPhoto.photo_url; }}
                         />
                       </div>
                     )}

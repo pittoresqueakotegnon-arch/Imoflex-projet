@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { haptics } from '../lib/haptics';
+import { getOptimizedUrl } from '../lib/utils';
 
 interface Photo {
   id: string;
@@ -123,7 +124,7 @@ const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                 className="relative aspect-square w-full rounded-xl overflow-hidden active:scale-95 transition-transform"
               >
                 <img
-                  src={`${photo.photo_url}?width=400&format=webp`}
+                  src={getOptimizedUrl(photo.photo_url, 'thumb') || photo.photo_url}
                   alt={`Photo ${idx + 1}`}
                   className="w-full h-full object-cover"
                   loading="lazy"
@@ -138,7 +139,7 @@ const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
             onTouchEnd={handleTouchEnd}
           >
             <img
-              src={`${photos[currentIndex].photo_url}?width=1200&format=webp`}
+              src={getOptimizedUrl(photos[currentIndex].photo_url, 'hd') || photos[currentIndex].photo_url}
               alt={`Photo ${currentIndex + 1}`}
               className="w-full h-full object-contain"
             />
@@ -185,7 +186,7 @@ const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                         : 'opacity-40 hover:opacity-100'
                     }`}
                   >
-                    <img src={`${photo.photo_url}?width=100&format=webp`} alt="" className="w-full h-full object-cover" />
+                    <img src={getOptimizedUrl(photo.photo_url, 'thumb') || photo.photo_url} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
