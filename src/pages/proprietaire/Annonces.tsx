@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Home, Eye, Trash2, Clock, CheckCircle2, AlertCircle, Archive, ChevronDown, Check, MapPin, MessageCircle } from 'lucide-react';
+import { Plus, Home, Eye, Edit3, Trash2, Clock, CheckCircle2, AlertCircle, Archive, ChevronDown, Check, MapPin, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, ListingSummary, AvailabilityStatus } from '../../lib/supabase';
 import { updateAvailability } from '../../hooks/useListings';
@@ -377,6 +377,16 @@ const Annonces: React.FC = () => {
                     >
                       <Eye size={12} />
                       Voir
+                    </Link>
+
+                    {/* Modifier l'annonce */}
+                    <Link
+                      to={`/pro/publier/${listing.id}`}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold transition-colors"
+                      style={{ background: 'var(--imx-accent-xlight)', color: 'var(--imx-accent)' }}
+                    >
+                      <Edit3 size={12} />
+                      Modifier
                     </Link>
 
                     {/* Gérer les demandes */}

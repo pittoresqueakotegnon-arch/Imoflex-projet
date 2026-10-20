@@ -289,6 +289,16 @@ function AppRoutes() {
                 }
               />
               <Route
+                path="/pro/publier/:listingEditId"
+                element={
+                  <MobileFrame>
+                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+                      <Publier />
+                    </RoleGuard>
+                  </MobileFrame>
+                }
+              />
+              <Route
                 path="/pro/demandes"
                 element={
                   <MobileFrame>
@@ -382,6 +392,16 @@ function AppRoutes() {
               />
               <Route
                 path="/agence/publier"
+                element={
+                  <MobileFrame>
+                    <RoleGuard allowedRoles={['agence']} redirectTo="/login">
+                      <AgencePublier />
+                    </RoleGuard>
+                  </MobileFrame>
+                }
+              />
+              <Route
+                path="/agence/publier/:listingEditId"
                 element={
                   <MobileFrame>
                     <RoleGuard allowedRoles={['agence']} redirectTo="/login">

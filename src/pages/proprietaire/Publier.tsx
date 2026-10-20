@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, X, Plus, RotateCcw, CheckCircle2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase, PropertyType } from '../../lib/supabase';
-import { propertyTypeLabel } from '../../lib/utils';
+import { propertyTypeLabel, getOptimizedUrl } from '../../lib/utils';
 import { logAction } from '../../lib/audit';
 import { useToast } from '../../components/Toast';
 import { diagnoseAndShowError } from '../../utils/errorDiagnostics';
@@ -56,15 +56,21 @@ const getStoredDraft = (userId?: string): ListingDraft | null => {
 
 const Publier: React.FC = () => {
   const navigate = useNavigate();
+  const { listingEditId } = useParams<{ listingEditId?: string }>();
+  const [searchParams] = useSearchParams();
+  const editId = listingEditId || searchParams.get('edit') || undefined;
+  const isEditMode = Boolean(editId);
+
   const { profile } = useAuth();
   const { showToast } = useToast();
 
-  // Chargement du brouillon existant au montage
-  const initialDraftRef = useRef<ListingDraft | null>(getStoredDraft(profile?.id));
+  // Chargement du brouillon existant au montage (seulement en mode création)
+  const initialDraftRef = useRef<ListingDraft | null>(isEditMode ? null : getStoredDraft(profile?.id));
   const initialDraft = initialDraftRef.current;
 
   const [step, setStep] = useState<number>(() => initialDraft?.step || 1);
   const [loading, setLoading] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(isEditMode);
   const [error, setError] = useState<string | null>(null);
   
   // Image Upload State
@@ -73,7 +79,7 @@ const Publier: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   // Generate or restore listing ID upfront for storage naming convention
-  const [listingId, setListingId] = useState<string>(() => initialDraft?.listingId || uuidv4());
+  const [listingId, setListingId] = useState<string>(() => editId || initialDraft?.listingId || uuidv4());
 
   // Step 1: Photos & basic info
   const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>(() => initialDraft?.uploadedPhotos || []);
@@ -96,6 +102,7 @@ const Publier: React.FC = () => {
   // Draft banner indicator
   const [hasRestoredDraft, setHasRestoredDraft] = useState<boolean>(() => {
     return Boolean(
+      !isEditMode &&
       initialDraft &&
       ((initialDraft.uploadedPhotos && initialDraft.uploadedPhotos.length > 0) ||
         (initialDraft.title && initialDraft.title.trim() !== '') ||
@@ -103,7 +110,7 @@ const Publier: React.FC = () => {
     );
   });
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(() => {
-    if (initialDraft?.savedAt) {
+    if (!isEditMode && initialDraft?.savedAt) {
       try {
         return new Date(initialDraft.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       } catch {
@@ -113,7 +120,69 @@ const Publier: React.FC = () => {
     return null;
   });
 
-  // Sauvegarde automatique dès qu'une information ou une image change
+  // ── Chargement annonce existante en mode édition ───────────────────────────
+  useEffect(() => {
+    if (!isEditMode || !editId || !profile?.id) return;
+    let active = true;
+    const fetchExisting = async () => {
+      setLoadingExisting(true);
+      try {
+        const { data, error: fetchErr } = await supabase
+          .from('listings')
+          .select('*, listing_photos(id, photo_url, is_cover, display_order)')
+          .eq('id', editId)
+          .single();
+
+        if (fetchErr) throw fetchErr;
+        if (!data || !active) return;
+
+        // Contrôle d'accès propriétaire ou agence
+        if (data.owner_id !== profile.id && profile.role !== 'admin') {
+          showToast("Vous n'êtes pas autorisé à modifier cette annonce", 'error');
+          navigate(profile.role === 'agence' ? '/agence/annonces' : '/pro/annonces');
+          return;
+        }
+
+        setListingId(data.id);
+        setTitle(data.title || '');
+        setPropertyType((data.property_type as PropertyType) || 'appartement');
+        setMonthlyRent(data.monthly_rent ? String(data.monthly_rent) : '');
+        setCity(data.city || 'Cotonou');
+        setNeighborhood(data.neighborhood || '');
+        setAddress(data.address || '');
+        setDepositAmount(data.deposit_amount ? String(data.deposit_amount) : '');
+        setAdvanceAmount(data.advance_amount ? String(data.advance_amount) : '');
+        setBedrooms(data.bedrooms ? String(data.bedrooms) : '');
+        setSelectedAmenities(Array.isArray(data.amenities) ? data.amenities : []);
+        setDescription(data.description || '');
+        setHouseRules(data.house_rules || '');
+        setAcceptsProgressive(data.accepts_progressive_payment || false);
+
+        // Charger les photos existantes triées
+        const sortedPhotos = ((data.listing_photos as any[]) || [])
+          .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+          .map((p) => {
+            const raw = p.photo_url || '';
+            const thumb = getOptimizedUrl(raw, 'thumb') || raw;
+            return {
+              id: p.id,
+              thumbUrl: thumb,
+              publicBaseUrl: raw,
+            };
+          });
+        setUploadedPhotos(sortedPhotos);
+      } catch (err) {
+        showToast("Impossible de charger l'annonce", 'error');
+        navigate(profile.role === 'agence' ? '/agence/annonces' : '/pro/annonces');
+      } finally {
+        if (active) setLoadingExisting(false);
+      }
+    };
+    fetchExisting();
+    return () => { active = false; };
+  }, [isEditMode, editId, profile?.id, profile?.role, navigate, showToast]);
+
+  // Sauvegarde automatique dès qu'une information ou une image change (création uniquement)
   useEffect(() => {
     const hasContent =
       uploadedPhotos.length > 0 ||
@@ -128,7 +197,7 @@ const Publier: React.FC = () => {
       description.trim() !== '' ||
       houseRules.trim() !== '';
 
-    if (!hasContent) return;
+    if (!hasContent || isEditMode) return; // Pas de brouillon en mode édition
 
     const draftData: ListingDraft = {
       listingId,
@@ -311,73 +380,130 @@ const Publier: React.FC = () => {
 
     setLoading(true);
     try {
-      // Create listing
-      const { data: listingData, error: listingError } = await supabase
-        .from('listings')
-        .insert({
-          id: listingId,
-          owner_id: profile.id,
-          title,
-          city,
-          neighborhood: neighborhood || null,
-          address,
-          property_type: propertyType,
-          monthly_rent: parseInt(monthlyRent),
-          deposit_amount: depositAmount ? parseInt(depositAmount) : null,
-          advance_amount: advanceAmount ? parseInt(advanceAmount) : null,
-          bedrooms: bedrooms ? parseInt(bedrooms) : null,
-          description: description || null,
-          amenities: selectedAmenities,
-          house_rules: houseRules || null,
-          accepts_progressive_payment: acceptsProgressive,
-          is_published: true, // Publication instantanée — modération a posteriori
-          status: 'publiee',
-          availability_status: 'disponible',
-        })
-        .select('id')
-        .single();
+      const payload = {
+        title,
+        city,
+        neighborhood: neighborhood || null,
+        address,
+        property_type: propertyType,
+        monthly_rent: parseInt(monthlyRent),
+        deposit_amount: depositAmount ? parseInt(depositAmount) : null,
+        advance_amount: advanceAmount ? parseInt(advanceAmount) : null,
+        bedrooms: bedrooms ? parseInt(bedrooms) : null,
+        description: description || null,
+        amenities: selectedAmenities,
+        house_rules: houseRules || null,
+        accepts_progressive_payment: acceptsProgressive,
+      };
 
-      if (listingError) throw listingError;
+      let savedListingId = listingId;
 
-      // Create listing photos
-      for (let i = 0; i < uploadedPhotos.length; i++) {
-        const { error: photoError } = await supabase
-          .from('listing_photos')
+      if (isEditMode && editId) {
+        // ── MODE ÉDITION : UPDATE ──────────────────────────────────────────────
+        const { error: updateError } = await supabase
+          .from('listings')
+          .update(payload)
+          .eq('id', editId);
+
+        if (updateError) throw updateError;
+        savedListingId = editId;
+
+        // Mettre à jour les photos : supprimer les anciennes puis réinsérer
+        await supabase.from('listing_photos').delete().eq('listing_id', editId);
+        for (let i = 0; i < uploadedPhotos.length; i++) {
+          const { error: photoError } = await supabase
+            .from('listing_photos')
+            .insert({
+              listing_id: editId,
+              photo_url: uploadedPhotos[i].publicBaseUrl,
+              display_order: i,
+              is_cover: i === 0,
+            });
+          if (photoError) throw photoError;
+        }
+
+        await logAction({
+          userId: profile.id,
+          action: 'modification_annonce',
+          entityType: 'listings',
+          entityId: editId,
+          details: { title, city, propertyType, monthlyRent: parseInt(monthlyRent) }
+        });
+
+        showToast('Annonce mise à jour avec succès !', 'success');
+        navigate(profile.role === 'agence' ? '/agence/annonces' : '/pro/annonces');
+      } else {
+        // ── MODE CRÉATION : INSERT ──────────────────────────────────────────────
+        const { data: listingData, error: listingError } = await supabase
+          .from('listings')
           .insert({
-            listing_id: listingData.id,
-            photo_url: uploadedPhotos[i].publicBaseUrl, // Contains base url, consumers will append _thumb.webp, etc.
-            display_order: i,
-            is_cover: i === 0,
-          });
+            ...payload,
+            id: listingId,
+            owner_id: profile.id,
+            is_published: true,
+            status: 'publiee',
+            availability_status: 'disponible',
+          })
+          .select('id')
+          .single();
 
-        if (photoError) throw photoError;
+        if (listingError) throw listingError;
+        savedListingId = listingData.id;
+
+        for (let i = 0; i < uploadedPhotos.length; i++) {
+          const { error: photoError } = await supabase
+            .from('listing_photos')
+            .insert({
+              listing_id: listingData.id,
+              photo_url: uploadedPhotos[i].publicBaseUrl,
+              display_order: i,
+              is_cover: i === 0,
+            });
+          if (photoError) throw photoError;
+        }
+
+        await logAction({
+          userId: profile.id,
+          action: 'publication_annonce',
+          entityType: 'listings',
+          entityId: listingData.id,
+          details: { title, city, propertyType, monthlyRent: parseInt(monthlyRent) }
+        });
+
+        // Nettoyage brouillon
+        try {
+          localStorage.removeItem(getDraftKey(profile.id));
+          localStorage.removeItem(getDraftKey('current'));
+        } catch (cleanErr) {
+          console.error('Erreur nettoyage brouillon:', cleanErr);
+        }
+
+        showToast('Annonce publiée avec succès !', 'success');
+        navigate(profile.role === 'agence' ? '/agence/annonces' : '/pro/annonces');
       }
 
-      // Log action
-      await logAction({
-        userId: profile.id,
-        action: 'publication_annonce',
-        entityType: 'listings',
-        entityId: listingData.id,
-        details: { title, city, propertyType, monthlyRent: parseInt(monthlyRent) }
-      });
-
-      // Nettoyage du brouillon sauvegardé
-      try {
-        localStorage.removeItem(getDraftKey(profile.id));
-        localStorage.removeItem(getDraftKey('current'));
-      } catch (cleanErr) {
-        console.error('Erreur nettoyage brouillon:', cleanErr);
-      }
-
-      showToast('Annonce publiée avec succès !', 'success');
-      navigate('/pro/annonces');
+      // Satisfaire le compilateur TS
+      void savedListingId;
     } catch (err) {
       diagnoseAndShowError(err, 'Gestion Logement/Contrat');
     } finally {
       setLoading(false);
     }
   };
+
+  if (loadingExisting) {
+    return (
+      <div className="page-container min-h-screen flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-10 h-10 border-3 border-[var(--imx-accent)] border-t-transparent rounded-full animate-spin mb-4" />
+        <h2 className="font-nunito font-black text-lg text-[var(--imx-text-primary)]">
+          Chargement de l'annonce...
+        </h2>
+        <p className="font-space-grotesk text-xs text-[var(--imx-text-secondary)] mt-1">
+          Récupération des photos et détails de votre bien
+        </p>
+      </div>
+    );
+  }
 
   if (step === 1) {
     return (
@@ -386,21 +512,23 @@ const Publier: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate('/pro/annonces')}
+                onClick={() => navigate(profile?.role === 'agence' ? '/agence/annonces' : '/pro/annonces')}
                 className="p-2 hover:bg-[var(--imx-surface-2)] rounded-lg transition"
                 title="Retour aux annonces"
               >
                 <ArrowLeft size={24} />
               </button>
               <div>
-                <h1 className="text-2xl font-nunito font-900">Nouvelle annonce</h1>
+                <h1 className="text-2xl font-nunito font-900">
+                  {isEditMode ? 'Modifier l\'annonce' : 'Nouvelle annonce'}
+                </h1>
                 <p className="text-[11px] text-[var(--imx-text-secondary)] font-space-grotesk">
                   Étape 1/2 : Photos & informations de base
                 </p>
               </div>
             </div>
 
-            {(uploadedPhotos.length > 0 || title.trim() !== '' || address.trim() !== '') && (
+            {!isEditMode && (uploadedPhotos.length > 0 || title.trim() !== '' || address.trim() !== '') && (
               <button
                 type="button"
                 onClick={handleClearDraft}
@@ -640,15 +768,17 @@ const Publier: React.FC = () => {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleClearDraft}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition"
-            title="Effacer le formulaire et recommencer à zéro"
-          >
-            <RotateCcw size={13} />
-            <span className="hidden sm:inline">Recommencer</span>
-          </button>
+          {!isEditMode && (
+            <button
+              type="button"
+              onClick={handleClearDraft}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition"
+              title="Effacer le formulaire et recommencer à zéro"
+            >
+              <RotateCcw size={13} />
+              <span className="hidden sm:inline">Recommencer</span>
+            </button>
+          )}
         </div>
 
         {lastSavedTime && (
@@ -774,7 +904,9 @@ const Publier: React.FC = () => {
           disabled={loading}
           className="btn-primary w-full disabled:opacity-50"
         >
-          {loading ? 'Publication...' : 'Publier l\'annonce'}
+          {loading
+            ? (isEditMode ? 'Enregistrement...' : 'Publication...')
+            : (isEditMode ? 'Enregistrer les modifications' : 'Publier l\'annonce')}
         </button>
       </div>
     </div>
