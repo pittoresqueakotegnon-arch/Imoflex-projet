@@ -137,7 +137,7 @@ const AgenceProfilAgence: React.FC = () => {
       <div className="premium-header px-5 pt-6 pb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/agence/dashboard')}
+            onClick={() => navigate(-1)}
             className="w-10 h-10 rounded-2xl flex items-center justify-center"
             style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}
           >
