@@ -22,7 +22,7 @@ import { LegalModal } from '../../components/LegalModal';
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Step = 'form' | 'role' | 'otp' | 'success';
-type UserRole = 'locataire' | 'proprietaire';
+type UserRole = 'locataire' | 'proprietaire' | 'agence';
 
 // Indicatifs pays africains (+ France) pour le sélecteur téléphone
 const COUNTRY_CODES = [
@@ -129,7 +129,9 @@ export default function Register() {
       // Si la confirmation d'email est désactivée dans Supabase Dashboard, Supabase crée une session active immédiatement
       if (res?.session) {
         showToast('Compte créé avec succès !', 'success');
-        navigate(selectedRole === 'proprietaire' ? '/pro/dashboard' : '/dashboard', { replace: true });
+        if (selectedRole === 'proprietaire') navigate('/pro/dashboard', { replace: true });
+        else if (selectedRole === 'agence') navigate('/agence/dashboard', { replace: true });
+        else navigate('/dashboard', { replace: true });
         return;
       }
       setStep('otp');
@@ -315,7 +317,11 @@ export default function Register() {
         <p className="text-sm text-center mb-12 max-w-xs" style={{ fontFamily: 'Space Grotesk', color: '#6B5F8F' }}>
           Explorez la plateforme et publiez ou trouvez votre logement idéal.
         </p>
-        <button onClick={() => navigate(selectedRole === 'proprietaire' ? '/pro/dashboard' : '/dashboard')} className="btn-primary w-full max-w-xs">
+        <button onClick={() => {
+          if (selectedRole === 'proprietaire') navigate('/pro/dashboard');
+          else if (selectedRole === 'agence') navigate('/agence/dashboard');
+          else navigate('/dashboard');
+        }} className="btn-primary w-full max-w-xs">
           Accéder à mon espace
         </button>
         <style>{`@keyframes scaleIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }`}</style>
@@ -341,6 +347,14 @@ export default function Register() {
         description: 'Je souhaite publier et gérer mes biens immobiliers.',
         accent: '#F59E0B',
         gradient: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)',
+      },
+      {
+        id: 'agence' as UserRole,
+        icon: <Building2 size={28} className="text-white" />,
+        label: 'Agence immobilière',
+        description: 'Je gère un portefeuille de biens pour le compte de propriétaires.',
+        accent: '#0EA5E9',
+        gradient: 'linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%)',
       },
     ];
 

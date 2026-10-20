@@ -28,7 +28,9 @@ export interface SignUpParams {
   password: string;
   full_name: string;
   phone: string;
-  role: 'locataire' | 'proprietaire';
+  role: 'locataire' | 'proprietaire' | 'agence';
+  // Champs supplémentaires pour les agences
+  nom_agence?: string;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);

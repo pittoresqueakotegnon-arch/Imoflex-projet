@@ -57,6 +57,13 @@ const Retrait               = lazy(() => import('./pages/proprietaire/Retrait'))
 const FicheBail             = lazy(() => import('./pages/proprietaire/FicheBail'));
 const VerificationProprietaire = lazy(() => import('./pages/proprietaire/VerificationProprietaire'));
 
+// Agence immobilière
+const AgenceDashboard   = lazy(() => import('./pages/agence/Dashboard'));
+const AgenceAnnonces    = lazy(() => import('./pages/agence/Annonces'));
+const AgencePublier     = lazy(() => import('./pages/agence/Publier'));
+const AgenceDemandes    = lazy(() => import('./pages/agence/Demandes'));
+const AgenceProfilAgence = lazy(() => import('./pages/agence/ProfilAgence'));
+
 // Admin — recharts (700 KB) ne se charge QUE si l'admin accède à ces pages
 const AdminDashboard    = lazy(() => import('./pages/admin/AdminDashboard'));
 const AdminAnnonces     = lazy(() => import('./pages/admin/AdminAnnonces'));
@@ -352,12 +359,64 @@ function AppRoutes() {
                 }
               />
 
+              {/* ── AGENCE IMMOBILIÈRE ─────────────────────────────── */}
+              <Route
+                path="/agence/dashboard"
+                element={
+                  <MobileFrame>
+                    <RoleGuard allowedRoles={['agence']} redirectTo="/login">
+                      <AgenceDashboard />
+                    </RoleGuard>
+                  </MobileFrame>
+                }
+              />
+              <Route
+                path="/agence/annonces"
+                element={
+                  <MobileFrame>
+                    <RoleGuard allowedRoles={['agence']} redirectTo="/login">
+                      <AgenceAnnonces />
+                    </RoleGuard>
+                  </MobileFrame>
+                }
+              />
+              <Route
+                path="/agence/publier"
+                element={
+                  <MobileFrame>
+                    <RoleGuard allowedRoles={['agence']} redirectTo="/login">
+                      <AgencePublier />
+                    </RoleGuard>
+                  </MobileFrame>
+                }
+              />
+              <Route
+                path="/agence/demandes"
+                element={
+                  <MobileFrame>
+                    <RoleGuard allowedRoles={['agence']} redirectTo="/login">
+                      <AgenceDemandes />
+                    </RoleGuard>
+                  </MobileFrame>
+                }
+              />
+              <Route
+                path="/agence/profil-agence"
+                element={
+                  <MobileFrame>
+                    <RoleGuard allowedRoles={['agence']} redirectTo="/login">
+                      <AgenceProfilAgence />
+                    </RoleGuard>
+                  </MobileFrame>
+                }
+              />
+
               {/* ── COMMUN ─────────────────────────────────────────── */}
               <Route
                 path="/profil"
                 element={
                   <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire', 'proprietaire', 'admin']} redirectTo="/login">
+                    <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence', 'admin']} redirectTo="/login">
                       <Profil />
                     </RoleGuard>
                   </MobileFrame>
@@ -367,7 +426,7 @@ function AppRoutes() {
                 path="/profil/mobile-money"
                 element={
                   <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire', 'proprietaire', 'admin']} redirectTo="/login">
+                    <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence', 'admin']} redirectTo="/login">
                       <ProfilMobileMoney />
                     </RoleGuard>
                   </MobileFrame>
@@ -377,7 +436,7 @@ function AppRoutes() {
                 path="/profil/mot-de-passe"
                 element={
                   <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire', 'proprietaire', 'admin']} redirectTo="/login">
+                    <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence', 'admin']} redirectTo="/login">
                       <ProfilMotDePasse />
                     </RoleGuard>
                   </MobileFrame>
@@ -397,7 +456,7 @@ function AppRoutes() {
                 path="/notifications"
                 element={
                   <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire', 'proprietaire', 'admin']} redirectTo="/login">
+                    <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence', 'admin']} redirectTo="/login">
                       <Notifications />
                     </RoleGuard>
                   </MobileFrame>

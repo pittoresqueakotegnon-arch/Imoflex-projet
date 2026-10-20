@@ -40,6 +40,7 @@ export default function Login() {
       if (role === 'admin') navigate('/admin', { replace: true });
       else if (from) navigate(from, { replace: true });
       else if (role === 'proprietaire') navigate('/pro/dashboard', { replace: true });
+      else if (role === 'agence') navigate('/agence/dashboard', { replace: true });
       else navigate('/dashboard', { replace: true });
     }
   }, [user, profile, navigate, location]);

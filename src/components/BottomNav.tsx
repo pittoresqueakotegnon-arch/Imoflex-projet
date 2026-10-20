@@ -33,8 +33,10 @@ export const BottomNav: React.FC = () => {
       navigate('/dashboard');
     } else if (role === 'proprietaire') {
       navigate('/pro/publier');
+    } else if (role === 'agence') {
+      navigate('/agence/publier');
     } else if (role === 'locataire') {
-      showToast('La publication d\'annonces est réservée aux propriétaires.', 'info');
+      showToast('La publication d\'annonces est réservée aux propriétaires et agences.', 'info');
     } else {
       navigate('/login');
     }
@@ -56,6 +58,15 @@ export const BottomNav: React.FC = () => {
         { icon: Building2, label: 'Annonces', path: '/pro/annonces' },
         { icon: Plus, label: 'Publier', path: '/pro/publier', isCenter: true, centerType: 'publier' },
         { icon: ClipboardList, label: 'Demandes', path: '/pro/demandes' },
+        { icon: CircleUserRound, label: 'Profil', path: '/profil' },
+      ];
+    }
+    if (role === 'agence') {
+      return [
+        { icon: Home, label: 'Dashboard', path: '/agence/dashboard' },
+        { icon: Building2, label: 'Annonces', path: '/agence/annonces' },
+        { icon: Plus, label: 'Publier', path: '/agence/publier', isCenter: true, centerType: 'publier' },
+        { icon: MessageSquare, label: 'Demandes', path: '/agence/demandes' },
         { icon: CircleUserRound, label: 'Profil', path: '/profil' },
       ];
     }

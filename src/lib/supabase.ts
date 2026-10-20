@@ -14,7 +14,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-export type UserRole = 'visiteur' | 'locataire' | 'proprietaire' | 'admin';
+export type UserRole = 'visiteur' | 'locataire' | 'proprietaire' | 'admin' | 'agence';
 export type PropertyType = 'chambre' | 'studio' | 'appartement' | 'maison' | 'bureau' | 'parcelle';
 export type AvailabilityStatus = 'disponible' | 'reserve' | 'occupe';
 export type LeaseStatus = 'actif' | 'termine' | 'suspendu';
@@ -348,6 +348,41 @@ export interface Notification {
   is_read: boolean;
   related_id?: string;
   created_at: string;
+}
+
+export interface AgenceProfile {
+  id: string;
+  nom_agence: string;
+  ifu?: string;
+  rccm?: string;
+  adresse?: string;
+  ville?: string;
+  description?: string;
+  logo_url?: string;
+  site_web?: string;
+  email_contact?: string;
+  phone_agence?: string;
+  is_verified: boolean;
+  verified_at?: string | null;
+  verified_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgenceMandat {
+  id: string;
+  agence_id: string;
+  owner_id: string;
+  listing_id?: string | null;
+  property_id?: string | null;
+  status: 'actif' | 'suspendu' | 'termine';
+  commission_rate: number;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  listings?: Listing;
+  properties?: Property;
+  users?: UserProfile;
 }
 
 export interface AppConfig {
