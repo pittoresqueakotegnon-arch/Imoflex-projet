@@ -352,7 +352,7 @@ function AppRoutes() {
                 path="/pro/bail/:id"
                 element={
                   <MobileFrame>
-                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+                    <RoleGuard allowedRoles={['proprietaire', 'agence']} redirectTo="/login">
                       <FicheBail />
                     </RoleGuard>
                   </MobileFrame>

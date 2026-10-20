@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
-import { formatMontant } from '../../lib/utils';
 import BottomNav from '../../components/BottomNav';
 import { HeaderBell } from '../../components/HeaderBell';
 import { HeaderSupport } from '../../components/HeaderSupport';

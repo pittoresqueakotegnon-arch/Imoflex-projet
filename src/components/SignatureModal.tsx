@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { X, Check, RotateCcw, ShieldCheck, AlertCircle } from 'lucide-react';
+import { X, Check, RotateCcw, ShieldCheck, AlertCircle, AlertTriangle } from 'lucide-react';
 
 interface SignatureModalProps {
   isOpen: boolean;
@@ -8,11 +8,13 @@ interface SignatureModalProps {
   documentTitle: string;
   signerName: string;
   signerRole: 'Propriétaire' | 'Locataire';
+  allowReserves?: boolean;
   onConfirm: (signatureData: {
     signatureSvg: string;
     signerName: string;
     consent: boolean;
     timestamp: string;
+    reserves?: string;
   }) => Promise<void>;
   loading?: boolean;
 }
@@ -24,6 +26,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
   documentTitle,
   signerName,
   signerRole,
+  allowReserves = false,
   onConfirm,
   loading = false,
 }) => {
@@ -32,6 +35,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
   const [hasDrawn, setHasDrawn] = useState(false);
   const [consentGiven, setConsentGiven] = useState(false);
   const [name, setName] = useState(signerName);
+  const [tenantReserves, setTenantReserves] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,6 +43,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
       setName(signerName);
       setHasDrawn(false);
       setConsentGiven(false);
+      setTenantReserves('');
       setError(null);
       // Initialiser le canvas après affichage du modal
       setTimeout(initCanvas, 150);
@@ -145,14 +150,15 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
       signerName: name.trim(),
       consent: true,
       timestamp: new Date().toISOString(),
+      reserves: allowReserves && tenantReserves.trim() ? tenantReserves.trim() : undefined,
     });
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-lg bg-[var(--imx-surface-1)] border border-[var(--imx-border)] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+      <div className="w-full max-w-lg bg-[var(--imx-surface-1)] border border-[var(--imx-border)] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* En-tête */}
         <div className="px-5 py-4 border-b border-[var(--imx-border)] flex items-center justify-between bg-[var(--imx-surface-2)]">
           <div className="flex items-center gap-2.5">
@@ -160,10 +166,10 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
               <ShieldCheck size={20} />
             </div>
             <div>
-              <h3 className="font-nunito font-800 text-base text-[var(--imx-text-primary)] leading-tight">
+              <h3 className="font-nunito font-900 text-base text-[var(--imx-text-primary)] leading-tight">
                 {title}
               </h3>
-              <p className="text-[11px] text-[var(--imx-text-secondary)] font-space-grotesk">
+              <p className="text-[11px] text-[var(--imx-text-secondary)] font-space-grotesk mt-0.5">
                 {documentTitle} • En qualité de {signerRole}
               </p>
             </div>
@@ -180,7 +186,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
         {/* Corps */}
         <div className="p-5 overflow-y-auto space-y-4">
           {error && (
-            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-2 text-red-400 text-xs">
+            <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center gap-2 text-red-400 text-xs">
               <AlertCircle size={16} className="flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -193,11 +199,31 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="input-field text-sm"
+              className="input-field text-sm font-bold"
               placeholder="Ex: Koffi Mensah Jean"
               disabled={loading}
             />
           </div>
+
+          {/* Option réserves locataire */}
+          {allowReserves && signerRole === 'Locataire' && (
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-2">
+              <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <AlertTriangle size={14} className="text-amber-400" />
+                <span>RÉSERVES OU DÉGRADATIONS NON MENTIONNÉES (OPTIONNEL)</span>
+              </label>
+              <textarea
+                value={tenantReserves}
+                onChange={(e) => setTenantReserves(e.target.value)}
+                className="input-field text-xs h-16 resize-none"
+                placeholder="Ex: Robinet salle de bain présentant une micro-fuite..."
+                disabled={loading}
+              />
+              <p className="text-[10px] text-amber-400/80 italic">
+                Toute réserve sera actée contradictoirement pour protéger la restitution de votre caution.
+              </p>
+            </div>
+          )}
 
           {/* Cadre de signature manuscrite tactile */}
           <div>
@@ -210,10 +236,10 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
                 className="text-[11px] text-[var(--imx-text-secondary)] hover:text-red-400 flex items-center gap-1 transition"
               >
                 <RotateCcw size={12} />
-                Effacer
+                <span>Effacer</span>
               </button>
             </div>
-            <div className="relative border-2 border-dashed border-[var(--imx-border)] rounded-2xl bg-white overflow-hidden touch-none">
+            <div className="relative border-2 border-dashed border-[var(--imx-border)] rounded-2xl bg-white overflow-hidden touch-none shadow-inner">
               <canvas
                 ref={canvasRef}
                 className="w-full h-36 cursor-crosshair block"
@@ -227,15 +253,15 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
               />
               {!hasDrawn && (
                 <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center text-gray-400 text-xs">
-                  <span>Signez du doigt ou de la souris ici</span>
-                  <span className="text-[10px] text-gray-300 mt-1">Zone tactile certifiée</span>
+                  <span className="font-medium">Signez du doigt ou de la souris ici</span>
+                  <span className="text-[10px] text-gray-400 mt-0.5 font-space-grotesk">Zone tactile certifiée conforme</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Mention de consentement éclairé (Loi Bénin 2017-20) */}
-          <div className="p-3 rounded-2xl bg-[var(--imx-surface-2)] border border-[rgba(255,255,255,0.06)]">
+          <div className="p-3.5 rounded-2xl bg-[var(--imx-surface-2)] border border-[var(--imx-border)]">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -245,7 +271,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
                 disabled={loading}
               />
               <span className="text-[11px] text-[var(--imx-text-secondary)] leading-relaxed">
-                Je confirme avoir lu et vérifié l'intégralité du document. J'appose ma signature et donne mon consentement exprès et ferme aux engagements contractuels prévus par la loi béninoise.
+                Je confirme avoir lu et vérifié l'intégralité du document. J'appose ma signature et donne mon consentement exprès et ferme aux engagements prévus par la législation béninoise.
               </span>
             </label>
           </div>

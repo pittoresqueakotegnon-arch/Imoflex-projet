@@ -275,7 +275,12 @@ export default function LogementDetail() {
         )}
 
         {/* SECTION : DOCUMENTS & CONTRAT DE BAIL (LOCATAIRE) */}
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="font-nunito font-900 text-[#17132B] text-[18px]">Documents & Bail</h2>
+            <span className="text-[12px] font-space-grotesk text-[#7B3FE4] font-bold bg-[#F5F3FF] px-2.5 py-1 rounded-full">Loi n° 2022-30</span>
+          </div>
+
           <ContractCard
             leaseId={leaseId!}
             contract={contract}
