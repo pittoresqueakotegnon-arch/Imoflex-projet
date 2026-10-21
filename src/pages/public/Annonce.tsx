@@ -13,6 +13,7 @@ import { haptics } from '../../lib/haptics';
 import { Share } from '@capacitor/share';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { getShareUrl } from '../../lib/domainConfig';
 
 const AMENITY_ICONS: Record<string, React.ReactNode> = {
   electricity: <Zap size={14} />,
@@ -172,10 +173,11 @@ const Annonce: React.FC = () => {
   const handleShare = async () => {
     haptics.light();
     try {
+      const shareUrl = listing?.id ? getShareUrl(`/annonce/${listing.id}`) : getShareUrl();
       await Share.share({
         title: listing?.title || 'Annonce ImoFlex',
         text: `Découvre ce logement sur ImoFlex : ${listing?.title} à ${listing?.city}`,
-        url: window.location.href,
+        url: shareUrl,
         dialogTitle: 'Partager cette annonce',
       });
     } catch (error) {

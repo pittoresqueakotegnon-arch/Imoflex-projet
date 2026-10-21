@@ -4,6 +4,7 @@ import { Mail, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../components/Toast';
 import { diagnoseAndShowError } from '../../utils/errorDiagnostics';
+import { getAuthRedirectUrl } from '../../lib/domainConfig';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function ForgotPassword() {
 
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: getAuthRedirectUrl('/reset-password'),
       });
 
       if (resetError) throw new Error(resetError.message);

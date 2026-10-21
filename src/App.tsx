@@ -83,6 +83,16 @@ const ProfilMotDePasse  = lazy(() => import('./pages/common/ProfilMotDePasse'));
 const ProfilCodeRetrait = lazy(() => import('./pages/common/ProfilCodeRetrait'));
 const Notifications     = lazy(() => import('./pages/common/Notifications'));
 
+// Version Web (Desktop / Tablette / Navigateur)
+const WebLayout                = lazy(() => import('./layouts/WebLayout'));
+const WebHome                  = lazy(() => import('./pages/web/WebHome'));
+const WebListings              = lazy(() => import('./pages/web/WebListings'));
+const WebListing               = lazy(() => import('./pages/web/WebListing'));
+const WebLogin                 = lazy(() => import('./pages/web/WebLogin'));
+const WebRegister              = lazy(() => import('./pages/web/WebRegister'));
+const WebLocataireDashboard    = lazy(() => import('./pages/web/locataire/WebLocataireDashboard'));
+const WebProprietaireDashboard = lazy(() => import('./pages/web/proprietaire/WebProprietaireDashboard'));
+
 // ── Fallback de chargement ultra-léger ───────────────────────────────────────
 function PageLoader() {
   return (
@@ -161,6 +171,31 @@ function AppRoutes() {
                 <Route path="config" element={<AdminConfig />} />
                 <Route path="logs" element={<AdminLogs />} />
                 <Route path="verifications" element={<AdminOwnerVerifications />} />
+              </Route>
+
+              {/* ── VERSION WEB OFFICIELLE (Desktop / Tablette / Navigateur) ─── */}
+              <Route path="/web" element={<WebLayout />}>
+                <Route index element={<WebHome />} />
+                <Route path="annonces" element={<WebListings />} />
+                <Route path="annonce/:id" element={<WebListing />} />
+                <Route path="login" element={<WebLogin />} />
+                <Route path="register" element={<WebRegister />} />
+                <Route
+                  path="dashboard"
+                  element={
+                    <RoleGuard allowedRoles={['locataire']} redirectTo="/web/login">
+                      <WebLocataireDashboard />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="pro/dashboard"
+                  element={
+                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/web/login">
+                      <WebProprietaireDashboard />
+                    </RoleGuard>
+                  }
+                />
               </Route>
 
               {/* ── SPLASH ─────────────────────────────────────────── */}

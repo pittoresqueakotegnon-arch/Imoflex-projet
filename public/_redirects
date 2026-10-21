@@ -1,3 +1,3 @@
-/*  ALL routes → index.html for SPA routing  */
-/*  Netlify / Cloudflare Pages               */
-/*  Vercel uses vercel.json instead          */
+# Règles de redirection SPA pour Netlify / Cloudflare Pages
+# Note : Sur Vercel, c'est vercel.json qui prend en charge les rewrites.
+/*    /index.html   200
