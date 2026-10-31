@@ -26,3 +26,12 @@ dist-ssr
 supabase/.temp
 playwright-report/
 test-results/
+
+# Android signing keys & credentials
+*.keystore
+*.jks
+android/gradle.properties
+android/local.properties
+android/app/build/
+android/.gradle/
+

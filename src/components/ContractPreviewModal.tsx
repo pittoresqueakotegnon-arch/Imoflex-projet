@@ -3,6 +3,7 @@ import { X, FileText, Download, PenTool, CheckCircle2, Clock, ShieldCheck, User 
 import { LeaseContract } from '../lib/supabase';
 import { formatMontant } from '../lib/utils';
 import { generateLeaseContractPDF } from '../lib/contractPdf';
+import { downloadSignedDocumentPdf, savePdfBlob, sealSignedDocumentPdf, verifySignedDocumentPdf } from '../lib/leaseDocumentsService';
 import { useToast } from './Toast';
 
 interface ContractPreviewModalProps {
@@ -49,13 +50,25 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
   const isOwner = userRole === 'proprietaire';
   const hasUserSigned = isOwner ? contract?.owner_consent : contract?.tenant_consent;
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     setDownloading(true);
     try {
+      const filename = `Contrat_Bail_${propertyName.replace(/\s+/g, '_')}.pdf`;
+      if (contract?.status === 'signe' && contract.id) {
+        const verification = await verifySignedDocumentPdf('lease_contract', contract.id);
+        if (verification.verified) {
+          savePdfBlob(await downloadSignedDocumentPdf('lease_contract', contract.id), filename);
+          showToast(`PDF vérifié côté serveur · SHA-256 ${verification.pdf_sha256}`, 'success');
+          return;
+        }
+        if (!isOwner) throw new Error('Le propriétaire doit d’abord sceller le PDF final. Une image de signature seule n’est pas une preuve cryptographique.');
+      }
       const doc = generateLeaseContractPDF({
         contractNumber: contract?.contract_number || `BAIL-${new Date().getFullYear()}`,
         version: contract?.version || 1,
-        dateGenerated: new Date(),
+        dateGenerated: contract?.status === 'signe'
+          ? new Date(Math.max(Date.parse(contract.owner_signed_at || ''), Date.parse(contract.tenant_signed_at || '')))
+          : new Date(),
         ownerName,
         ownerPhone,
         ownerSignatureImage: contract?.owner_signature_svg,
@@ -80,8 +93,15 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
         documentHash: contract?.document_hash,
       });
 
-      doc.save(`Contrat_Bail_${propertyName.replace(/\s+/g, '_')}.pdf`);
-      showToast('Téléchargement du contrat lancé !', 'success');
+      if (contract?.status === 'signe' && contract.id) {
+        const bytes = doc.output('arraybuffer');
+        const hash = await sealSignedDocumentPdf('lease_contract', contract.id, bytes);
+        savePdfBlob(new Blob([bytes], { type: 'application/pdf' }), filename);
+        showToast(`PDF final scellé par le serveur · SHA-256 ${hash}`, 'success');
+      } else {
+        doc.save(filename);
+        showToast('Brouillon PDF téléchargé. Il ne constitue pas un document signé.', 'success');
+      }
     } catch (err) {
       console.error(err);
       showToast('Erreur lors de la génération du PDF', 'error');
@@ -276,7 +296,7 @@ export const ContractPreviewModal: React.FC<ContractPreviewModalProps> = ({
             {/* Intégrité */}
             {contract?.document_hash && (
               <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-mono">
-                <span>SHA-256 : {contract.document_hash.substring(0, 24)}…</span>
+                <span>Empreinte de l’enregistrement signé : {contract.document_hash.substring(0, 24)}…</span>
                 <span className="flex items-center gap-1 text-emerald-600"><ShieldCheck size={12} /> Document scellé</span>
               </div>
             )}

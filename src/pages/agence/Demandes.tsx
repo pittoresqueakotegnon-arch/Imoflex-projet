@@ -51,11 +51,20 @@ const AgenceDemandes: React.FC = () => {
 
       const { data, error } = await supabase
         .from('contact_requests')
-        .select('id, listing_id, requester_id, message, contact_phone, status, created_at, users!requester_id(full_name)')
+        .select('id, listing_id, requester_id, message, contact_phone, status, created_at')
         .in('listing_id', listingIds)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+
+      const requestIds = (data || []).map((request) => request.id);
+      const { data: requesterProfiles, error: profilesError } = requestIds.length > 0
+        ? await supabase.rpc('get_contact_requester_names', { p_contact_request_ids: requestIds })
+        : { data: [], error: null };
+      if (profilesError) throw profilesError;
+      const requesterNames = new Map<string, string>(
+        ((requesterProfiles as any[]) || []).map((profile: any) => [profile.request_id, profile.full_name || 'Candidat'])
+      );
 
       const enriched: ContactReq[] = (data || []).map((d: any) => ({
         id: d.id,
@@ -66,7 +75,7 @@ const AgenceDemandes: React.FC = () => {
         status: d.status,
         created_at: d.created_at,
         listing_title: listingMap[d.listing_id] || 'Annonce inconnue',
-        requester_name: d.users?.full_name || 'Candidat',
+        requester_name: requesterNames.get(d.id) || 'Candidat',
       }));
 
       setDemandes(enriched);

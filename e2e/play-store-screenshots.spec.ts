@@ -24,21 +24,23 @@ test.describe.serial('Captures Play Store', () => {
 
   test('produit cinq écrans publics en format mobile', async ({ page }) => {
     test.setTimeout(180_000);
-        await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto('/marketplace', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveTitle(/ImoFlex/i);
     await capture(page, '01-marketplace');
 
-        await page.goto('/annonce/5842d144-8334-42d2-bd52-ab17bffbd18b', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: /Maison premium/ })).toBeVisible();
+    const listingHref = await page.locator('a[href^="/annonce/"]').first().getAttribute('href');
+    expect(listingHref, 'La page d’accueil doit présenter au moins une annonce').toBeTruthy();
+    await page.goto(listingHref!, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('h1')).toBeVisible();
     await capture(page, '02-detail-annonce');
 
-        await page.goto('/filtres', { waitUntil: 'domcontentloaded' });
+    await page.goto('/filtres', { waitUntil: 'domcontentloaded' });
     await capture(page, '03-filtres');
 
-        await page.goto('/aide', { waitUntil: 'domcontentloaded' });
+    await page.goto('/aide', { waitUntil: 'domcontentloaded' });
     await capture(page, '04-aide');
 
-        await page.goto('/register', { waitUntil: 'domcontentloaded' });
+    await page.goto('/register', { waitUntil: 'domcontentloaded' });
     await capture(page, '05-inscription');
   });
 });

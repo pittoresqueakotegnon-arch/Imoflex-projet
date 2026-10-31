@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
-import { formatMontant, getCurrentMonth } from '../../lib/utils';
+import { getCurrentMonth } from '../../lib/utils';
 import BottomNav from '../../components/BottomNav';
 import EmptyState from '../../components/EmptyState';
 import ProgressBar from '../../components/ProgressBar';
@@ -88,7 +88,7 @@ const MesLocataires: React.FC = () => {
         // 1 requête pour tous les locataires + 1 requête pour toutes les périodes en cours
         // (remplace deux allers-retours par bail — N+1 sur leases.length)
         const [{ data: users, error: usersError }, { data: rentPeriods, error: rpError }] = await Promise.all([
-          supabase.from('users').select('id, full_name, phone, avatar_url').in('id', tenantIds),
+          supabase.rpc('get_owner_tenant_profiles', { p_tenant_ids: tenantIds }),
           supabase
             .from('rent_periods')
             .select('lease_id, amount_paid, amount_due, status')
@@ -100,7 +100,7 @@ const MesLocataires: React.FC = () => {
         if (usersError) throw usersError;
         if (rpError) throw rpError;
 
-        const userById = new Map((users || []).map((u) => [u.id, u]));
+        const userById = new Map<string, any>(((users as any[]) || []).map((u: any) => [u.id, u]));
         const rentPeriodByLeaseId = new Map((rentPeriods || []).map((rp) => [rp.lease_id, rp]));
 
         // Génération contrôlée côté base : le navigateur ne choisit ni montant,
@@ -232,11 +232,13 @@ const MesLocataires: React.FC = () => {
                       <ProgressBar current={tenant.amountPaid} total={tenant.amountDue} />
 
                       <div className="flex items-center justify-between mt-3 gap-3">
-                        <div>
-                          <p className="text-xs text-text-dim">
-                            <span className="font-semibold text-[var(--imx-text-primary)]">{formatMontant(tenant.amountPaid)}</span>
-                            {' '} / {formatMontant(tenant.amountDue)}
-                          </p>
+                        <div className="flex items-baseline gap-1 text-xs">
+                          <span className="font-bold text-sm text-[var(--imx-text-primary)]">
+                            {new Intl.NumberFormat('fr-FR').format(tenant.amountPaid)}
+                          </span>
+                          <span className="text-text-dim">
+                            / {new Intl.NumberFormat('fr-FR').format(tenant.amountDue)} FCFA
+                          </span>
                         </div>
                         <StatusBadge status={tenant.status} />
                       </div>

@@ -138,15 +138,15 @@ const Annonces: React.FC = () => {
           action={{ label: 'Commencer', href: '/pro/publier' }}
         />
       ) : (
-        <div className="px-5 pt-2 pb-10 space-y-4 flex-1">
-          <div className="rounded-2xl px-4 py-3 flex items-center justify-between" style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}>
+        <div className="px-5 pt-2 pb-12 space-y-4 flex-1">
+          <div className="rounded-2xl p-4 flex items-center justify-between shadow-2xs" style={{ background: 'var(--imx-surface)', border: '1px solid var(--imx-border)' }}>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--imx-text-muted)', fontFamily: 'Space Grotesk' }}>Portefeuille locatif</p>
-              <p className="font-nunito font-black text-[15px] text-[var(--imx-text-primary)] mt-0.5">{listings.length} bien{listings.length > 1 ? 's' : ''} publié{listings.length > 1 ? 's' : ''}</p>
+              <p className="font-nunito font-black text-[16px] text-[var(--imx-text-primary)] mt-0.5 tracking-tight">{listings.length} bien{listings.length > 1 ? 's' : ''} publié{listings.length > 1 ? 's' : ''}</p>
             </div>
             <div className="text-right">
-              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--imx-text-muted)', fontFamily: 'Space Grotesk' }}>Demandes</p>
-              <p className="font-nunito font-black text-[15px] text-[var(--imx-accent)] mt-0.5">{totalRequests}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--imx-text-muted)', fontFamily: 'Space Grotesk' }}>Demandes reçues</p>
+              <span className="inline-flex items-center justify-center min-w-[28px] h-6 px-2 rounded-full font-nunito font-black text-[13px] bg-purple-50 text-[var(--imx-accent)] border border-purple-100">{totalRequests}</span>
             </div>
           </div>
           {listings.map(listing => {
@@ -225,9 +225,12 @@ const Annonces: React.FC = () => {
                         )}
                       </div>
                       {(listing as any).monthly_rent && (
-                        <p className="font-nunito font-black text-[15px] whitespace-nowrap" style={{ color: 'var(--imx-text-primary)' }}>
-                          {new Intl.NumberFormat('fr-FR').format((listing as any).monthly_rent)} <span className="text-[10px] font-bold" style={{ color: 'var(--imx-text-secondary)' }}>FCFA/mois</span>
-                        </p>
+                        <div className="flex items-baseline flex-wrap gap-1">
+                          <span className="font-nunito font-black text-[15px] tracking-tight" style={{ color: 'var(--imx-text-primary)' }}>
+                            {new Intl.NumberFormat('fr-FR').format((listing as any).monthly_rent)}
+                          </span>
+                          <span className="text-[10px] font-bold text-[var(--imx-text-secondary)]">FCFA/mois</span>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -362,18 +365,18 @@ const Annonces: React.FC = () => {
                 )}
 
                 {/* Actions Footer */}
-                <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid var(--imx-border)' }}>
-                  <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>
-                    <MessageCircle size={13} color="var(--imx-accent)" />
-                    {listing.contactRequestsCount} demande{listing.contactRequestsCount !== 1 ? 's' : ''}
+                <div className="flex items-center justify-between pt-3 gap-2 flex-wrap" style={{ borderTop: '1px solid var(--imx-border)' }}>
+                  <div className="inline-flex items-center gap-1.5 text-[11px] font-bold" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Space Grotesk' }}>
+                    <MessageCircle size={14} color="var(--imx-accent)" />
+                    <span>{listing.contactRequestsCount} demande{listing.contactRequestsCount !== 1 ? 's' : ''}</span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {/* Voir l'annonce */}
                     <Link
                       to={`/annonce/${listing.id}`}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold transition-colors"
-                      style={{ background: 'var(--imx-surface-2)', color: 'var(--imx-text-primary)' }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors border"
+                      style={{ background: 'var(--imx-surface-2)', color: 'var(--imx-text-primary)', borderColor: 'var(--imx-border)' }}
                     >
                       <Eye size={12} />
                       Voir
@@ -382,7 +385,7 @@ const Annonces: React.FC = () => {
                     {/* Modifier l'annonce */}
                     <Link
                       to={`/pro/publier/${listing.id}`}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors border border-purple-100"
                       style={{ background: 'var(--imx-accent-xlight)', color: 'var(--imx-accent)' }}
                     >
                       <Edit3 size={12} />
@@ -390,13 +393,13 @@ const Annonces: React.FC = () => {
                     </Link>
 
                     {/* Gérer les demandes */}
-                    {listing.availability_status === 'disponible' && isPublished && (
+                    {listing.availability_status === 'disponible' && isPublished && listing.contactRequestsCount > 0 && (
                       <Link
                         to={`/pro/activer/${listing.id}`}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold text-white active:scale-[0.98] transition-transform"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold text-white shadow-2xs active:scale-[0.98] transition-transform"
                         style={{ background: 'var(--imx-accent)' }}
                       >
-                        Demandes
+                        Demandes ({listing.contactRequestsCount})
                       </Link>
                     )}
 
@@ -418,12 +421,12 @@ const Annonces: React.FC = () => {
                           ? 'Annonce déjà archivée'
                           : 'Demander la suppression de cette annonce'
                       }
-                      className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all ${
+                      className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all border ${
                         isDeletionPending
-                          ? 'bg-[var(--imx-surface-2)] text-[var(--imx-text-muted)] cursor-not-allowed'
+                          ? 'bg-[var(--imx-surface-2)] text-[var(--imx-text-muted)] border-transparent cursor-not-allowed'
                         : isDeleted
-                          ? 'bg-[var(--imx-surface-2)] text-[var(--imx-text-muted)] cursor-not-allowed'
-                          : 'bg-[var(--imx-surface-2)] text-[var(--imx-text-secondary)] hover:text-red-500 active:scale-95'
+                          ? 'bg-[var(--imx-surface-2)] text-[var(--imx-text-muted)] border-transparent cursor-not-allowed'
+                          : 'bg-[var(--imx-surface-2)] text-[var(--imx-text-secondary)] border-[var(--imx-border)] hover:text-red-500 active:scale-95'
                       }`}
                     >
                       <Trash2 size={12} />

@@ -81,7 +81,7 @@ const Contact: React.FC = () => {
           <button onClick={() => navigate('/mes-demandes')} className="btn-primary w-full">
             Voir mes demandes
           </button>
-          <button onClick={() => navigate('/')} className="btn-ghost w-full">
+          <button onClick={() => navigate('/marketplace')} className="btn-ghost w-full">
             Continuer à explorer
           </button>
         </div>

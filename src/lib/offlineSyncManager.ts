@@ -114,6 +114,18 @@ export const processSyncQueue = async () => {
   }
 };
 
+/** Retire les actions locales d'un compte avant de fermer sa session. */
+export const purgeUserSyncActions = async (userId: string) => {
+  const db = await getSyncDB();
+  if (!db) return;
+  const actions = await db.getAll('sync_queue');
+  const ownedActions = actions.filter((action) => {
+    const payload = action.payload as Record<string, unknown> | null;
+    return payload && [payload.userId, payload.user_id, payload.requester_id].includes(userId);
+  });
+  await Promise.all(ownedActions.map((action) => db.delete('sync_queue', action.id)));
+};
+
 const getActionName = (type: SyncActionType) => {
   switch (type) {
     case 'TOGGLE_FAVORITE': return 'Favoris';

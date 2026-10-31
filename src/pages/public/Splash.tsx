@@ -18,11 +18,11 @@ export default function Splash() {
       } else if (role === 'locataire') {
         navigate('/dashboard', { replace: true });
       } else {
-        // Visiteur non connecté :
-        // → Onboarding si première visite, sinon Accueil directement
+        // Visiteur non connecté sur l'app mobile :
+        // → Onboarding si première visite, sinon Marketplace (interface mobile)
         const hasSeenOnboarding = sessionStorage.getItem('hasSeenOnboarding');
         if (hasSeenOnboarding) {
-          navigate('/', { replace: true });
+          navigate('/marketplace', { replace: true });
         } else {
           navigate('/onboarding', { replace: true });
         }

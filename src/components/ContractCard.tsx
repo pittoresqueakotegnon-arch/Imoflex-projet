@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FileText, CheckCircle2, Clock, Download, PenTool, Eye } from 'lucide-react';
 import { LeaseContract } from '../lib/supabase';
 import { generateLeaseContractPDF } from '../lib/contractPdf';
-import { signLeaseContract } from '../lib/leaseDocumentsService';
+import { downloadSignedDocumentPdf, savePdfBlob, sealSignedDocumentPdf, signLeaseContract, verifySignedDocumentPdf } from '../lib/leaseDocumentsService';
 import { SignatureModal } from './SignatureModal';
 import { ContractPreviewModal } from './ContractPreviewModal';
 import { useToast } from './Toast';
@@ -93,10 +93,25 @@ export const ContractCard: React.FC<ContractCardProps> = ({
   const handleDownloadPdf = async () => {
     setDownloading(true);
     try {
+      const filename = `Contrat_Bail_${propertyName.replace(/\s+/g, '_')}.pdf`;
+      if (contract?.status === 'signe' && contract.id) {
+        const verification = await verifySignedDocumentPdf('lease_contract', contract.id);
+        if (verification.verified) {
+          const storedPdf = await downloadSignedDocumentPdf('lease_contract', contract.id);
+          savePdfBlob(storedPdf, filename);
+          showToast(`PDF vérifié côté serveur · SHA-256 ${verification.pdf_sha256}`, 'success');
+          return;
+        }
+        if (!isOwner) {
+          throw new Error('Le propriétaire doit d’abord sceller le PDF final. La signature dessinée seule n’est pas une preuve cryptographique.');
+        }
+      }
       const pdfDoc = generateLeaseContractPDF({
         contractNumber: contract?.contract_number || `BAIL-${new Date().getFullYear()}`,
         version: contract?.version || 1,
-        dateGenerated: new Date(),
+        dateGenerated: contract?.status === 'signe'
+          ? new Date(Math.max(Date.parse(contract.owner_signed_at || ''), Date.parse(contract.tenant_signed_at || '')))
+          : new Date(),
         ownerName,
         ownerPhone,
         ownerSignatureImage: contract?.owner_signature_svg,
@@ -121,8 +136,15 @@ export const ContractCard: React.FC<ContractCardProps> = ({
         documentHash: contract?.document_hash,
       });
 
-      pdfDoc.save(`Contrat_Bail_${propertyName.replace(/\s+/g, '_')}.pdf`);
-      showToast('Téléchargement du contrat lancé !', 'success');
+      if (contract?.status === 'signe' && contract.id) {
+        const bytes = pdfDoc.output('arraybuffer');
+        const hash = await sealSignedDocumentPdf('lease_contract', contract.id, bytes);
+        savePdfBlob(new Blob([bytes], { type: 'application/pdf' }), filename);
+        showToast(`PDF final scellé par le serveur · SHA-256 ${hash}`, 'success');
+      } else {
+        pdfDoc.save(filename);
+        showToast('Brouillon PDF téléchargé. Il ne constitue pas un document signé.', 'success');
+      }
     } catch (err) {
       console.error(err);
       showToast('Erreur lors de la génération du contrat PDF', 'error');
@@ -133,16 +155,13 @@ export const ContractCard: React.FC<ContractCardProps> = ({
 
   const handleConfirmSignature = async (sigData: {
     signatureSvg: string;
-    signerName: string;
   }) => {
     if (!contract?.id) return;
     setSigning(true);
     try {
       await signLeaseContract(
         contract.id,
-        isOwner ? 'owner' : 'tenant',
-        sigData.signatureSvg,
-        sigData.signerName
+        sigData.signatureSvg
       );
       showToast('Votre signature a été apposée avec succès !', 'success');
       setIsSignModalOpen(false);

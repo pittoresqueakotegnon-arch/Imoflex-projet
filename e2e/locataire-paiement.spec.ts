@@ -53,6 +53,14 @@ test.describe('Parcours Locataire', () => {
     await page.route('**/rest/v1/rent_periods*', async route => {
       await route.fulfill({ json: [] });
     });
+
+    // Ces listes annexes sont également lues par les layouts du tableau de bord.
+    await page.route('**/rest/v1/notifications*', async route => {
+      await route.fulfill({ json: [] });
+    });
+    await page.route('**/rest/v1/support_conversations*', async route => {
+      await route.fulfill({ json: [] });
+    });
   });
 
   test('Le locataire connecté accède à son tableau de bord', async ({ page }) => {

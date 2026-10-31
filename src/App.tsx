@@ -1,9 +1,10 @@
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ToastProvider } from './components/Toast';
 import { ThemeProvider } from './contexts/ThemeContext';
 import RoleGuard from './components/RoleGuard';
+import WebRoleGuard from './components/WebRoleGuard';
 import AdminLayout from './components/AdminLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OnboardingSlides } from './components/OnboardingSlides';
@@ -16,8 +17,9 @@ import { useAndroidBackButton } from './hooks/useAndroidBackButton';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
+import { lazyWithRetry } from './lib/lazyWithRetry';
 
-// ── Lazy-loaded pages ─────────────────────────────────────────────────────────
+// â”€â”€ Lazy-loaded pages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Public
 const Splash                  = lazy(() => import('./pages/public/Splash'));
 const Marketplace             = lazy(() => import('./pages/public/Marketplace'));
@@ -29,6 +31,7 @@ const MesDemandes             = lazy(() => import('./pages/public/MesDemandes'))
 const CGU                     = lazy(() => import('./pages/public/CGU'));
 const PolitiqueConfidentialite = lazy(() => import('./pages/public/PolitiqueConfidentialite'));
 const Aide                    = lazy(() => import('./pages/public/Aide'));
+const VerifierDocument        = lazy(() => import('./pages/public/VerifierDocument'));
 
 // Auth
 const Login           = lazy(() => import('./pages/auth/Login'));
@@ -45,7 +48,7 @@ const Payer              = lazy(() => import('./pages/locataire/Payer'));
 const Historique         = lazy(() => import('./pages/locataire/Historique'));
 const Recu               = lazy(() => import('./pages/locataire/Recu'));
 
-// Propriétaire
+// PropriÃ©taire
 const ProprietaireDashboard = lazy(() => import('./pages/proprietaire/Dashboard'));
 const ProAnnonces           = lazy(() => import('./pages/proprietaire/Annonces'));
 const Publier               = lazy(() => import('./pages/proprietaire/Publier'));
@@ -57,14 +60,14 @@ const Retrait               = lazy(() => import('./pages/proprietaire/Retrait'))
 const FicheBail             = lazy(() => import('./pages/proprietaire/FicheBail'));
 const VerificationProprietaire = lazy(() => import('./pages/proprietaire/VerificationProprietaire'));
 
-// Agence immobilière
+// Agence immobiliÃ¨re
 const AgenceDashboard   = lazy(() => import('./pages/agence/Dashboard'));
 const AgenceAnnonces    = lazy(() => import('./pages/agence/Annonces'));
 const AgencePublier     = lazy(() => import('./pages/agence/Publier'));
 const AgenceDemandes    = lazy(() => import('./pages/agence/Demandes'));
 const AgenceProfilAgence = lazy(() => import('./pages/agence/ProfilAgence'));
 
-// Admin — recharts (700 KB) ne se charge QUE si l'admin accède à ces pages
+// Admin routes: recharts is loaded only when an admin opens these pages.
 const AdminDashboard    = lazy(() => import('./pages/admin/AdminDashboard'));
 const AdminAnnonces     = lazy(() => import('./pages/admin/AdminAnnonces'));
 const AdminUtilisateurs = lazy(() => import('./pages/admin/AdminUtilisateurs'));
@@ -84,16 +87,49 @@ const ProfilCodeRetrait = lazy(() => import('./pages/common/ProfilCodeRetrait'))
 const Notifications     = lazy(() => import('./pages/common/Notifications'));
 
 // Version Web (Desktop / Tablette / Navigateur)
-const WebLayout                = lazy(() => import('./layouts/WebLayout'));
-const WebHome                  = lazy(() => import('./pages/web/WebHome'));
-const WebListings              = lazy(() => import('./pages/web/WebListings'));
-const WebListing               = lazy(() => import('./pages/web/WebListing'));
-const WebLogin                 = lazy(() => import('./pages/web/WebLogin'));
-const WebRegister              = lazy(() => import('./pages/web/WebRegister'));
-const WebLocataireDashboard    = lazy(() => import('./pages/web/locataire/WebLocataireDashboard'));
-const WebProprietaireDashboard = lazy(() => import('./pages/web/proprietaire/WebProprietaireDashboard'));
+const WebLayout                = lazyWithRetry(() => import('./layouts/WebLayout'));
+const PublicLayout             = lazyWithRetry(() => import('./layouts/PublicLayout'));
+const WebHome                  = lazyWithRetry(() => import('./pages/web/WebHome'));
+const WebListings              = lazyWithRetry(() => import('./pages/web/WebListings'));
+const WebListing               = lazyWithRetry(() => import('./pages/web/WebListing'));
+const WebLogin                 = lazyWithRetry(() => import('./pages/web/WebLogin'));
+const WebRegister              = lazyWithRetry(() => import('./pages/web/WebRegister'));
+const WebForgotPassword        = lazyWithRetry(() => import('./pages/web/WebForgotPassword'));
+const WebResetPassword         = lazyWithRetry(() => import('./pages/web/WebResetPassword'));
+const WebAide                  = lazyWithRetry(() => import('./pages/web/WebAide'));
+const WebCGU                   = lazyWithRetry(() => import('./pages/web/WebCGU'));
+const WebPolitique             = lazyWithRetry(() => import('./pages/web/WebPolitique'));
+const WebContact               = lazyWithRetry(() => import('./pages/web/WebContact'));
+const WebFavoris               = lazyWithRetry(() => import('./pages/web/WebFavoris'));
+const WebProfil                = lazyWithRetry(() => import('./pages/web/WebProfil'));
+const WebNotifications         = lazyWithRetry(() => import('./pages/web/WebNotifications'));
+const WebNotFound              = lazyWithRetry(() => import('./pages/web/WebNotFound'));
 
-// ── Fallback de chargement ultra-léger ───────────────────────────────────────
+// Locataire Web
+const WebLocataireDashboard    = lazyWithRetry(() => import('./pages/web/locataire/WebLocataireDashboard'));
+const WebLocatairePaiements    = lazyWithRetry(() => import('./pages/web/locataire/WebLocatairePaiements'));
+const WebLocataireDocuments    = lazyWithRetry(() => import('./pages/web/locataire/WebLocataireDocuments'));
+const WebLocataireDemandes     = lazyWithRetry(() => import('./pages/web/locataire/WebLocataireDemandes'));
+const WebRecu                  = lazyWithRetry(() => import('./pages/web/locataire/WebRecu'));
+
+// PropriÃ©taire Web
+const WebProprietaireDashboard = lazyWithRetry(() => import('./pages/web/proprietaire/WebProprietaireDashboard'));
+const WebProprietaireAnnonces  = lazyWithRetry(() => import('./pages/web/proprietaire/WebProprietaireAnnonces'));
+const WebProprietaireMandats  = lazyWithRetry(() => import('./pages/web/proprietaire/WebProprietaireMandats'));
+const WebProprietairePublier   = lazyWithRetry(() => import('./pages/web/proprietaire/WebProprietairePublier'));
+const WebProprietaireDemandes  = lazyWithRetry(() => import('./pages/web/proprietaire/WebProprietaireDemandes'));
+const WebProprietaireLocataires = lazyWithRetry(() => import('./pages/web/proprietaire/WebProprietaireLocataires'));
+const WebProprietaireWallet    = lazyWithRetry(() => import('./pages/web/proprietaire/WebProprietaireWallet'));
+const WebProprietaireVerification = lazyWithRetry(() => import('./pages/web/proprietaire/WebProprietaireVerification'));
+
+// Agence Web
+const WebAgenceDashboard       = lazyWithRetry(() => import('./pages/web/agence/WebAgenceDashboard'));
+const WebAgenceAnnonces        = lazyWithRetry(() => import('./pages/web/agence/WebAgenceAnnonces'));
+const WebAgencePublier         = lazyWithRetry(() => import('./pages/web/agence/WebAgencePublier'));
+const WebAgenceDemandes        = lazyWithRetry(() => import('./pages/web/agence/WebAgenceDemandes'));
+const WebAgenceProfil          = lazyWithRetry(() => import('./pages/web/agence/WebAgenceProfil'));
+
+// â”€â”€ Fallback de chargement ultra-lÃ©ger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PageLoader() {
   return (
     <div
@@ -108,7 +144,7 @@ function PageLoader() {
           className="text-[12px] font-bold tracking-widest uppercase"
           style={{ color: 'var(--imx-text-muted)', fontFamily: 'Space Grotesk' }}
         >
-          Chargement…
+          Chargementâ€¦
         </p>
       </div>
     </div>
@@ -118,10 +154,10 @@ function PageLoader() {
 function MobileFrame({ children }: { children: React.ReactNode }) {
   const { user, profile } = useAuth();
   
-  // Enregistrement du token FCM Capacitor (no-op si non natif ou non connecté)
+  // Enregistrement du token FCM Capacitor (no-op si non natif ou non connectÃ©)
   useFcmToken(user?.id);
 
-  // 🛡️ Gardien de route anti-admin :
+  // ðŸ›¡ï¸ Gardien de route anti-admin :
   // Si un admin tente d'afficher l'interface client/marketplace (qui utilise MobileFrame),
   // on le redirige de force vers l'interface d'administration.
   if (user && profile?.role === 'admin') {
@@ -136,6 +172,14 @@ function MobileFrame({ children }: { children: React.ReactNode }) {
   );
 }
 
+function AdaptiveRecuRoute() {
+  const { paymentId } = useParams<{ paymentId: string }>();
+  if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+    return <Navigate to={`/web/recu/${paymentId}`} replace />;
+  }
+  return <Recu />;
+}
+
 function AppRoutes() {
   useAndroidBackButton();
 
@@ -144,7 +188,7 @@ function AppRoutes() {
       // Configuration native de la barre de statut
       StatusBar.setStyle({ style: Style.Light }).catch(() => {});
       StatusBar.setBackgroundColor({ color: '#FFFFFF' }).catch(() => {});
-      // Masquer le splash screen natif dès que l'app React est montée
+      // Masquer le splash screen natif dÃ¨s que l'app React est montÃ©e
       SplashScreen.hide().catch(() => {});
     }
   }, []);
@@ -152,7 +196,7 @@ function AppRoutes() {
   return (
     <Routes>
 
-              {/* ── ESPACE ADMIN (Desktop layout) ──────────────────── */}
+              {/* â”€â”€ ESPACE ADMIN (Desktop layout) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <Route
                 path="/admin"
                 element={
@@ -173,36 +217,206 @@ function AppRoutes() {
                 <Route path="verifications" element={<AdminOwnerVerifications />} />
               </Route>
 
-              {/* ── VERSION WEB OFFICIELLE (Desktop / Tablette / Navigateur) ─── */}
+              {/* â”€â”€ VERSION WEB OFFICIELLE (Desktop / Tablette / Navigateur) â”€â”€â”€ */}
               <Route path="/web" element={<WebLayout />}>
                 <Route index element={<WebHome />} />
                 <Route path="annonces" element={<WebListings />} />
                 <Route path="annonce/:id" element={<WebListing />} />
                 <Route path="login" element={<WebLogin />} />
                 <Route path="register" element={<WebRegister />} />
+                <Route path="forgot-password" element={<WebForgotPassword />} />
+                <Route path="reset-password" element={<WebResetPassword />} />
+                <Route path="aide" element={<WebAide />} />
+                <Route path="verifier-document" element={<VerifierDocument />} />
+                <Route path="cgu" element={<WebCGU />} />
+                <Route path="politique-confidentialite" element={<WebPolitique />} />
+                <Route path="contact" element={<WebContact />} />
+                <Route path="contact/:listing_id" element={<WebContact />} />
+                <Route path="favoris" element={<WebFavoris />} />
+                <Route path="notifications" element={<WebNotifications />} />
+                <Route path="profil" element={<WebProfil />} />
+
+                {/* Espace Locataire */}
                 <Route
                   path="dashboard"
                   element={
-                    <RoleGuard allowedRoles={['locataire']} redirectTo="/web/login">
+                    <WebRoleGuard allowedRoles={['locataire']}>
                       <WebLocataireDashboard />
-                    </RoleGuard>
+                    </WebRoleGuard>
                   }
                 />
                 <Route
-                  path="pro/dashboard"
+                  path="paiements"
                   element={
-                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/web/login">
-                      <WebProprietaireDashboard />
-                    </RoleGuard>
+                    <WebRoleGuard allowedRoles={['locataire']}>
+                      <WebLocatairePaiements />
+                    </WebRoleGuard>
                   }
                 />
+                <Route
+                  path="documents"
+                  element={
+                    <WebRoleGuard allowedRoles={['locataire']}>
+                      <WebLocataireDocuments />
+                    </WebRoleGuard>
+                  }
+                />
+                <Route
+                  path="mes-demandes"
+                  element={
+                    <WebRoleGuard allowedRoles={['locataire']}>
+                      <WebLocataireDemandes />
+                    </WebRoleGuard>
+                  }
+                />
+                <Route
+                  path="recu/:paymentId"
+                  element={
+                    <WebRoleGuard allowedRoles={['locataire', 'proprietaire', 'agence']}>
+                      <WebRecu />
+                    </WebRoleGuard>
+                  }
+                />
+
+                {/* Espace PropriÃ©taire */}
+                <Route
+                  path="pro/dashboard"
+                  element={
+                    <WebRoleGuard allowedRoles={['proprietaire']}>
+                      <WebProprietaireDashboard />
+                    </WebRoleGuard>
+                  }
+                />
+                <Route
+                  path="pro/annonces"
+                  element={
+                    <WebRoleGuard allowedRoles={['proprietaire']}>
+                      <WebProprietaireAnnonces />
+                    </WebRoleGuard>
+                  }
+                />
+                <Route
+                  path="pro/mandats"
+                  element={
+                    <WebRoleGuard allowedRoles={['proprietaire']}>
+                      <WebProprietaireMandats />
+                    </WebRoleGuard>
+                  }
+                />
+                <Route
+                  path="pro/publier"
+                  element={
+                    <WebRoleGuard allowedRoles={['proprietaire']}>
+                      <WebProprietairePublier />
+                    </WebRoleGuard>
+                  }
+                />
+                <Route
+                  path="pro/publier/:listingEditId"
+                  element={
+                    <WebRoleGuard allowedRoles={['proprietaire']}>
+                      <WebProprietairePublier />
+                    </WebRoleGuard>
+                  }
+                />
+                <Route
+                  path="pro/demandes"
+                  element={
+                    <WebRoleGuard allowedRoles={['proprietaire']}>
+                      <WebProprietaireDemandes />
+                    </WebRoleGuard>
+                  }
+                />
+                <Route
+                  path="pro/locataires"
+                  element={
+                    <WebRoleGuard allowedRoles={['proprietaire']}>
+                      <WebProprietaireLocataires />
+                    </WebRoleGuard>
+                  }
+                />
+                <Route
+                  path="pro/wallet"
+                  element={
+                    <WebRoleGuard allowedRoles={['proprietaire']}>
+                      <WebProprietaireWallet />
+                    </WebRoleGuard>
+                  }
+                />
+                <Route
+                  path="pro/verification"
+                  element={
+                    <WebRoleGuard allowedRoles={['proprietaire']}>
+                      <WebProprietaireVerification />
+                    </WebRoleGuard>
+                  }
+                />
+
+                {/* Espace Agence */}
+                <Route
+                  path="agence/dashboard"
+                  element={
+                    <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
+                      <WebAgenceDashboard />
+                    </WebRoleGuard>
+                  }
+                />
+                <Route
+                  path="agence/annonces"
+                  element={
+                    <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
+                      <WebAgenceAnnonces />
+                    </WebRoleGuard>
+                  }
+                />
+                <Route
+                  path="agence/publier"
+                  element={
+                    <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
+                      <WebAgencePublier />
+                    </WebRoleGuard>
+                  }
+                />
+                <Route
+                  path="agence/publier/:listingEditId"
+                  element={
+                    <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
+                      <WebAgencePublier />
+                    </WebRoleGuard>
+                  }
+                />
+                <Route
+                  path="agence/demandes"
+                  element={
+                    <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
+                      <WebAgenceDemandes />
+                    </WebRoleGuard>
+                  }
+                />
+                <Route
+                  path="agence/profil"
+                  element={
+                    <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
+                      <WebAgenceProfil />
+                    </WebRoleGuard>
+                  }
+                />
+
+                {/* 404 Web */}
+                <Route path="*" element={<WebNotFound />} />
               </Route>
 
-              {/* ── SPLASH ─────────────────────────────────────────── */}
+              {/* â”€â”€ NOUVELLE VERSION OFFICIELLE RESPONSIVE (DESKTOP & MOBILE) â”€â”€â”€ */}
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<WebHome />} />
+                <Route path="/annonces" element={<WebListings />} />
+              </Route>
+
+              {/* â”€â”€ SPLASH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <Route path="/splash" element={<MobileFrame><Splash /></MobileFrame>} />
 
-              {/* ── PUBLIC ─────────────────────────────────────────── */}
-              <Route path="/" element={<MobileFrame><Marketplace /></MobileFrame>} />
+              {/* â”€â”€ PUBLIC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              <Route path="/marketplace" element={<MobileFrame><Marketplace /></MobileFrame>} />
               <Route path="/filtres" element={<MobileFrame><Filtres /></MobileFrame>} />
               <Route path="/annonce/:id" element={<MobileFrame><Annonce /></MobileFrame>} />
               <Route path="/favoris" element={<MobileFrame><Favoris /></MobileFrame>} />
@@ -210,27 +424,28 @@ function AppRoutes() {
               <Route path="/cgu" element={<MobileFrame><CGU /></MobileFrame>} />
               <Route path="/politique-confidentialite" element={<MobileFrame><PolitiqueConfidentialite /></MobileFrame>} />
               <Route path="/aide" element={<MobileFrame><Aide /></MobileFrame>} />
+              <Route path="/verifier-document" element={<VerifierDocument />} />
               <Route
                 path="/contact/:listing_id"
                 element={
                   <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire', 'proprietaire', 'admin']} redirectTo="/login">
+                    <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence', 'admin']} redirectTo="/login">
                       <Contact />
                     </RoleGuard>
                   </MobileFrame>
                 }
               />
 
-              {/* ── ONBOARDING ───────────────────────────────────── */}
+              {/* â”€â”€ ONBOARDING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <Route path="/onboarding" element={<MobileFrame><Onboarding /></MobileFrame>} />
 
-              {/* ── AUTH ─────────────────────────────────────────── */}
+              {/* â”€â”€ AUTH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <Route path="/login" element={<MobileFrame><Login /></MobileFrame>} />
               <Route path="/register" element={<MobileFrame><Register /></MobileFrame>} />
               <Route path="/forgot-password" element={<MobileFrame><ForgotPassword /></MobileFrame>} />
               <Route path="/reset-password" element={<MobileFrame><ResetPassword /></MobileFrame>} />
 
-              {/* ── LOCATAIRE ──────────────────────────────────────── */}
+              {/* â”€â”€ LOCATAIRE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <Route
                 path="/dashboard"
                 element={
@@ -286,13 +501,13 @@ function AppRoutes() {
                 element={
                   <MobileFrame>
                     <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
-                      <Recu />
+                      <AdaptiveRecuRoute />
                     </RoleGuard>
                   </MobileFrame>
                 }
               />
 
-              {/* ── PROPRIÉTAIRE ───────────────────────────────────── */}
+              {/* â”€â”€ PROPRIÃ‰TAIRE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <Route
                 path="/pro/dashboard"
                 element={
@@ -404,7 +619,7 @@ function AppRoutes() {
                 }
               />
 
-              {/* ── AGENCE IMMOBILIÈRE ─────────────────────────────── */}
+              {/* â”€â”€ AGENCE IMMOBILIÃˆRE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <Route
                 path="/agence/dashboard"
                 element={
@@ -466,7 +681,7 @@ function AppRoutes() {
                 }
               />
 
-              {/* ── COMMUN ─────────────────────────────────────────── */}
+              {/* â”€â”€ COMMUN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               <Route
                 path="/profil"
                 element={
@@ -518,8 +733,8 @@ function AppRoutes() {
                 }
               />
 
-              {/* ── 404 FALLBACK ───────────────────────────────────── */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+              {/* â”€â”€ 404 FALLBACK â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              <Route path="*" element={<WebNotFound />} />
 
             </Routes>
   );

@@ -377,12 +377,21 @@ export interface AgenceMandat {
   property_id?: string | null;
   status: 'actif' | 'suspendu' | 'termine';
   commission_rate: number;
+  owner_consented_at?: string | null;
+  owner_consented_by?: string | null;
   notes?: string | null;
   created_at: string;
   updated_at: string;
   listings?: Listing;
   properties?: Property;
   users?: UserProfile;
+}
+
+export interface PublicAgencyDirectoryEntry {
+  id: string;
+  nom_agence: string;
+  ville: string | null;
+  logo_url: string | null;
 }
 
 export interface AppConfig {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Ban, AlertTriangle, KeyRound } from 'lucide-react';
 import { supabase, UserRole } from '../../lib/supabase';
 import { useToast } from '../../components/Toast';
@@ -43,11 +43,7 @@ const AdminUtilisateurs: React.FC = () => {
 
   const PAGE_SIZE = 20;
 
-  useEffect(() => {
-    fetchUsers();
-  }, [page]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const from = (page - 1) * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
@@ -72,7 +68,11 @@ const AdminUtilisateurs: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, showToast]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleResetWithdrawalPin = async (e: React.FormEvent) => {
     e.preventDefault();

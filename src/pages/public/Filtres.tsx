@@ -132,7 +132,7 @@ const Filtres: React.FC = () => {
     if (availableOnly) params.set('available', 'true');
     if (progressiveOnly) params.set('progressive', 'true');
 
-    navigate(`/?${params.toString()}`);
+    navigate(`/marketplace?${params.toString()}`);
   };
 
   const handleReset = () => {
@@ -142,7 +142,7 @@ const Filtres: React.FC = () => {
     setMinBedrooms(null);
     setAvailableOnly(false);
     setProgressiveOnly(false);
-    navigate('/');
+    navigate('/marketplace');
   };
 
   return (

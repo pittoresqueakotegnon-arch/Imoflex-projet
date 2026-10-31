@@ -1,9 +1,6 @@
 import { supabase } from './supabase';
 import { Operator } from './supabase';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
 /**
  * Normalise un numéro de téléphone béninois au nouveau format 10 chiffres.
  * FedaPay exige le format { number: "0161000000", country: "BJ" } pour déclencher le Push USSD.
@@ -39,49 +36,68 @@ export async function callEdgeFunction<T>(
   body: object,
   maxRetries = 2
 ): Promise<T> {
-  const session = await supabase.auth.getSession();
-  const token = session.data.session?.access_token || SUPABASE_ANON_KEY;
-
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    // Backoff exponentiel entre les tentatives : 0ms, 800ms, 1600ms
     if (attempt > 0) {
       await new Promise(resolve => setTimeout(resolve, attempt * 800));
     }
 
     try {
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/${slug}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Apikey': SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify(body),
+      const { data, error } = await supabase.functions.invoke(slug, {
+        body,
       });
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
-        // Ne pas retenter sur les erreurs client (4xx) sauf timeout
-        if (response.status >= 400 && response.status < 500) {
-          throw new Error(err.error || `Erreur serveur (${response.status})`);
+      if (error) {
+        let errorMsg = error.message;
+
+        // Extraire la réponse détaillée du backend (ex: { error, details })
+        if (error && typeof (error as any).context?.json === 'function') {
+          try {
+            const bodyErr = await (error as any).context.json();
+            errorMsg = bodyErr.details || bodyErr.error || bodyErr.message || errorMsg;
+          } catch {
+            // Ignorer l'échec de parsing JSON
+          }
         }
-        lastError = new Error(err.error || `Erreur serveur (${response.status})`);
-        continue; // Retenter sur les erreurs 5xx
-      }
 
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
-      return data as T;
+        // Si 401 Unauthorized
+        if ((error as any).context?.status === 401 || errorMsg.includes('Non authentifié') || errorMsg.includes('JWT')) {
+          throw new Error('Votre session a expiré. Veuillez vous reconnecter pour continuer.');
+        }
 
-    } catch (err: any) {
-      // Erreur réseau (fetch échoue) → retenter
-      if (err?.name === 'TypeError' || err?.message?.includes('Failed to fetch')) {
-        lastError = err;
+        // Si 400 Bad Request ou erreur de validation (ne pas retenter)
+        if (
+          (error as any).context?.status === 400 ||
+          errorMsg.includes('plafond') ||
+          errorMsg.includes('invalide') ||
+          errorMsg.includes('minimum')
+        ) {
+          throw new Error(errorMsg);
+        }
+
+        lastError = new Error(errorMsg);
         continue;
       }
-      throw err; // Erreur applicative → ne pas retenter
+
+      if ((data as any)?.error) {
+        throw new Error((data as any).error);
+      }
+
+      return data as T;
+    } catch (err: any) {
+      // Erreurs applicatives non récupérables : ne pas retenter
+      const msg = err?.message || '';
+      if (
+        msg.includes('plafond') ||
+        msg.includes('invalide') ||
+        msg.includes('session a expiré') ||
+        msg.includes('minimum')
+      ) {
+        throw err;
+      }
+
+      lastError = err;
     }
   }
 

@@ -70,12 +70,12 @@ export default function Onboarding() {
 
   const finishOnboarding = useCallback(() => {
     sessionStorage.setItem('hasSeenOnboarding', 'true');
-    navigate('/', { replace: true });
+    navigate('/marketplace', { replace: true });
   }, [navigate]);
 
   const handleSkip = useCallback(() => {
     sessionStorage.setItem('hasSeenOnboarding', 'true');
-    navigate('/', { replace: true });
+    navigate('/marketplace', { replace: true });
   }, [navigate]);
 
   // Swipe tactile

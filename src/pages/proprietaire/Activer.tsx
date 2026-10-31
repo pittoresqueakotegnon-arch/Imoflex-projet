@@ -30,22 +30,21 @@ const Activer: React.FC = () => {
       try {
         const { data: request, error: reqError } = await supabase
           .from('contact_requests')
-          .select('requester_id, contact_phone')
+          .select('id, contact_phone')
           .eq('id', requestId)
           .maybeSingle();
 
         if (reqError || !request) return;
 
-        const { data: user, error: userError } = await supabase
-          .from('users')
-          .select('full_name, phone')
-          .eq('id', request.requester_id)
-          .maybeSingle();
+        const { data: requesterProfiles, error: userError } = await supabase.rpc(
+          'get_contact_requester_names',
+          { p_contact_request_ids: [request.id] },
+        );
 
-        if (!userError && user) {
+        if (!userError && requesterProfiles?.[0]) {
           setRequesterInfo({
-            name: user.full_name,
-            phone: request.contact_phone || user.phone
+            name: requesterProfiles[0].full_name,
+            phone: request.contact_phone || ''
           });
         }
       } catch (e) {

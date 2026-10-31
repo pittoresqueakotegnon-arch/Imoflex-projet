@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { formatDateTime } from '../../lib/utils';
 import EmptyState from '../../components/EmptyState';
@@ -43,11 +43,7 @@ const AdminLogs: React.FC = () => {
     { value: 'changement_role', label: 'Changement Rôle' },
   ];
 
-  useEffect(() => {
-    fetchLogs();
-  }, [page, filterAction]);
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
       const from = (page - 1) * PAGE_SIZE;
@@ -86,7 +82,11 @@ const AdminLogs: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, filterAction, showToast]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const getActionColor = (action: string) => {
     if (['suppression_compte', 'rejet_annonce', 'echec_retrait', 'suspension_compte'].includes(action)) {

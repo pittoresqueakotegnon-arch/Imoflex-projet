@@ -298,7 +298,7 @@ export const generateLeaseContractPDF = (data: ContractPdfData): jsPDF => {
   doc.setFontSize(6.5);
   doc.setTextColor(130, 130, 130);
   doc.setFont('helvetica', 'italic');
-  const legalNote = "Mention d'avertissement : Modèle contractuel indicatif établi conformément aux dispositions usuelles de la loi béninoise n° 2022-30 du 20 décembre 2022 régissant le bail d'habitation. Les parties ont consenti librement aux engagements ci-dessus. En application du Code du numérique béninois (loi 2017-20), les consentements, tracés et horodatages sont archivés de façon infalsifiable. Une validation par un conseil juridique habilité est recommandée pour tout litige ou clause personnalisée.";
+  const legalNote = "Mention : ce modèle contractuel est indicatif. Les signatures manuscrites visibles sont des images liées aux confirmations effectuées depuis les comptes authentifiés ; elles ne constituent pas, à elles seules, une signature cryptographique ni un certificat qualifié. L'empreinte de l'enregistrement signé est calculée côté serveur. Une empreinte distincte des octets du PDF final est calculée et vérifiable côté serveur après scellement.";
   const legalLines = doc.splitTextToSize(legalNote, contentWidth);
   doc.text(legalLines, margin, y);
   y += legalLines.length * 3 + 2;
@@ -307,7 +307,7 @@ export const generateLeaseContractPDF = (data: ContractPdfData): jsPDF => {
     doc.setFont('courier', 'normal');
     doc.setFontSize(6.5);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Empreinte d'intégrité SHA-256 : ${data.documentHash}`, margin, y);
+    doc.text(`SHA-256 de l'enregistrement signé en base : ${data.documentHash}`, margin, y);
   }
 
   // Numérotation des pages en pied de page

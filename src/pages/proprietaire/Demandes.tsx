@@ -124,30 +124,22 @@ const Demandes: React.FC = () => {
 
       if (contactError) throw contactError;
 
-      const requesterIds = [...new Set((contactData || []).map(r => r.requester_id))];
-      let usersById: Record<string, { full_name: string; phone: string }> = {};
-
-      if (requesterIds.length > 0) {
-        const { data: usersData, error: usersError } = await supabase
-          .from('users')
-          .select('id, full_name, phone')
-          .in('id', requesterIds);
-
-        if (usersError) throw usersError;
-        usersById = (usersData || []).reduce((acc, u) => {
-          acc[u.id] = { full_name: u.full_name, phone: u.phone };
-          return acc;
-        }, {} as Record<string, { full_name: string; phone: string }>);
-      }
+      const requestIds = (contactData || []).map((request) => request.id);
+      const { data: requesterProfiles, error: requesterProfilesError } = requestIds.length > 0
+        ? await supabase.rpc('get_contact_requester_names', { p_contact_request_ids: requestIds })
+        : { data: [], error: null };
+      if (requesterProfilesError) throw requesterProfilesError;
+      const requesterNames = new Map<string, string>(
+        ((requesterProfiles as any[]) || []).map((profile: any) => [profile.request_id, profile.full_name || 'Candidat'])
+      );
 
       const enrichedRequests: RequestWithDetails[] = (contactData || []).map(req => {
         const listing = listings?.find(l => l.id === req.listing_id);
-        const user = usersById[req.requester_id];
         return {
           ...req,
           listing_title: listing?.title,
-          requester_name: user?.full_name,
-          requester_phone: req.contact_phone || user?.phone,
+          requester_name: requesterNames.get(req.id),
+          requester_phone: req.contact_phone,
         };
       });
 

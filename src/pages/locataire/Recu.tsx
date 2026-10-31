@@ -5,7 +5,6 @@ import { Share } from "@capacitor/share";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../components/Toast";
-import { formatMontant } from "../../lib/utils";
 import { haptics } from "../../lib/haptics";
 import { generateQuittancePDF } from "../../lib/pdf";
 
@@ -30,7 +29,9 @@ interface ReceiptData {
   payment_method: string;
   tenantName: string;
   tenantPhone: string;
+  ownerId?: string;
   ownerName: string;
+  ownerVerificationStatus?: string;
   propertyName: string;
   propertyLocation: string;
   periodLabel: string;
@@ -76,7 +77,17 @@ export default function Recu() {
         const lease = rp?.leases;
         const prop = lease?.properties;
         let ownerName = "Proprietaire";
+        let isOwnerVerified = false;
         if (prop?.owner_id) {
+          try {
+            const { data: isVerif } = await supabase.rpc("is_owner_verified", {
+              p_owner_id: prop.owner_id,
+            });
+            isOwnerVerified = !!isVerif;
+          } catch {
+            // fallback
+          }
+
           try {
             const { data: ownerNameData } = await supabase.rpc(
               "get_active_lease_owner_name",
@@ -101,7 +112,9 @@ export default function Recu() {
           payment_method: data.payment_method || "mobile_money",
           tenantName: profile.full_name || "Locataire",
           tenantPhone: profile.mobile_money_number || profile.phone || "",
+          ownerId: prop?.owner_id,
           ownerName,
+          ownerVerificationStatus: isOwnerVerified ? "verifie" : "non_verifie",
           propertyName: prop?.name || "Logement",
           propertyLocation: prop?.address || "",
           periodLabel,
@@ -115,7 +128,7 @@ export default function Recu() {
     };
 
     fetchReceipt();
-  }, [paymentId, profile?.id]);
+  }, [paymentId, profile?.id, profile?.full_name, profile?.mobile_money_number, profile?.phone]);
 
   const handleShare = async () => {
     if (!receipt) return;
@@ -126,7 +139,7 @@ export default function Recu() {
     const text = [
       "--- RECU DE PAIEMENT IMOFLEX ---",
       `Statut       : PAYE`,
-      `Montant      : ${formatMontant(receipt.amount)} FCFA`,
+      `Montant      : ${new Intl.NumberFormat('fr-FR').format(receipt.amount)} FCFA`,
       `Periode      : ${receipt.periodLabel}`,
       `Bien         : ${receipt.propertyName}`,
       `Locataire    : ${receipt.tenantName}`,
@@ -162,11 +175,11 @@ export default function Recu() {
     } catch { /* ignore */ }
   };
 
-  const handleDownloadQuittance = () => {
+  const handleDownloadQuittance = async () => {
     if (!receipt) return;
     haptics.light();
     try {
-      generateQuittancePDF({
+      await generateQuittancePDF({
         id: receipt.id,
         fedapay_transaction_id: receipt.fedapay_transaction_id,
         amount: receipt.amount,
@@ -175,7 +188,10 @@ export default function Recu() {
         propertyName: receipt.propertyName,
         propertyLocation: receipt.propertyLocation,
         tenantName: receipt.tenantName,
+        tenantPhone: receipt.tenantPhone,
+        ownerId: receipt.ownerId,
         ownerName: receipt.ownerName,
+        ownerVerificationStatus: receipt.ownerVerificationStatus,
         operator: receipt.operator,
       });
       showToast("Quittance PDF téléchargée !", "success");
@@ -236,7 +252,12 @@ export default function Recu() {
               <div className="w-2 h-2 rounded-full bg-[#4ADE80]" />
               <span className="font-space-grotesk text-white font-bold text-[11px] uppercase tracking-wider">PAYE</span>
             </div>
-            <p className="font-nunito font-900 text-white leading-none whitespace-nowrap tracking-[-0.035em]" style={{ fontSize: 'clamp(1.55rem, 8vw, 2rem)' }} title={formatMontant(receipt.amount)}>{formatMontant(receipt.amount)}</p>
+            <div className="flex items-baseline justify-center gap-1.5 my-1">
+              <span className="font-nunito font-900 text-white leading-none tracking-tight" style={{ fontSize: 'clamp(1.75rem, 8vw, 2.35rem)' }}>
+                {new Intl.NumberFormat('fr-FR').format(receipt.amount)}
+              </span>
+              <span className="text-sm font-bold text-white/85 tracking-normal">FCFA</span>
+            </div>
             <p className="font-space-grotesk text-white/90 text-[13px] mt-3">Loyer — {receipt.periodLabel}</p>
           </div>
 

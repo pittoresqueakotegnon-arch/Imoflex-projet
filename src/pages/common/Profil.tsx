@@ -238,7 +238,7 @@ export default function Profil() {
       try {
         const [agencyRes, mandatsRes, listingsRes] = await Promise.all([
           supabase.from('agences_profiles').select('*').eq('id', profile.id).maybeSingle(),
-          supabase.from('agence_mandats').select('id', { count: 'exact', head: true }).eq('agence_id', profile.id).eq('status', 'actif'),
+          supabase.from('agence_mandats').select('id', { count: 'exact', head: true }).eq('agence_id', profile.id).eq('status', 'actif').not('owner_consented_at', 'is', null),
           supabase.from('listings').select('id', { count: 'exact' }).eq('owner_id', profile.id),
         ]);
 
@@ -343,7 +343,7 @@ export default function Profil() {
   };
 
   // ── Auth ──────────────────────────────────────────────────────────────────────
-  const handleSignOut = async () => { await signOut(); navigate('/'); };
+  const handleSignOut = async () => { await signOut(); navigate('/marketplace'); };
 
   const handleDeleteAccount = async () => {
     if (!profile?.id) return;

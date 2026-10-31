@@ -171,7 +171,7 @@ const Publier: React.FC = () => {
             };
           });
         setUploadedPhotos(sortedPhotos);
-      } catch (err) {
+      } catch (_err) {
         showToast("Impossible de charger l'annonce", 'error');
         navigate(profile.role === 'agence' ? '/agence/annonces' : '/pro/annonces');
       } finally {
@@ -245,6 +245,7 @@ const Publier: React.FC = () => {
     description,
     houseRules,
     acceptsProgressive,
+    isEditMode,
   ]);
 
   // Avertir si fermeture accidentelle de la fenêtre

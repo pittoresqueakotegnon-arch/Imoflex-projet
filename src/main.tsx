@@ -11,6 +11,7 @@ import App from './App.tsx';
 import './index.css';
 
 import { registerSW } from 'virtual:pwa-register';
+import { purgeLegacySharedCaches } from './lib/offlinePrivacy';
 
 // Démarre le service worker en mode autoUpdate
 void registerSW({
@@ -43,8 +44,13 @@ if (sentryDsn) {
   });
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-);
+async function startApp() {
+  await purgeLegacySharedCaches();
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>
+  );
+}
+
+void startApp();

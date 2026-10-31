@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { OwnerVerificationStatus, Wallet } from '../lib/supabase';
-import { formatMontant } from '../lib/utils';
 import { Eye, EyeOff, ArrowUpRight, ShieldCheck } from 'lucide-react';
 
 interface WalletCardProps {
@@ -75,12 +74,19 @@ export const WalletCard: React.FC<WalletCardProps> = ({ wallet, loading = false,
 
         {/* Balance */}
         <div className="mb-6">
-          <span
-            className="font-nunito font-black text-white leading-none block"
-            style={{ fontSize: 'clamp(2rem, 9vw, 2.8rem)', letterSpacing: '-1px' }}
-          >
-            {showBalance ? formatMontant(wallet.available_balance || 0) : '*** ***'}
-          </span>
+          <div className="flex items-baseline flex-wrap gap-1.5">
+            <span
+              className="font-nunito font-extrabold text-white leading-none tracking-tight"
+              style={{ fontSize: 'clamp(2rem, 8vw, 2.75rem)' }}
+            >
+              {showBalance ? new Intl.NumberFormat('fr-FR').format(wallet.available_balance || 0) : '••••••'}
+            </span>
+            {showBalance && (
+              <span className="text-base sm:text-lg font-bold text-white/75 tracking-normal">
+                FCFA
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Bottom row: security note + retrait button */}

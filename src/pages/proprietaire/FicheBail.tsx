@@ -125,13 +125,11 @@ const FicheBail: React.FC = () => {
 
         if (leaseError) throw leaseError;
 
-        // Step 2: Fetch tenant info separately (avoids FK hint issues + RLS workaround)
+        // Step 2: Fetch only the tenant contact fields authorized for this owner.
         const tenantId = (leaseData as any).tenant_id;
-        const { data: tenantData, error: tenantError } = await supabase
-          .from('users')
-          .select('full_name, phone, avatar_url')
-          .eq('id', tenantId)
-          .single();
+        const { data: tenantProfiles, error: tenantError } = await supabase
+          .rpc('get_owner_tenant_profiles', { p_tenant_ids: [tenantId] });
+        const tenantData = tenantProfiles?.[0] ?? null;
 
         if (tenantError) {
           console.warn('Impossible de charger les infos du locataire (RLS?):', tenantError);
@@ -560,7 +558,6 @@ const FicheBail: React.FC = () => {
         isOpen={isCreateInspectionOpen}
         onClose={() => setIsCreateInspectionOpen(false)}
         leaseId={lease.id}
-        userId={profile?.id || ''}
         existingEntry={Boolean(inspections.find(i => i.inspection_type === 'entree'))}
         onSuccess={() => loadDocuments(lease.id)}
       />

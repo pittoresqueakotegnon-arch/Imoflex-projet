@@ -158,7 +158,7 @@ export default function WebLogin() {
                   background: 'var(--imx-surface)',
                   border: '1.5px solid var(--imx-border)',
                   color: 'var(--imx-text-primary)',
-                  fontFamily: 'Space Grotesk',
+                  fontFamily: 'Inter, sans-serif',
                 }}
                 onFocus={e => (e.target.style.borderColor = 'var(--imx-accent)')}
                 onBlur={e => (e.target.style.borderColor = 'var(--imx-border)')}
@@ -171,7 +171,7 @@ export default function WebLogin() {
                   Mot de passe
                 </label>
                 <Link
-                  to="/forgot-password"
+                  to="/web/forgot-password"
                   className="text-xs font-medium"
                   style={{ color: 'var(--imx-accent)' }}
                 >
@@ -190,7 +190,7 @@ export default function WebLogin() {
                     background: 'var(--imx-surface)',
                     border: '1.5px solid var(--imx-border)',
                     color: 'var(--imx-text-primary)',
-                    fontFamily: 'Space Grotesk',
+                    fontFamily: 'Inter, sans-serif',
                   }}
                   onFocus={e => (e.target.style.borderColor = 'var(--imx-accent)')}
                   onBlur={e => (e.target.style.borderColor = 'var(--imx-border)')}
@@ -212,7 +212,7 @@ export default function WebLogin() {
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-bold text-sm text-white transition-all hover:opacity-90 active:scale-98"
               style={{
                 background: 'var(--imx-accent)',
-                fontFamily: 'Space Grotesk',
+                fontFamily: 'Inter, sans-serif',
                 opacity: loading || !email || !password ? 0.7 : 1,
               }}
             >
@@ -226,9 +226,9 @@ export default function WebLogin() {
 
           <p className="text-xs text-center mt-6" style={{ color: 'var(--imx-text-muted)' }}>
             En vous connectant, vous acceptez nos{' '}
-            <Link to="/cgu" className="underline" style={{ color: 'var(--imx-accent)' }}>CGU</Link>
+            <Link to="/web/cgu" className="underline" style={{ color: 'var(--imx-accent)' }}>CGU</Link>
             {' '}et notre{' '}
-            <Link to="/politique-confidentialite" className="underline" style={{ color: 'var(--imx-accent)' }}>
+            <Link to="/web/politique-confidentialite" className="underline" style={{ color: 'var(--imx-accent)' }}>
               politique de confidentialité
             </Link>.
           </p>

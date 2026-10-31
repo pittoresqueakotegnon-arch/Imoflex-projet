@@ -1,15 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { z } from "npm:zod";
 import { maskPhone, fetchWithRetry } from "../_shared/security.ts";
 import { getFedapayBaseUrl, startPayout, unwrapPayout } from "../_shared/payouts.ts";
-
-const withdrawalSchema = z.object({
-  wallet_id: z.string().uuid("ID de wallet invalide"),
-  authorization_id: z.string().uuid("ID d'autorisation invalide"),
-  pin: z.string().length(4, "Le PIN doit contenir 4 chiffres").regex(/^[0-9]{4}$/, "Le PIN ne doit contenir que des chiffres"),
-  idempotency_key: z.string().uuid("Clé d'idempotence invalide"),
-});
+import { withdrawalSchema } from "../_shared/payment_schemas.ts";
 
 type CreatedWithdrawal = {
   withdrawal_id: string | null;

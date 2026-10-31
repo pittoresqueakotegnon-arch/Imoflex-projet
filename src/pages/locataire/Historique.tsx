@@ -93,7 +93,7 @@ export default function Historique() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile?.id, filter, selectedLeaseId]);
+  }, [profile?.id, filter, selectedLeaseId, showToast]);
 
   const groupedPayments = payments.reduce(
     (acc, payment) => {

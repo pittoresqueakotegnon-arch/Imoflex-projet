@@ -324,18 +324,19 @@ export const generateInspectionReportPDF = (data: InspectionPdfData): jsPDF => {
   y += 42;
 
   // --- MENTION LÉGALE & EMPREINTE ---
-  checkPageBreak(14);
+  const integrityNotice = doc.splitTextToSize("Les signatures manuscrites visibles sont des images liées aux confirmations effectuées depuis les comptes authentifiés ; elles ne constituent pas, à elles seules, une signature cryptographique ni un certificat qualifié. L'empreinte de l'enregistrement signé est calculée côté serveur. L'empreinte des octets du PDF final est distincte et vérifiable côté serveur après scellement.", contentWidth);
+  checkPageBreak(integrityNotice.length * 3 + 10);
   doc.setFontSize(6.5);
   doc.setTextColor(130, 130, 130);
   doc.setFont('helvetica', 'italic');
-  doc.text("L'état des lieux contradictoire fait foi entre les parties de l'état du logement à la date de remise ou de restitution des clés (loi béninoise n° 2022-30). Les photographies prises sur place et l'horodatage sont conservés pour prévenir tout litige lors du décompte final de caution.", margin, y);
-  y += 4;
+  doc.text(integrityNotice, margin, y);
+  y += integrityNotice.length * 3 + 2;
 
   if (data.documentHash) {
     doc.setFont('courier', 'normal');
     doc.setFontSize(6.5);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Empreinte d'intégrité numérique SHA-256 : ${data.documentHash}`, margin, y);
+    doc.text(`SHA-256 de l'enregistrement signé en base : ${data.documentHash}`, margin, y);
   }
 
   // Numérotation des pages

@@ -4,10 +4,12 @@ import React, {
   useEffect,
   useState,
   useCallback,
+  useRef,
 } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase, UserProfile, UserRole } from '../lib/supabase';
 import { logAction } from '../lib/audit';
+import { purgeLegacySharedCaches, purgePrivateOfflineData } from '../lib/offlinePrivacy';
 
 interface AuthContextValue {
   session: Session | null;
@@ -36,6 +38,7 @@ export interface SignUpParams {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const lastAuthenticatedUserId = useRef<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -85,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let userSubscription: any = null;
+    void purgeLegacySharedCaches();
 
     const setupRealtimeProfile = (userId: string) => {
       if (userSubscription) {
@@ -112,6 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     supabase.auth.getSession().then(({ data: { session: s } }) => {
+      lastAuthenticatedUserId.current = s?.user.id ?? null;
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
@@ -124,6 +129,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, s) => {
+        const previousUserId = lastAuthenticatedUserId.current;
+        const nextUserId = s?.user.id ?? null;
+        if (previousUserId && previousUserId !== nextUserId) {
+          void purgePrivateOfflineData(previousUserId);
+        }
+        lastAuthenticatedUserId.current = nextUserId;
         (async () => {
           setSession(s);
           setUser(s?.user ?? null);
@@ -268,6 +279,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    await purgePrivateOfflineData(user?.id);
     await supabase.auth.signOut();
     setProfile(null);
   };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ClipboardCheck, Download, CheckCircle2, Camera, AlertTriangle, Key, Droplet, Zap, Maximize2 } from 'lucide-react';
 import { PropertyInspection } from '../lib/supabase';
-import { getSecureDocumentUrl } from '../lib/leaseDocumentsService';
+import { downloadSignedDocumentPdf, getSecureDocumentUrl, savePdfBlob, sealSignedDocumentPdf, verifySignedDocumentPdf } from '../lib/leaseDocumentsService';
 import { generateInspectionReportPDF } from '../lib/inspectionPdf';
 import { useToast } from './Toast';
 
@@ -91,9 +91,21 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
   const isEntree = inspection.inspection_type === 'entree';
   const typeLabel = isEntree ? "État des lieux d'Entrée" : "État des lieux de Sortie";
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     setDownloading(true);
     try {
+      const filename = `Etat_des_lieux_${inspection.inspection_type}_${propertyName.replace(/\s+/g, '_')}.pdf`;
+      const isFinallySigned = (inspection.status === 'valide' || inspection.status === 'conteste')
+        && !!inspection.owner_confirmed_at && !!inspection.tenant_confirmed_at;
+      if (isFinallySigned) {
+        const verification = await verifySignedDocumentPdf('property_inspection', inspection.id);
+        if (verification.verified) {
+          savePdfBlob(await downloadSignedDocumentPdf('property_inspection', inspection.id), filename);
+          showToast(`PDF vérifié côté serveur · SHA-256 ${verification.pdf_sha256}`, 'success');
+          return;
+        }
+        if (!isOwner) throw new Error('Le propriétaire doit d’abord sceller le PDF final. Une image de signature seule n’est pas une preuve cryptographique.');
+      }
       const pdfDoc = generateInspectionReportPDF({
         inspectionType: inspection.inspection_type,
         inspectionDate: inspection.inspection_date,
@@ -122,8 +134,15 @@ export const InspectionDetailModal: React.FC<InspectionDetailModalProps> = ({
         documentHash: inspection.document_hash,
       });
 
-      pdfDoc.save(`Etat_des_lieux_${inspection.inspection_type}_${propertyName.replace(/\s+/g, '_')}.pdf`);
-      showToast('Téléchargement du rapport lancé !', 'success');
+      if (isFinallySigned) {
+        const bytes = pdfDoc.output('arraybuffer');
+        const hash = await sealSignedDocumentPdf('property_inspection', inspection.id, bytes);
+        savePdfBlob(new Blob([bytes], { type: 'application/pdf' }), filename);
+        showToast(`PDF final scellé par le serveur · SHA-256 ${hash}`, 'success');
+      } else {
+        pdfDoc.save(filename);
+        showToast('Brouillon PDF téléchargé. Il ne constitue pas un document confirmé.', 'success');
+      }
     } catch (err) {
       console.error(err);
       showToast("Erreur lors de la génération de l'état des lieux", 'error');

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Trash2 } from 'lucide-react';
 import { supabase, Listing } from '../../lib/supabase';
 import { propertyTypeLabel, getOptimizedUrl } from '../../lib/utils';
@@ -28,10 +28,6 @@ const AdminAnnonces: React.FC = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [deleteModal, setDeleteModal] = useState<{ listingId: string; title: string } | null>(null);
 
-  useEffect(() => {
-    fetchListings();
-  }, [tab]);
-
   const enrichWithOwners = async (rawListings: Listing[]): Promise<ListingWithOwner[]> => {
     if (rawListings.length === 0) return [];
 
@@ -54,7 +50,7 @@ const AdminAnnonces: React.FC = () => {
     }));
   };
 
-  const fetchListings = async () => {
+  const fetchListings = useCallback(async () => {
     setLoading(true);
     try {
       // Use status column; fall back to is_published for backward compat
@@ -74,7 +70,11 @@ const AdminAnnonces: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tab, showToast]);
+
+  useEffect(() => {
+    fetchListings();
+  }, [fetchListings]);
 
   const handleApprove = async (listingId: string) => {
     setActionLoading(listingId);

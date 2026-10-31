@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
-import { formatMontant } from '../../lib/utils';
 import BottomNav from '../../components/BottomNav';
 import { useToast } from '../../components/Toast';
 import { getOptimizedUrl } from '../../lib/utils';
@@ -209,9 +208,13 @@ const AgenceAnnonces: React.FC = () => {
                   <p className="font-space-grotesk text-[11px] mb-1" style={{ color: 'var(--imx-text-muted)' }}>
                     {annonce.city}{annonce.neighborhood ? `, ${annonce.neighborhood}` : ''}
                   </p>
-                  <p className="font-nunito font-black text-[14px]" style={{ color: 'var(--imx-accent)' }}>
-                    {formatMontant(annonce.monthly_rent)}<span className="text-[10px] font-medium" style={{ color: 'var(--imx-text-muted)' }}>/mois</span>
-                  </p>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <span className="font-nunito font-black text-[15px] tracking-tight" style={{ color: 'var(--imx-accent)' }}>
+                      {new Intl.NumberFormat('fr-FR').format(annonce.monthly_rent)}
+                    </span>
+                    <span className="text-[11px] font-bold text-[var(--imx-text-secondary)]">FCFA</span>
+                    <span className="text-[10px] font-medium text-[var(--imx-text-muted)]">/mois</span>
+                  </div>
 
                   {annonce.rejection_reason && (
                     <p className="font-space-grotesk text-[10px] mt-1" style={{ color: '#EF4444' }}>

@@ -5,15 +5,13 @@ interface SignatureModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  documentTitle: string;
+  documentTitle?: string;
+  subtitle?: string;
   signerName: string;
-  signerRole: 'Propriétaire' | 'Locataire';
+  signerRole: 'Propriétaire' | 'Locataire' | string;
   allowReserves?: boolean;
   onConfirm: (signatureData: {
     signatureSvg: string;
-    signerName: string;
-    consent: boolean;
-    timestamp: string;
     reserves?: string;
   }) => Promise<void>;
   loading?: boolean;
@@ -23,7 +21,8 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
   isOpen,
   onClose,
   title,
-  documentTitle,
+  documentTitle = 'Document officiel',
+  subtitle,
   signerName,
   signerRole,
   allowReserves = false,
@@ -34,13 +33,11 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [consentGiven, setConsentGiven] = useState(false);
-  const [name, setName] = useState(signerName);
   const [tenantReserves, setTenantReserves] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      setName(signerName);
       setHasDrawn(false);
       setConsentGiven(false);
       setTenantReserves('');
@@ -48,7 +45,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
       // Initialiser le canvas après affichage du modal
       setTimeout(initCanvas, 150);
     }
-  }, [isOpen, signerName]);
+  }, [isOpen]);
 
   const initCanvas = () => {
     const canvas = canvasRef.current;
@@ -126,10 +123,6 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!name.trim()) {
-      setError('Veuillez renseigner votre nom complet.');
-      return;
-    }
     if (!consentGiven) {
       setError('Vous devez cocher la case d’acceptation et de consentement éclairé.');
       return;
@@ -147,9 +140,6 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
 
     await onConfirm({
       signatureSvg: signatureDataUrl,
-      signerName: name.trim(),
-      consent: true,
-      timestamp: new Date().toISOString(),
       reserves: allowReserves && tenantReserves.trim() ? tenantReserves.trim() : undefined,
     });
   };
@@ -170,7 +160,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
                 {title}
               </h3>
               <p className="text-[11px] text-[var(--imx-text-secondary)] font-space-grotesk mt-0.5">
-                {documentTitle} • En qualité de {signerRole}
+                {subtitle || `${documentTitle} • En qualité de ${signerRole}`}
               </p>
             </div>
           </div>
@@ -192,17 +182,10 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
             </div>
           )}
 
-          {/* Nom du signataire */}
+          {/* Nom issu du profil serveur, non modifiable dans le formulaire */}
           <div>
-            <label className="label block mb-1 text-xs">NOM COMPLET DU SIGNATAIRE</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="input-field text-sm font-bold"
-              placeholder="Ex: Koffi Mensah Jean"
-              disabled={loading}
-            />
+            <label className="label block mb-1 text-xs">COMPTE SIGNATAIRE</label>
+            <p className="input-field text-sm font-bold">{signerName}</p>
           </div>
 
           {/* Option réserves locataire */}
@@ -278,7 +261,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
 
           {/* Avertissement de transparence juridique */}
           <p className="text-[10px] text-[var(--imx-text-muted)] italic font-space-grotesk text-center px-2">
-            La signature manuscrite tracée, l'horodatage UTC et l'adresse IP sont scellés numériquement pour garantir l'intégrité du document conformément au Code du numérique béninois.
+            Le trait dessiné est une image associée au consentement de votre compte authentifié ; ce n’est pas, à lui seul, une signature cryptographique. Le serveur enregistre l’identité de session, l’heure et l’empreinte des données signées. Le PDF final reçoit ensuite sa propre empreinte vérifiable.
           </p>
         </div>
 
@@ -295,7 +278,7 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={loading || !hasDrawn || !consentGiven || !name.trim()}
+            disabled={loading || !hasDrawn || !consentGiven}
             className="flex-1 py-3 px-4 rounded-xl bg-violet text-white text-sm font-bold shadow-lg hover:bg-violet-dark transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (

@@ -42,13 +42,12 @@ BEGIN
 
   -- 3. Protection contre l'erreur de contrainte unique sur l'email
   IF v_email IS NOT NULL AND EXISTS (
-    SELECT 1 FROM public.users u
-    WHERE u.email = v_email AND u.id <> p_user_id
+    SELECT 1
+    FROM public.users u
+    WHERE u.email = v_email
+      AND u.id <> p_user_id
   ) THEN
-    -- Supprime l'ancien profil orphelin s'il n'est plus dans auth.users
-    IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = v_email AND id <> p_user_id) THEN
-      DELETE FROM public.users WHERE email = v_email AND id <> p_user_id;
-    END IF;
+    v_email := NULL;
   END IF;
 
   RETURN QUERY SELECT

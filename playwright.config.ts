@@ -5,7 +5,11 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Le serveur Vite doit compiler les routes lazy à la demande. En parallèle
+  // avec les captures d'écran, les navigations dépassent le délai Playwright
+  // sur les environnements Windows de développement; la suite est déterministe
+  // avec un seul navigateur actif.
+  workers: 1,
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:5173',

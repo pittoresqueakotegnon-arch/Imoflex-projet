@@ -55,6 +55,12 @@ export default function Payer() {
   const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
   const resetIdempotencyKey = () => { idempotencyKeyRef.current = crypto.randomUUID(); };
 
+  // Refs pour les valeurs utilisées dans le callback Realtime (évite les deps stale)
+  const pollingDataRef = useRef({ amount, currentRentPeriod, ownerName, propertyName, selectedOperator });
+  useEffect(() => {
+    pollingDataRef.current = { amount, currentRentPeriod, ownerName, propertyName, selectedOperator };
+  }, [amount, currentRentPeriod, ownerName, propertyName, selectedOperator]);
+
   const [successData, setSuccessData] = useState<{
     amount: number;
     paymentId: string;
@@ -199,17 +205,17 @@ export default function Payer() {
           setProcessing(false);
 
           if (updated.status === "valide") {
-            const period = currentRentPeriod;
+            const { amount: a, currentRentPeriod: period, ownerName: oName, propertyName: pName, selectedOperator: op } = pollingDataRef.current;
             const periodLabel = period ? `${MONTH_NAMES[(period.period_month ?? 1) - 1]} ${period.period_year}` : "";
             setSuccessData({
-              amount: updated.amount || amount,
+              amount: updated.amount || a,
               paymentId: updated.id,
-              recipientName: ownerName || "Proprietaire",
-              propertyName: propertyName,
+              recipientName: oName || "Proprietaire",
+              propertyName: pName,
               periodLabel,
               transactionId: updated.fedapay_transaction_id || updated.id,
               date: updated.created_at || new Date().toISOString(),
-              operator: updated.operator || selectedOperator || "mtn",
+              operator: updated.operator || op || "mtn",
             });
             haptics.success();
             setStep("success");
@@ -230,6 +236,7 @@ export default function Payer() {
     }, 45000);
 
     return () => { clearTimeout(timeoutId); supabase.removeChannel(channel); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pollingPaymentId]);
 
   // Synchronisation manuelle du statut : interroge FedaPay directement

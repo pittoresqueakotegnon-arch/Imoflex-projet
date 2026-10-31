@@ -16,25 +16,52 @@ const ROLES = [
     value: 'locataire' as Role,
     icon: <Home size={28} />,
     title: 'Locataire',
-    desc: 'Je cherche un logement à louer et veux payer mon loyer facilement.',
+    badge: 'Recherche & Vie au logement',
+    desc: 'Je cherche un logement à louer et souhaite payer mon loyer simplement en ligne.',
+    features: [
+      'Recherche et alertes en direct',
+      'Paiement Mobile Money sécurisé',
+      'Quittances et reçus automatiques',
+    ],
     color: '#3B82F6',
+    borderHover: '#3B82F6',
     bg: '#EFF6FF',
+    accentBadgeBg: 'bg-blue-50 text-blue-700 border-blue-200',
+    buttonClass: 'bg-blue-50 text-blue-700 group-hover:bg-blue-600 group-hover:text-white',
   },
   {
     value: 'proprietaire' as Role,
     icon: <User size={28} />,
     title: 'Propriétaire',
-    desc: 'Je possède des biens et veux les gérer, louer et percevoir mes loyers.',
+    badge: 'Patrimoine & Rendement',
+    desc: 'Je possède des biens et veux les louer, suivre mes locataires et percevoir mes loyers.',
+    features: [
+      'Suivi des encaissements en temps réel',
+      'Portefeuille & retraits bancaires/MoMo',
+      'Gestion simplifiée des baux actifs',
+    ],
     color: '#7B3FE4',
+    borderHover: '#7B3FE4',
     bg: '#F1EBFF',
+    accentBadgeBg: 'bg-purple-50 text-purple-700 border-purple-200',
+    buttonClass: 'bg-purple-50 text-purple-700 group-hover:bg-[#7B3FE4] group-hover:text-white',
   },
   {
     value: 'agence' as Role,
     icon: <Building2 size={28} />,
     title: 'Agence immobilière',
-    desc: 'Je gère des biens pour le compte de propriétaires et publie des annonces.',
+    badge: 'Multi-mandats Professionnels',
+    desc: 'Je gère un parc de biens pour plusieurs propriétaires et publie des annonces.',
+    features: [
+      'Gestion centralisée multi-mandats',
+      'Publication & visibilité maximale',
+      'Tableau de bord agence dédié',
+    ],
     color: '#10B981',
+    borderHover: '#10B981',
     bg: '#ECFDF5',
+    accentBadgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    buttonClass: 'bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white',
   },
 ];
 
@@ -149,9 +176,13 @@ export default function WebRegister() {
     setResendLoading(true);
     try {
       await resendSignupOtp(registeredEmail);
-    } catch {}
+    } catch (_err) {
+      // Échec silencieux du renvoi OTP
+    }
     setResendLoading(false);
   };
+
+  const selectedRoleObj = ROLES.find(r => r.value === selectedRole);
 
   const InputField = ({ label, type = 'text', value, onChange, placeholder, required = false }: any) => (
     <div>
@@ -169,7 +200,7 @@ export default function WebRegister() {
           background: 'var(--imx-surface)',
           border: '1.5px solid var(--imx-border)',
           color: 'var(--imx-text-primary)',
-          fontFamily: 'Space Grotesk',
+          fontFamily: 'Inter, sans-serif',
         }}
         onFocus={e => (e.target.style.borderColor = 'var(--imx-accent)')}
         onBlur={e => (e.target.style.borderColor = 'var(--imx-border)')}
@@ -178,86 +209,147 @@ export default function WebRegister() {
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-8 px-4" style={{ background: 'var(--imx-bg-app)' }}>
-      <div className="w-full max-w-xl">
+    <div className="w-full flex justify-center py-8 sm:py-12 px-4 sm:px-6">
+      <div className={`w-full transition-all duration-300 ${step === 'role' ? 'max-w-5xl' : 'max-w-xl'}`}>
 
-        {/* Logo */}
-        <div className="flex items-center gap-2 mb-8">
-          <div className="w-9 h-9 rounded-xl overflow-hidden" style={{ background: '#F1EBFF' }}>
-            <img src="/assets/logo-icon-transparent-recadre.png" alt="ImoFlex" className="w-full h-full object-cover" />
+        {/* Header / Logo */}
+        {step !== 'role' && (
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-9 h-9 rounded-xl overflow-hidden" style={{ background: '#F1EBFF' }}>
+              <img src="/assets/logo-icon-transparent-recadre.png" alt="ImoFlex" className="w-full h-full object-cover" />
+            </div>
+            <span className="font-black text-lg" style={{ color: 'var(--imx-text-primary)', fontFamily: 'Sora' }}>ImoFlex</span>
           </div>
-          <span className="font-black text-lg" style={{ color: 'var(--imx-text-primary)', fontFamily: 'Sora' }}>ImoFlex</span>
-        </div>
+        )}
 
         {/* Error */}
         {error && (
-          <div className="flex items-center gap-2 p-3 rounded-xl mb-5 text-sm" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#EF4444' }}>
-            <AlertCircle size={15} />
-            {error}
+          <div className="flex items-center gap-2 p-3.5 rounded-2xl mb-6 text-sm" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#EF4444' }}>
+            <AlertCircle size={16} className="flex-shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
         {/* ── STEP: Choose role ── */}
         {step === 'role' && (
-          <div>
-            <h1 className="text-2xl font-black mb-1" style={{ fontFamily: 'Sora', color: 'var(--imx-text-primary)' }}>
-              Créer un compte
-            </h1>
-            <p className="text-sm mb-7" style={{ color: 'var(--imx-text-muted)' }}>
-              Déjà inscrit ?{' '}
-              <Link to="/web/login" className="font-semibold underline" style={{ color: 'var(--imx-accent)' }}>
-                Se connecter
-              </Link>
-            </p>
-            <p className="text-sm font-semibold mb-4" style={{ color: 'var(--imx-text-primary)' }}>
-              Je suis…
-            </p>
-            <div className="space-y-3">
+          <div className="animate-fadeIn">
+            {/* Header centré élégant */}
+            <div className="text-center max-w-2xl mx-auto mb-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-purple-50 text-[var(--imx-accent)] border border-purple-100 mb-3 shadow-2xs">
+                <span>Étape 1 sur 2</span>
+                <span className="w-1 h-1 rounded-full bg-[var(--imx-accent)]" />
+                <span>Choix du profil</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-black text-[#17132B] tracking-tight mb-2.5" style={{ fontFamily: 'Sora' }}>
+                Comment souhaitez-vous utiliser ImoFlex ?
+              </h1>
+              <p className="text-sm text-gray-500 max-w-lg mx-auto">
+                Sélectionnez votre profil d'usage pour accéder à un tableau de bord et des fonctionnalités adaptés à vos besoins.
+              </p>
+            </div>
+
+            {/* Grille 3 colonnes SaaS */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {ROLES.map(r => (
-                <button
+                <div
                   key={r.value}
                   onClick={() => handleRoleSelect(r.value)}
-                  className="flex items-center gap-4 w-full p-4 rounded-2xl text-left transition-all hover:-translate-y-0.5"
-                  style={{
-                    background: 'var(--imx-surface)',
-                    border: '1.5px solid var(--imx-border)',
-                    boxShadow: 'var(--imx-card-shadow-sm)',
-                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRoleSelect(r.value); }}
+                  className="group relative rounded-3xl p-6 sm:p-7 flex flex-col justify-between text-left transition-all duration-200 cursor-pointer hover:-translate-y-1.5 hover:shadow-xl bg-white border-2 border-gray-200/80 hover:border-purple-300 shadow-2xs"
                 >
-                  <div
-                    className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: r.bg, color: r.color }}
-                  >
-                    {r.icon}
-                  </div>
                   <div>
-                    <p className="font-bold text-sm" style={{ color: 'var(--imx-text-primary)' }}>{r.title}</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--imx-text-muted)' }}>{r.desc}</p>
+                    {/* Top: Icon + Badge */}
+                    <div className="flex items-center justify-between mb-5">
+                      <div
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105 duration-200 shadow-2xs"
+                        style={{ background: r.bg, color: r.color }}
+                      >
+                        {r.icon}
+                      </div>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${r.accentBadgeBg}`}>
+                        {r.badge}
+                      </span>
+                    </div>
+
+                    {/* Title & Desc */}
+                    <h3 className="text-xl font-black text-[#17132B] mb-2 group-hover:text-[var(--imx-accent)] transition-colors" style={{ fontFamily: 'Sora' }}>
+                      {r.title}
+                    </h3>
+                    <p className="text-xs text-gray-500 leading-relaxed mb-6">
+                      {r.desc}
+                    </p>
+
+                    {/* Features list */}
+                    <div className="space-y-2.5 pt-4 border-t border-gray-100 mb-6">
+                      {r.features.map((feat, idx) => (
+                        <div key={idx} className="flex items-center gap-2.5 text-xs text-gray-600">
+                          <div
+                            className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{ background: r.bg, color: r.color }}
+                          >
+                            <Check size={11} strokeWidth={3} />
+                          </div>
+                          <span className="font-medium">{feat}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <ArrowRight size={18} className="ml-auto flex-shrink-0" style={{ color: 'var(--imx-text-muted)' }} />
-                </button>
+
+                  {/* Button Action */}
+                  <div
+                    className={`w-full py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all duration-200 ${r.buttonClass}`}
+                  >
+                    <span>Choisir ce profil</span>
+                    <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
               ))}
             </div>
+
+            <p className="text-xs text-center mt-8 text-gray-400">
+              Déjà inscrit ?{' '}
+              <Link to="/web/login" className="font-bold underline text-[var(--imx-accent)] hover:opacity-85">
+                Se connecter à mon compte
+              </Link>
+            </p>
           </div>
         )}
 
         {/* ── STEP: Form ── */}
         {step === 'form' && selectedRole && (
-          <div>
-            <button
-              onClick={() => { setStep('role'); setError(null); }}
-              className="flex items-center gap-1 text-sm mb-5"
-              style={{ color: 'var(--imx-text-muted)' }}
-            >
-              ← Retour
-            </button>
-            <h1 className="text-2xl font-black mb-1" style={{ fontFamily: 'Sora', color: 'var(--imx-text-primary)' }}>
-              Vos informations
+          <div className="animate-fadeIn">
+            {/* Bannière profil sélectionné */}
+            <div className="p-3 sm:p-4 rounded-2xl border bg-white mb-6 flex items-center gap-3 shadow-2xs flex-wrap" style={{ borderColor: 'var(--imx-border)' }}>
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: selectedRoleObj?.bg, color: selectedRoleObj?.color }}
+                >
+                  {selectedRoleObj?.icon}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Profil sélectionné</p>
+                  <h3 className="text-sm font-black text-[#17132B] truncate" style={{ fontFamily: 'Sora' }}>
+                    {selectedRoleObj?.title}
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setStep('role'); setError(null); }}
+                className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold text-[var(--imx-accent)] hover:bg-purple-50 transition-colors border border-purple-200"
+              >
+                Changer de profil
+              </button>
+            </div>
+
+            <h1 className="text-2xl font-black mb-1 text-[#17132B]" style={{ fontFamily: 'Sora' }}>
+              Finalisez votre inscription
             </h1>
-            <p className="text-sm mb-7" style={{ color: 'var(--imx-text-muted)' }}>
-              Compte <span className="font-semibold" style={{ color: 'var(--imx-accent)' }}>
-                {ROLES.find(r => r.value === selectedRole)?.title}
-              </span>
+            <p className="text-sm mb-6 text-gray-500">
+              Remplissez vos informations personnelles pour créer votre accès sécurisé.
             </p>
 
             <form onSubmit={handleRegister} className="space-y-4">
@@ -288,7 +380,7 @@ export default function WebRegister() {
                       background: 'var(--imx-surface)',
                       border: '1.5px solid var(--imx-border)',
                       color: 'var(--imx-text-primary)',
-                      fontFamily: 'Space Grotesk',
+                      fontFamily: 'Inter, sans-serif',
                     }}
                     onFocus={e => (e.target.style.borderColor = 'var(--imx-accent)')}
                     onBlur={e => (e.target.style.borderColor = 'var(--imx-border)')}
@@ -315,7 +407,7 @@ export default function WebRegister() {
                     background: 'var(--imx-surface)',
                     border: `1.5px solid ${confirmPassword && password !== confirmPassword ? '#EF4444' : 'var(--imx-border)'}`,
                     color: 'var(--imx-text-primary)',
-                    fontFamily: 'Space Grotesk',
+                    fontFamily: 'Inter, sans-serif',
                   }}
                 />
                 {confirmPassword && password !== confirmPassword && (
@@ -340,11 +432,11 @@ export default function WebRegister() {
                 </div>
                 <span className="text-xs" style={{ color: 'var(--imx-text-muted)' }}>
                   J'accepte les{' '}
-                  <Link to="/cgu" className="underline" style={{ color: 'var(--imx-accent)' }} onClick={e => e.stopPropagation()}>
+                  <Link to="/web/cgu" className="underline" style={{ color: 'var(--imx-accent)' }} onClick={e => e.stopPropagation()}>
                     Conditions d'utilisation
                   </Link>
                   {' '}et la{' '}
-                  <Link to="/politique-confidentialite" className="underline" style={{ color: 'var(--imx-accent)' }} onClick={e => e.stopPropagation()}>
+                  <Link to="/web/politique-confidentialite" className="underline" style={{ color: 'var(--imx-accent)' }} onClick={e => e.stopPropagation()}>
                     Politique de confidentialité
                   </Link>
                 </span>
@@ -356,7 +448,7 @@ export default function WebRegister() {
                 className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-bold text-sm text-white transition-all hover:opacity-90"
                 style={{
                   background: 'var(--imx-accent)',
-                  fontFamily: 'Space Grotesk',
+                  fontFamily: 'Inter, sans-serif',
                   opacity: loading ? 0.7 : 1,
                 }}
               >
@@ -396,7 +488,7 @@ export default function WebRegister() {
                   background: 'var(--imx-surface)',
                   border: '1.5px solid var(--imx-border)',
                   color: 'var(--imx-text-primary)',
-                  fontFamily: 'Space Grotesk',
+                  fontFamily: 'Inter, sans-serif',
                   letterSpacing: '0.3em',
                 }}
               />
@@ -441,15 +533,6 @@ export default function WebRegister() {
               Se connecter <ArrowRight size={15} />
             </Link>
           </div>
-        )}
-
-        {step === 'role' && (
-          <p className="text-xs text-center mt-8" style={{ color: 'var(--imx-text-muted)' }}>
-            Déjà inscrit ?{' '}
-            <Link to="/web/login" className="underline font-medium" style={{ color: 'var(--imx-accent)' }}>
-              Se connecter
-            </Link>
-          </p>
         )}
       </div>
     </div>

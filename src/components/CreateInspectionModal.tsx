@@ -7,7 +7,6 @@ interface CreateInspectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   leaseId: string;
-  userId: string;
   existingEntry: boolean;
   onSuccess: () => void;
 }
@@ -50,7 +49,6 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
   isOpen,
   onClose,
   leaseId,
-  userId,
   existingEntry,
   onSuccess,
 }) => {
@@ -244,7 +242,6 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
       const insp = await createInspection(
         leaseId,
         inspectionType,
-        userId,
         waterMeter.trim(),
         electricMeter.trim(),
         parseInt(keysCount, 10) || 1,

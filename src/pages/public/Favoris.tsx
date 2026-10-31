@@ -199,7 +199,7 @@ const Favoris: React.FC = () => {
               {/* Explorer plus */}
               <button
                 className="btn-ghost-violet w-full"
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/marketplace')}
               >
                 Explorer d'autres logements
               </button>

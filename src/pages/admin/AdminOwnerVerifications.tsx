@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Clock3, Eye, RefreshCw, ShieldCheck, XCircle } from 'lucide-react';
 import { OwnerVerificationRequest, OwnerVerificationRequestStatus, supabase } from '../../lib/supabase';
 import { getPrivateVerificationDocumentUrl } from '../../lib/ownerVerification';
@@ -64,7 +64,7 @@ export default function AdminOwnerVerifications() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [adminNote, setAdminNote] = useState('');
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
       let query = supabase
@@ -86,11 +86,11 @@ export default function AdminOwnerVerifications() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter, showToast]);
 
   useEffect(() => {
     fetchRequests();
-  }, [filter]);
+  }, [fetchRequests]);
 
   const counts = useMemo(() => ({
     all: requests.length,

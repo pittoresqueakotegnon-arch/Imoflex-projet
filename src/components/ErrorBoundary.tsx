@@ -42,10 +42,21 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   handleReload = () => {
     this.setState({ hasError: false, errorMessage: '', errorStack: '' });
-    window.location.href = '/';
+    const isWeb = window.location.pathname.startsWith('/web');
+    window.location.href = isWeb ? '/web' : '/';
   };
 
   handleRetry = () => {
+    // Si l'erreur provient d'un échec de dynamic import (Vite chunk ou réseau),
+    // seul un rechargement permet d'effacer le cache de rejet du navigateur
+    const isDynamicImport =
+      this.state.errorMessage.includes('dynamically imported module') ||
+      this.state.errorMessage.includes('Failed to fetch');
+
+    if (isDynamicImport) {
+      window.location.reload();
+      return;
+    }
     this.setState({ hasError: false, errorMessage: '', errorStack: '' });
   };
 

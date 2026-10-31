@@ -27,7 +27,6 @@ export default function LogementDetail() {
   const [monthlyRent, setMonthlyRent] = useState(0);
   const [startDate, setStartDate] = useState('');
   const [ownerName, setOwnerName] = useState('Bailleur');
-  const [ownerPhone, setOwnerPhone] = useState<string | undefined>(undefined);
   const [currentPeriod, setCurrentPeriod] = useState<RentPeriodLite | null>(null);
   const [leasePayments, setLeasePayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,16 +78,10 @@ export default function LogementDetail() {
 
         // Récupérer le nom du propriétaire
         if (prop?.owner_id) {
-          const { data: ownerData } = await supabase
-            .from('users')
-            .select('full_name, phone')
-            .eq('id', prop.owner_id)
-            .maybeSingle();
-
-          if (ownerData) {
-            setOwnerName(ownerData.full_name || 'Bailleur');
-            setOwnerPhone(ownerData.phone || undefined);
-          }
+          const { data: ownerNameFromServer } = await supabase.rpc('get_active_lease_owner_name', {
+            p_lease_id: leaseId,
+          });
+          if (ownerNameFromServer) setOwnerName(ownerNameFromServer);
         }
 
         const now = new Date();
@@ -292,7 +285,6 @@ export default function LogementDetail() {
             startDate={startDate}
             ownerName={ownerName}
             tenantName={profile?.full_name || 'Locataire'}
-            ownerPhone={ownerPhone}
             tenantPhone={profile?.phone || undefined}
             onRefresh={() => loadDocuments(leaseId!)}
           />

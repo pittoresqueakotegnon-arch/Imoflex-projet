@@ -1,5 +1,11 @@
 # Rapport Final d'Audit Technique et de Production - ImoFlex
 
+> **Mise à jour de validation — 29 octobre 2026 : ce rapport est historique et sa conclusion antérieure « prête pour la production » est retirée.** Le build frontend et les tests Chromium disponibles passent, mais la migration de sécurité 060 et ses tests SQL/RLS n'ont pas été exécutés : aucun PostgreSQL local n'écoute sur `127.0.0.1:54322` et Docker/Podman/psql ne sont pas installés. Les tests Edge/Deno et Android n'ont pas été exécutés non plus. En conséquence, ImoFlex n'est pas validé pour la production. Aucune migration distante ni publication n'a été effectuée.
+
+Les tests navigateur finaux observés sont : 13/13 sur la suite Chromium complète, puis 4/4 sur la suite sécurité ciblée (cache REST, reçu PDF construit depuis les faits serveur, absence de fallback documentaire non vérifié, purge hors ligne à la déconnexion). `npm run typecheck` et `npm run build` passent. `npm run lint` produit 0 erreur et 419 avertissements. Le build signale également un chunk principal de 686 kB.
+
+La migration versionnée `20261029000000_060_authoritative_documents_and_agency_consent.sql` ajoute les gardes de signature/transition, le consentement de mandat dérivé du compte propriétaire, les lectures profil limitées et la vérification des PDF signés. Elle reste non appliquée et non validée en base. Les quittances de paiement vérifient les faits du registre, pas les octets du PDF ni une signature cryptographique des parties.
+
 Ce document récapitule l'ensemble des vérifications, audits et modifications apportées au projet Imoflex pour le préparer à un lancement en production robuste, sécurisé et performant.
 
 ## 1. Modifications Réalisées & Fichiers Touchés
@@ -67,8 +73,7 @@ Ce document récapitule l'ensemble des vérifications, audits et modifications a
 
 ## 2. Synthèse et Risques Résiduels
 
-L'application est **prête pour la production**.
-L'ensemble des objectifs fixés (Zod, RLS, Contraintes d'intégrité, Performance SQL, Clean-up React) a été atteint.
+La conclusion historique ci-dessus est remplacée par le statut de validation en tête de ce rapport. Les objectifs décrits dans cette synthèse n'ont pas tous été vérifiés dans les environnements de base de données, Edge et Android concernés.
 
 ### Points qui nécessitent une vigilance continue :
 1. **Webhook FedaPay** : FedaPay garantit la distribution des webhooks de manière asynchrone. L'idempotence a été codée (`idempotency_key` & `status === already_processed`), mais il est crucial de surveiller les logs de `process_payment_webhook` dans l'interface Supabase lors des 100 premières transactions.

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Send, CheckCheck, ChevronDown, Paperclip, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -58,40 +58,7 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
     setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 100);
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      loadOrCreateConversation();
-    }
-  }, [isOpen, user]);
-
-  useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(() => scrollToBottom(true), 100);
-    }
-  }, [messages]);
-
-  useEffect(() => {
-    if (!conversationId || !isOpen) return;
-    const channel = supabase
-      .channel(`chat_${conversationId}`)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'support_messages',
-        filter: `conversation_id=eq.${conversationId}`,
-      }, (payload) => {
-        const received = payload.new as Message;
-        void resolveSupportMessageAttachments([received]).then(([msg]) => {
-          setMessages(prev => {
-            if (prev.find(m => m.id === msg.id)) return prev;
-            return [...prev, msg];
-          });
-          if (msg.sender_type === 'admin') haptics.success();
-        });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [conversationId, isOpen]);
-
-  const loadOrCreateConversation = async () => {
+  const loadOrCreateConversation = useCallback(async () => {
     setIsLoading(true);
     let visitorId = localStorage.getItem('imx_visitor_id');
     if (!user && !visitorId) {
@@ -126,7 +93,40 @@ export const SupportChatModal: React.FC<SupportChatModalProps> = ({ isOpen, onCl
     } catch {
       showToast('Erreur de connexion au support.', 'error');
     } finally { setIsLoading(false); }
-  };
+  }, [user, showToast]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadOrCreateConversation();
+    }
+  }, [isOpen, user, loadOrCreateConversation]);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => scrollToBottom(true), 100);
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    if (!conversationId || !isOpen) return;
+    const channel = supabase
+      .channel(`chat_${conversationId}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'support_messages',
+        filter: `conversation_id=eq.${conversationId}`,
+      }, (payload) => {
+        const received = payload.new as Message;
+        void resolveSupportMessageAttachments([received]).then(([msg]) => {
+          setMessages(prev => {
+            if (prev.find(m => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
+          if (msg.sender_type === 'admin') haptics.success();
+        });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [conversationId, isOpen]);
 
   const handleSendMessage = async (e?: React.FormEvent, directMessage?: string) => {
     if (e) e.preventDefault();

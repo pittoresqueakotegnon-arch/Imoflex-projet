@@ -208,7 +208,7 @@ export default function Dashboard() {
             <h3 className="text-[var(--imx-text-primary)] font-nunito font-black text-[15px] mb-5 self-start text-left w-full">En attendant, continuez votre recherche</h3>
 
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/marketplace')}
               className="w-full text-[var(--imx-accent-light)] font-bold rounded-2xl py-[18px]"
               style={{ background: 'transparent', border: '1px solid var(--imx-border)', fontFamily: 'Sora', fontSize: '15px' }}
             >
@@ -259,12 +259,15 @@ export default function Dashboard() {
                         </div>
                       </div>
                       
-                      <p
-                        className="relative z-10 mb-1 font-nunito font-900 leading-none whitespace-nowrap tracking-[-0.035em] text-white"
-                        style={{ fontSize: 'clamp(1.5rem, 7.2vw, 2rem)' }}
-                        title={formatMontant(remaining)}>
-                        {formatMontant(remaining)}
-                      </p>
+                      <div className="relative z-10 mb-2 flex items-baseline flex-wrap gap-1.5">
+                        <span
+                          className="font-nunito font-extrabold text-white leading-none tracking-tight"
+                          style={{ fontSize: 'clamp(1.6rem, 7.5vw, 2.2rem)' }}
+                        >
+                          {new Intl.NumberFormat('fr-FR').format(remaining)}
+                        </span>
+                        <span className="text-sm font-bold text-white/80">FCFA</span>
+                      </div>
                       <p className="text-[13px] text-white/90 font-nunito font-bold mb-4 relative z-10">{lease.propertyName}</p>
                       
                       <button
@@ -320,7 +323,7 @@ export default function Dashboard() {
                     </div>
                     {period && (
                       <div className="text-right flex-shrink-0">
-                        <p className="text-[var(--imx-text-primary)] font-nunito font-bold text-[14px] whitespace-nowrap tracking-[-0.025em]" title={formatMontant(remaining)}>
+                        <p className="text-[var(--imx-text-primary)] font-nunito font-extrabold text-[14px] whitespace-nowrap tracking-tight" title={formatMontant(remaining)}>
                           {formatMontant(remaining)}
                         </p>
                         <p className="text-[10px] text-[var(--imx-text-muted)]" style={{ fontFamily: 'Space Grotesk' }}>restant</p>
@@ -335,7 +338,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div className="rounded-2xl p-4" style={{ background: 'var(--imx-surface-2)' }}>
                 <p className="text-[var(--imx-text-secondary)] text-[10px] font-space-grotesk font-semibold mb-1">Restant total</p>
-                <p className="font-nunito font-black text-[14px] leading-none whitespace-nowrap tracking-[-0.035em]" style={{ color: 'var(--imx-accent-light)' }}>
+                <p className="font-nunito font-extrabold text-[15px] leading-tight whitespace-nowrap tracking-tight" style={{ color: 'var(--imx-accent-light)' }}>
                   {formatMontant(sortedLeases.reduce((sum, l) => sum + Math.max((l.currentPeriod?.amount_due || 0) - (l.currentPeriod?.amount_paid || 0), 0), 0))}
                 </p>
               </div>

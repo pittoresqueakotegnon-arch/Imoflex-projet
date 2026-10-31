@@ -6,14 +6,14 @@ import { useKeyboard } from '../hooks/useKeyboard';
 import { haptics } from '../lib/haptics';
 import { useToast } from './Toast';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BottomNav — Navigation inférieure ImoFlex
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// BottomNav â€” Navigation infÃ©rieure ImoFlex
 //
 // 3 configurations distinctes :
-//   - Visiteur     → Accueil (/), Aide (/aide), Publier (+ / login), Favoris (/favoris), Compte (/login)
-//   - Locataire    → Accueil/Marketplace (/), Demandes (/mes-demandes), Payer (/dashboard), Favoris (/favoris), Profil (/profil)
-//   - Propriétaire → Dashboard (/pro/dashboard), Annonces (/pro/annonces), Publier (+), Demandes (/pro/demandes), Profil (/profil)
-// ─────────────────────────────────────────────────────────────────────────────
+//   - Visiteur     â†’ Accueil (/), Aide (/aide), Publier (+ / login), Favoris (/favoris), Compte (/login)
+//   - Locataire    â†’ Accueil/Marketplace (/), Demandes (/mes-demandes), Payer (/dashboard), Favoris (/favoris), Profil (/profil)
+//   - PropriÃ©taire â†’ Dashboard (/pro/dashboard), Annonces (/pro/annonces), Publier (+), Demandes (/pro/demandes), Profil (/profil)
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const BottomNav: React.FC = () => {
   const location = useLocation();
@@ -23,7 +23,7 @@ export const BottomNav: React.FC = () => {
   const { isKeyboardOpen } = useKeyboard();
 
   const isActive = (path: string) => {
-    if (path === '/' && location.pathname !== '/') return false;
+    if (path === '/marketplace' && location.pathname !== '/marketplace') return false;
     return location.pathname === path;
   };
 
@@ -36,7 +36,7 @@ export const BottomNav: React.FC = () => {
     } else if (role === 'agence') {
       navigate('/agence/publier');
     } else if (role === 'locataire') {
-      showToast('La publication d\'annonces est réservée aux propriétaires et agences.', 'info');
+      showToast('La publication d\'annonces est rÃ©servÃ©e aux propriÃ©taires et agences.', 'info');
     } else {
       navigate('/login');
     }
@@ -72,16 +72,16 @@ export const BottomNav: React.FC = () => {
     }
     if (role === 'locataire') {
       return [
-        { icon: Home, label: 'Accueil', path: '/' },
+        { icon: Home, label: 'Accueil', path: '/marketplace' },
         { icon: MessageSquare, label: 'Demande', path: '/mes-demandes' },
         { icon: CreditCard, label: 'Payer', path: '/dashboard', isCenter: true, centerType: 'payer' },
         { icon: Heart, label: 'Favoris', path: '/favoris' },
         { icon: CircleUserRound, label: 'Profil', path: '/profil' },
       ];
     }
-    // Visiteur — « Aide » remplace « Rechercher » (la barre de recherche est déjà en haut de la Marketplace)
+    // Visiteur : Aide remplace Rechercher (la barre de recherche est deja en haut de la Marketplace)
     return [
-      { icon: Home, label: 'Accueil', path: '/' },
+      { icon: Home, label: 'Accueil', path: '/marketplace' },
       { icon: LifeBuoy, label: 'Aide', path: '/aide' },
       { icon: Plus, label: 'Publier', path: '/pro/publier', isCenter: true, centerType: 'publier' },
       { icon: Heart, label: 'Favoris', path: '/favoris' },

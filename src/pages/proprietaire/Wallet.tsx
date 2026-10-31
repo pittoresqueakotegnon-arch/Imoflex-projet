@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { formatDateShort, formatMontant } from '../../lib/utils';
+import { formatDateShort } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
 import { useWallet } from '../../hooks/useWallet';
 import BottomNav from '../../components/BottomNav';
@@ -110,22 +110,30 @@ const Wallet: React.FC = () => {
         )}
 
         {/* Quick stats */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-[20px] p-4" style={{ background: 'var(--imx-surface-2)', border: '1px solid var(--imx-border)' }}>
-            <p className="text-[10px] font-space-grotesk font-bold uppercase tracking-wider text-[var(--imx-text-secondary)] mb-1.5">
+        <div className="grid grid-cols-2 gap-3.5">
+          <div className="rounded-[22px] p-4.5 bg-[var(--imx-surface)] border shadow-2xs" style={{ borderColor: 'var(--imx-border)' }}>
+            <p className="text-[10px] font-space-grotesk font-bold uppercase tracking-wider text-[var(--imx-text-secondary)] mb-2">
               Total retiré
             </p>
-            <p className="font-nunito font-black text-[18px] text-[var(--imx-text-primary)]">
-              {formatMontant(totalWithdrawn)}
-            </p>
+            <div className="flex items-baseline flex-wrap gap-1">
+              <span className="font-nunito font-black text-[18px] text-[var(--imx-text-primary)] tracking-tight">
+                {new Intl.NumberFormat('fr-FR').format(totalWithdrawn)}
+              </span>
+              <span className="text-[11px] font-bold text-[var(--imx-text-secondary)]">FCFA</span>
+            </div>
           </div>
-          <div className="rounded-[20px] p-4" style={{ background: 'var(--imx-surface-2)', border: '1px solid var(--imx-border)' }}>
-            <p className="text-[10px] font-space-grotesk font-bold uppercase tracking-wider text-[var(--imx-text-secondary)] mb-1.5">
+          <div className="rounded-[22px] p-4.5 bg-[var(--imx-surface)] border shadow-2xs" style={{ borderColor: 'var(--imx-border)' }}>
+            <p className="text-[10px] font-space-grotesk font-bold uppercase tracking-wider text-[var(--imx-text-secondary)] mb-2">
               Retraits réussis
             </p>
-            <p className="font-nunito font-black text-[18px] text-[var(--imx-text-primary)]">
-              {completedCount} <span className="text-[13px] font-space-grotesk font-medium text-[var(--imx-text-secondary)]">/{withdrawals.length}</span>
-            </p>
+            <div className="flex items-baseline flex-wrap gap-1.5">
+              <span className="font-nunito font-black text-[18px] text-[var(--imx-text-primary)] tracking-tight">
+                {completedCount}
+              </span>
+              <span className="text-[11px] font-semibold text-[var(--imx-text-secondary)]">
+                / {withdrawals.length} validé{completedCount > 1 ? 's' : ''}
+              </span>
+            </div>
           </div>
         </div>
 

@@ -62,11 +62,8 @@ export default function WebListing() {
   useEffect(() => {
     if (!listing?.owner_id) return;
     supabase
-      .from('users')
-      .select('owner_verification_status')
-      .eq('id', listing.owner_id)
-      .maybeSingle()
-      .then(({ data }) => setIsOwnerVerified(data?.owner_verification_status === 'verifie'));
+      .rpc('is_owner_verified', { p_owner_id: listing.owner_id })
+      .then(({ data, error }) => setIsOwnerVerified(!error && data === true));
   }, [listing?.owner_id]);
 
   const toggleFavorite = useCallback(async () => {
@@ -106,18 +103,26 @@ export default function WebListing() {
     );
   }
 
-  if (error || !listing) {
+  const isDeleted = listing ? ((listing as any).status === 'supprimee' || listing.is_published === false) : false;
+
+  if (error || !listing || isDeleted) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-center p-8">
-        <Building2 size={40} style={{ color: 'var(--imx-text-muted)' }} className="mb-3 opacity-30" />
-        <p className="font-semibold mb-1" style={{ color: 'var(--imx-text-primary)' }}>
-          Annonce introuvable
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-8">
+        <Building2 size={48} style={{ color: 'var(--imx-text-muted)' }} className="mb-3 opacity-30" />
+        <p className="font-bold text-lg mb-1" style={{ color: 'var(--imx-text-primary)', fontFamily: 'Sora' }}>
+          {isDeleted ? 'Annonce retirée du marché' : 'Annonce introuvable'}
         </p>
-        <p className="text-sm mb-4" style={{ color: 'var(--imx-text-muted)' }}>
-          Cette annonce n'existe pas ou a été supprimée.
+        <p className="text-sm mb-6 max-w-md text-center" style={{ color: 'var(--imx-text-muted)' }}>
+          {isDeleted
+            ? "Cette annonce a été supprimée suite à la validation de la demande du propriétaire par l'administration. Elle n'est plus accessible ni réservable sur la marketplace."
+            : "Cette annonce n'existe pas ou a été déplacée."}
         </p>
-        <Link to="/web/annonces" className="text-sm font-medium" style={{ color: 'var(--imx-accent)' }}>
-          ← Retour aux annonces
+        <Link
+          to="/web/annonces"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+          style={{ background: 'var(--imx-accent)' }}
+        >
+          ← Parcourir les logements disponibles
         </Link>
       </div>
     );
@@ -298,7 +303,7 @@ export default function WebListing() {
           {/* Description */}
           {listing.description && (
             <div className="mb-6">
-              <h2 className="font-bold text-[15px] mb-2" style={{ color: 'var(--imx-text-primary)', fontFamily: 'Space Grotesk' }}>
+              <h2 className="font-bold text-[15px] mb-2" style={{ color: 'var(--imx-text-primary)', fontFamily: 'Sora, sans-serif' }}>
                 Description
               </h2>
               <p className="text-sm leading-relaxed" style={{ color: 'var(--imx-text-secondary)', whiteSpace: 'pre-wrap' }}>
@@ -310,7 +315,7 @@ export default function WebListing() {
           {/* Amenities */}
           {listing.amenities && listing.amenities.length > 0 && (
             <div className="mb-6">
-              <h2 className="font-bold text-[15px] mb-3" style={{ color: 'var(--imx-text-primary)', fontFamily: 'Space Grotesk' }}>
+              <h2 className="font-bold text-[15px] mb-3" style={{ color: 'var(--imx-text-primary)', fontFamily: 'Sora, sans-serif' }}>
                 Équipements et services
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -333,7 +338,7 @@ export default function WebListing() {
           {/* House rules */}
           {listing.house_rules && (
             <div>
-              <h2 className="font-bold text-[15px] mb-2" style={{ color: 'var(--imx-text-primary)', fontFamily: 'Space Grotesk' }}>
+              <h2 className="font-bold text-[15px] mb-2" style={{ color: 'var(--imx-text-primary)', fontFamily: 'Sora, sans-serif' }}>
                 Règles de la maison
               </h2>
               <p className="text-sm leading-relaxed" style={{ color: 'var(--imx-text-secondary)', whiteSpace: 'pre-wrap' }}>
@@ -395,7 +400,7 @@ export default function WebListing() {
             {/* CTA */}
             {listing.availability_status === 'disponible' ? (
               <Link
-                to={user ? `/contact/${listing.id}` : '/web/login'}
+                to={user ? `/web/contact/${listing.id}` : `/web/login?from=${encodeURIComponent(`/web/contact/${listing.id}`)}`}
                 className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-bold text-sm text-white transition-all hover:opacity-90 mb-3"
                 style={{ background: 'var(--imx-accent)' }}
               >

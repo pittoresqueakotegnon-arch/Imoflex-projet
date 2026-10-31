@@ -1,14 +1,72 @@
 import { supabase, LeaseContract, PropertyInspection, PropertyInspectionItem } from './supabase';
 
-/**
- * Calcule l'empreinte SHA-256 d'une chaîne de caractères (Web Crypto API)
- */
-export async function calculateSha256(text: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(text);
-  const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+export type SignedDocumentType = 'lease_contract' | 'property_inspection';
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)));
+  }
+  return btoa(binary);
+}
+
+export async function sealSignedDocumentPdf(
+  documentType: SignedDocumentType,
+  documentId: string,
+  pdfBytes: ArrayBuffer
+): Promise<string> {
+  const { data, error } = await supabase.rpc('seal_signed_document_pdf', {
+    p_document_type: documentType,
+    p_document_id: documentId,
+    p_pdf_base64: arrayBufferToBase64(pdfBytes),
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export interface SignedPdfVerification {
+  verified: boolean;
+  pdf_sha256: string | null;
+  document_hash: string | null;
+  sealed_at: string | null;
+}
+
+export async function verifySignedDocumentPdf(
+  documentType: SignedDocumentType,
+  documentId: string
+): Promise<SignedPdfVerification> {
+  const { data, error } = await supabase.rpc('verify_signed_document_pdf', {
+    p_document_type: documentType,
+    p_document_id: documentId,
+  });
+  if (error) throw error;
+  return data as SignedPdfVerification;
+}
+
+export async function downloadSignedDocumentPdf(
+  documentType: SignedDocumentType,
+  documentId: string
+): Promise<Blob> {
+  const { data, error } = await supabase.rpc('download_signed_document_pdf', {
+    p_document_type: documentType,
+    p_document_id: documentId,
+  });
+  if (error) throw error;
+  const binary = atob(data as string);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: 'application/pdf' });
+}
+
+export function savePdfBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 /**
@@ -168,59 +226,16 @@ export async function saveLeaseContract(params: Partial<LeaseContract> & { lease
  */
 export async function signLeaseContract(
   contractId: string,
-  role: 'owner' | 'tenant',
-  signatureSvg: string,
-  signerName: string
+  signatureData: string
 ): Promise<LeaseContract | null> {
   try {
-    // 1. Récupérer l'état actuel du contrat
-    const { data: current, error: fetchErr } = await supabase
-      .from('lease_contracts')
-      .select('*')
-      .eq('id', contractId)
-      .single();
-
-    if (fetchErr || !current) throw fetchErr || new Error('Contrat non trouvé');
-
-    const updatePayload: Record<string, any> = {
-      updated_at: new Date().toISOString(),
-    };
-
-    if (role === 'owner') {
-      updatePayload.owner_consent = true;
-      updatePayload.owner_signed_at = new Date().toISOString();
-      updatePayload.owner_signature_svg = signatureSvg;
-      updatePayload.owner_signer_name = signerName;
-      // Statut suivant
-      updatePayload.status = current.tenant_signed_at ? 'signe' : 'en_attente_locataire';
-    } else {
-      updatePayload.tenant_consent = true;
-      updatePayload.tenant_signed_at = new Date().toISOString();
-      updatePayload.tenant_signature_svg = signatureSvg;
-      updatePayload.tenant_signer_name = signerName;
-      // Statut suivant
-      updatePayload.status = current.owner_signed_at ? 'signe' : 'en_attente_proprietaire';
-    }
-
-    // Si les deux signatures sont désormais présentes : calcul du hash d'intégrité final
-    if (
-      (role === 'owner' && current.tenant_signed_at) ||
-      (role === 'tenant' && current.owner_signed_at)
-    ) {
-      const integrityContent = `${current.contract_number}_${current.monthly_rent}_${current.start_date}_OWNER:${role === 'owner' ? signerName : current.owner_signer_name}_TENANT:${role === 'tenant' ? signerName : current.tenant_signer_name}`;
-      updatePayload.document_hash = await calculateSha256(integrityContent);
-    }
-
-    const { data, error } = await supabase
-      .from('lease_contracts')
-      .update(updatePayload)
-      .eq('id', contractId)
-      .select()
-      .single();
-
+    const { data, error } = await supabase.rpc('sign_lease_contract', {
+      p_contract_id: contractId,
+      p_signature_data: signatureData,
+    });
     if (error) throw error;
     return data as LeaseContract;
-  } catch (err) {
+  } catch (err: any) {
     console.error('Erreur signLeaseContract:', err);
     throw err;
   }
@@ -272,7 +287,6 @@ export async function fetchInspections(leaseId: string): Promise<PropertyInspect
 export async function createInspection(
   leaseId: string,
   type: 'entree' | 'sortie',
-  conductedById: string,
   waterMeter?: string,
   electricMeter?: string,
   keysCount = 1,
@@ -285,7 +299,6 @@ export async function createInspection(
       .insert({
         lease_id: leaseId,
         inspection_type: type,
-        conducted_by_id: conductedById,
         water_meter_reading: waterMeter || null,
         electric_meter_reading: electricMeter || null,
         keys_handed_count: keysCount,
@@ -342,48 +355,18 @@ export async function addInspectionItem(
  */
 export async function confirmInspection(
   inspectionId: string,
-  role: 'owner' | 'tenant',
-  signatureSvg: string,
+  signatureData: string,
   reserves?: string
 ): Promise<PropertyInspection | null> {
   try {
-    const { data: current, error: fetchErr } = await supabase
-      .from('property_inspections')
-      .select('*')
-      .eq('id', inspectionId)
-      .single();
-
-    if (fetchErr || !current) throw fetchErr || new Error('État des lieux non trouvé');
-
-    const updatePayload: Record<string, any> = {
-      updated_at: new Date().toISOString(),
-    };
-
-    if (role === 'owner') {
-      updatePayload.owner_confirmed_at = new Date().toISOString();
-      updatePayload.owner_signature_svg = signatureSvg;
-      updatePayload.status = current.tenant_confirmed_at ? 'valide' : 'en_attente_validation';
-    } else {
-      updatePayload.tenant_confirmed_at = new Date().toISOString();
-      updatePayload.tenant_signature_svg = signatureSvg;
-      if (reserves && reserves.trim()) {
-        updatePayload.tenant_reserves = reserves.trim();
-        updatePayload.status = 'conteste';
-      } else {
-        updatePayload.status = current.owner_confirmed_at ? 'valide' : 'en_attente_validation';
-      }
-    }
-
-    const { data, error } = await supabase
-      .from('property_inspections')
-      .update(updatePayload)
-      .eq('id', inspectionId)
-      .select()
-      .single();
-
+    const { data, error } = await supabase.rpc('confirm_property_inspection', {
+      p_inspection_id: inspectionId,
+      p_signature_data: signatureData,
+      p_tenant_reserves: reserves?.trim() || null,
+    });
     if (error) throw error;
     return data as PropertyInspection;
-  } catch (err) {
+  } catch (err: any) {
     console.error('Erreur confirmInspection:', err);
     throw err;
   }

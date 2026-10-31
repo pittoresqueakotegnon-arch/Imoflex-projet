@@ -97,3 +97,25 @@ export const getCachedUserData = async (userId: string) => {
   const entry = await db.get('user_data_cache', userId);
   return entry || null;
 };
+
+/** Purge les caches propres à un compte et les anciennes fiches non cloisonnées. */
+export const purgeUserOfflineData = async (userId: string) => {
+  const db = await initOfflineDB();
+  if (!db) return;
+
+  const accountTx = db.transaction(['favorites_cache', 'user_data_cache'], 'readwrite');
+  await Promise.all([
+    accountTx.objectStore('favorites_cache').delete(userId),
+    accountTx.objectStore('user_data_cache').delete(userId),
+  ]);
+  await accountTx.done;
+
+  const tx = db.transaction('listing_details_cache', 'readwrite');
+  const detailStore = tx.objectStore('listing_details_cache');
+  const detailKeys = await detailStore.getAllKeys();
+  const ownPrefix = `${userId}:`;
+  await Promise.all(detailKeys
+    .filter((key) => typeof key === 'string' && (key.startsWith(ownPrefix) || !key.includes(':')))
+    .map((key) => detailStore.delete(key)));
+  await tx.done;
+};

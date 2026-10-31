@@ -276,12 +276,15 @@ const Dashboard: React.FC = () => {
                   </div>
                   <span className="font-space-grotesk text-[10px] font-bold uppercase tracking-widest text-white/70">Solde disponible</span>
                 </div>
-                <p
-                  className="font-nunito font-black leading-none whitespace-nowrap tracking-[-0.035em] text-white"
-                  style={{ fontSize: 'clamp(1.45rem, 7vw, 2rem)' }}
-                  title={formatMontant(wallet?.available_balance || 0)}>
-                  {formatMontant(wallet?.available_balance || 0)}
-                </p>
+                <div className="flex items-baseline flex-wrap gap-1.5">
+                  <span
+                    className="font-nunito font-extrabold text-white leading-none tracking-tight"
+                    style={{ fontSize: 'clamp(1.5rem, 7vw, 2.1rem)' }}
+                  >
+                    {new Intl.NumberFormat('fr-FR').format(wallet?.available_balance || 0)}
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-white/75">FCFA</span>
+                </div>
               </div>
               <Link to="/pro/wallet"
                 className="mt-1 flex items-center gap-1.5 rounded-xl px-3 py-2 active:scale-[0.98] transition-transform"
@@ -310,16 +313,21 @@ const Dashboard: React.FC = () => {
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div className="min-w-0 rounded-xl p-3" style={{ background: 'rgba(255, 255, 255, 0.12)' }}>
                   <p className="font-space-grotesk text-[9px] font-bold uppercase mb-1.5 text-white/65">Reçus</p>
-                  <p className="font-nunito font-black leading-none whitespace-nowrap tracking-[-0.035em] text-white" style={{ fontSize: 'clamp(0.68rem, 3vw, 0.95rem)' }} title={formatMontant(data?.currentMonth.received || 0)}>
-                    {formatMontant(data?.currentMonth.received || 0)}
-                  </p>
+                  <div className="flex items-baseline flex-wrap gap-1">
+                    <span className="font-nunito font-extrabold leading-none text-white text-xs sm:text-sm tracking-tight">
+                      {new Intl.NumberFormat('fr-FR').format(data?.currentMonth.received || 0)}
+                    </span>
+                    <span className="text-[10px] font-bold text-white/70">FCFA</span>
+                  </div>
                 </div>
                 <div className="min-w-0 rounded-xl p-3" style={{ background: 'rgba(255, 255, 255, 0.12)' }}>
                   <p className="font-space-grotesk text-[9px] font-bold uppercase mb-1.5 text-white/65">À recevoir</p>
-                  <p className="font-nunito font-black leading-none whitespace-nowrap tracking-[-0.035em] text-white" style={{ fontSize: 'clamp(0.68rem, 3vw, 0.95rem)' }}
-                    title={formatMontant(data?.currentMonth.pending || 0)}>
-                    {formatMontant(data?.currentMonth.pending || 0)}
-                  </p>
+                  <div className="flex items-baseline flex-wrap gap-1">
+                    <span className="font-nunito font-extrabold leading-none text-white text-xs sm:text-sm tracking-tight">
+                      {new Intl.NumberFormat('fr-FR').format(data?.currentMonth.pending || 0)}
+                    </span>
+                    <span className="text-[10px] font-bold text-white/70">FCFA</span>
+                  </div>
                 </div>
               </div>
 

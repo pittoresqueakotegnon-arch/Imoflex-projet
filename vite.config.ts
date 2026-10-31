@@ -60,26 +60,6 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-          {
-            // Lectures API (GET uniquement). StaleWhileRevalidate : affiche le
-            // cache instantanément tout en rafraîchissant en fond dès que le
-            // réseau répond — plus rapide perçu que d'attendre le réseau, et
-            // fonctionne aussi hors-ligne (sert le dernier cache connu).
-            // Les paiements/retraits/publications (POST/PATCH) ne passent
-            // jamais par cette règle : ils échouent normalement hors-ligne,
-            // volontairement — pas de file d'attente sur des mouvements d'argent.
-            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/,
-            method: 'GET',
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'imoflex-api-data',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 6, // 6 heures
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
         ],
       },
       manifest: {

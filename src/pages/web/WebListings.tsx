@@ -42,67 +42,88 @@ const BEDROOM_OPTIONS = [
 function ListingCard({ listing, viewMode }: { listing: ListingSummary; viewMode: 'grid' | 'list' }) {
   const cover = listing.listing_photos?.find(p => p.is_cover) || listing.listing_photos?.[0];
   const imgUrl = cover ? getOptimizedUrl(cover.photo_url, 'medium') : null;
+  const isAvailable = listing.availability_status === 'disponible';
 
   if (viewMode === 'list') {
     return (
       <Link
         to={`/web/annonce/${listing.id}`}
-        className="group flex gap-4 p-4 rounded-2xl transition-all hover:shadow-md"
+        className="group flex gap-0 rounded-2xl overflow-hidden transition-all"
         style={{
           background: 'var(--imx-surface)',
           border: '1px solid var(--imx-border)',
+          boxShadow: '0 1px 4px rgba(17,13,38,0.04)',
+        }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(17,13,38,0.08)';
+          (e.currentTarget as HTMLElement).style.borderColor = 'rgba(123,63,228,0.2)';
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 4px rgba(17,13,38,0.04)';
+          (e.currentTarget as HTMLElement).style.borderColor = 'var(--imx-border)';
         }}
       >
-        <div className="w-32 h-24 flex-shrink-0 rounded-xl overflow-hidden" style={{ background: 'var(--imx-surface-2)' }}>
+        <div className="w-44 flex-shrink-0 relative overflow-hidden" style={{ background: 'var(--imx-surface-2)' }}>
           {imgUrl ? (
-            <img src={imgUrl} alt={listing.title} className="w-full h-full object-cover" />
+            <img src={imgUrl} alt={listing.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Building2 size={24} style={{ color: 'var(--imx-border)' }} />
+            <div className="w-full h-full flex items-center justify-center" style={{ color: 'var(--imx-border)' }}>
+              <Building2 size={28} strokeWidth={1.5} />
             </div>
           )}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-sm leading-snug line-clamp-1" style={{ color: 'var(--imx-text-primary)' }}>
-              {listing.title}
-            </h3>
+        <div className="flex-1 min-w-0 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3
+                className="font-semibold text-sm leading-snug line-clamp-1 mb-1"
+                style={{ color: 'var(--imx-text-primary)', fontFamily: 'Inter, sans-serif' }}
+              >
+                {listing.title}
+              </h3>
+              <div className="flex items-center gap-1.5">
+                <MapPin size={11} style={{ color: 'var(--imx-text-muted)', flexShrink: 0 }} />
+                <span className="text-xs truncate" style={{ color: 'var(--imx-text-muted)', fontFamily: 'Inter, sans-serif' }}>
+                  {listing.neighborhood ? `${listing.neighborhood}, ` : ''}{listing.city}
+                </span>
+              </div>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p
+                className="text-lg font-black"
+                style={{ color: 'var(--imx-text-primary)', fontFamily: 'Sora, sans-serif' }}
+              >
+                {formatMontant(listing.monthly_rent)}
+              </p>
+              <p className="text-xs" style={{ color: 'var(--imx-text-muted)', fontFamily: 'Inter, sans-serif' }}>/mois</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 mt-3">
             <span
-              className="text-[16px] font-bold flex-shrink-0"
-              style={{ color: 'var(--imx-accent)', fontFamily: 'Sora' }}
+              className="web-badge"
+              style={{ background: 'var(--imx-surface-2)', color: 'var(--imx-text-secondary)' }}
             >
-              {formatMontant(listing.monthly_rent)}
-            </span>
-          </div>
-          <div className="flex items-center gap-1 mt-1">
-            <MapPin size={12} style={{ color: 'var(--imx-text-muted)' }} />
-            <span className="text-xs" style={{ color: 'var(--imx-text-muted)' }}>
-              {listing.neighborhood ? `${listing.neighborhood}, ` : ''}{listing.city}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="px-2 py-0.5 rounded-lg text-[11px] font-medium" style={{ background: 'var(--imx-surface-2)', color: 'var(--imx-text-secondary)' }}>
               {propertyTypeLabel(listing.property_type ?? '')}
             </span>
-            {listing.bedrooms && (
-              <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--imx-text-secondary)' }}>
+            {listing.bedrooms != null && listing.bedrooms > 0 && (
+              <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--imx-text-secondary)', fontFamily: 'Inter, sans-serif' }}>
                 <Bed size={11} /> {listing.bedrooms} ch.
               </span>
             )}
             {listing.accepts_progressive_payment && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: 'var(--imx-accent)', color: '#fff' }}>
-                <Zap size={10} /> Progressif
+              <span className="web-badge web-badge-purple" style={{ gap: '4px' }}>
+                <Zap size={10} /> Paiement échelonné
               </span>
             )}
             <span
-              className="px-2 py-0.5 rounded-full text-[11px] font-bold ml-auto"
-              style={
-                listing.availability_status === 'disponible'
-                  ? { background: '#ECFDF5', color: '#10B981' }
-                  : { background: '#FEF3C7', color: '#D97706' }
+              className="web-badge ml-auto"
+              style={ isAvailable
+                ? { background: '#ECFDF5', color: '#059669' }
+                : { background: '#FFFBEB', color: '#D97706' }
               }
             >
-              {listing.availability_status === 'disponible' ? 'Disponible' : 'Réservé'}
+              {isAvailable ? 'Disponible' : 'Réservé'}
             </span>
           </div>
         </div>
@@ -110,63 +131,96 @@ function ListingCard({ listing, viewMode }: { listing: ListingSummary; viewMode:
     );
   }
 
+  // Grid card
   return (
     <Link
       to={`/web/annonce/${listing.id}`}
-      className="group flex flex-col rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-      style={{
-        background: 'var(--imx-surface)',
-        border: '1px solid var(--imx-border)',
-        boxShadow: 'var(--imx-card-shadow-sm)',
-      }}
+      className="web-listing-card group"
     >
-      <div className="relative h-44 overflow-hidden" style={{ background: 'var(--imx-surface-2)' }}>
+      {/* Photo */}
+      <div className="web-listing-card-img" style={{ height: '200px', aspectRatio: 'unset' }}>
         {imgUrl ? (
-          <img
-            src={imgUrl}
-            alt={listing.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+          <img src={imgUrl} alt={listing.title} />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Building2 size={36} style={{ color: 'var(--imx-border)' }} />
+          <div className="w-full h-full flex items-center justify-center" style={{ color: 'var(--imx-border)' }}>
+            <Building2 size={36} strokeWidth={1.5} />
           </div>
         )}
-        <div className="absolute top-2 left-2">
+        {/* Status badges */}
+        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
           <span
-            className="px-2 py-0.5 rounded-full text-[10px] font-bold"
-            style={
-              listing.availability_status === 'disponible'
-                ? { background: '#10B981', color: '#fff' }
-                : { background: 'rgba(0,0,0,0.5)', color: '#fff' }
-            }
+            className="text-xs font-semibold px-2.5 py-1 rounded-full"
+            style={{
+              background: isAvailable ? 'rgba(5,150,105,0.9)' : 'rgba(217,119,6,0.9)',
+              color: '#fff',
+              backdropFilter: 'blur(4px)',
+              fontFamily: 'Inter, sans-serif',
+            }}
           >
-            {listing.availability_status === 'disponible' ? 'Disponible' : 'Réservé'}
+            {isAvailable ? 'Disponible' : 'Réservé'}
           </span>
         </div>
         {listing.accepts_progressive_payment && (
-          <div className="absolute top-2 right-2">
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1" style={{ background: 'var(--imx-accent)', color: '#fff' }}>
-              <Zap size={9} /> Progressif
+          <div className="absolute top-3 right-3">
+            <span
+              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
+              style={{
+                background: 'rgba(123,63,228,0.9)',
+                color: '#fff',
+                backdropFilter: 'blur(4px)',
+                fontFamily: 'Inter, sans-serif',
+              }}
+            >
+              <Zap size={10} /> Échelonné
             </span>
           </div>
         )}
       </div>
-      <div className="flex-1 p-3">
-        <h3 className="font-semibold text-[14px] leading-snug line-clamp-2 mb-1" style={{ color: 'var(--imx-text-primary)' }}>
-          {listing.title}
-        </h3>
-        <div className="flex items-center gap-1 mb-2">
-          <MapPin size={11} style={{ color: 'var(--imx-text-muted)' }} />
-          <span className="text-[11px] truncate" style={{ color: 'var(--imx-text-muted)' }}>
-            {listing.neighborhood ? `${listing.neighborhood}, ` : ''}{listing.city}
+
+      {/* Content */}
+      <div className="p-4 flex flex-col flex-1">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="min-w-0">
+            <p
+              className="text-xl font-black leading-none"
+              style={{ color: 'var(--imx-text-primary)', fontFamily: 'Sora, sans-serif' }}
+            >
+              {formatMontant(listing.monthly_rent)}
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--imx-text-muted)', fontFamily: 'Inter, sans-serif' }}>/ mois</p>
+          </div>
+          <span
+            className="text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0"
+            style={{ background: 'var(--imx-surface-2)', color: 'var(--imx-text-secondary)', fontFamily: 'Inter, sans-serif' }}
+          >
+            {propertyTypeLabel(listing.property_type ?? '')}
           </span>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[16px] font-bold" style={{ color: 'var(--imx-accent)', fontFamily: 'Sora' }}>
-            {formatMontant(listing.monthly_rent)}
+
+        <h3
+          className="text-sm font-semibold line-clamp-1 mb-1"
+          style={{ color: 'var(--imx-text-primary)', fontFamily: 'Inter, sans-serif' }}
+        >
+          {listing.title}
+        </h3>
+
+        {listing.bedrooms != null && listing.bedrooms > 0 && (
+          <div className="flex items-center gap-1 mb-2">
+            <Bed size={12} style={{ color: 'var(--imx-text-muted)' }} />
+            <span className="text-xs" style={{ color: 'var(--imx-text-muted)', fontFamily: 'Inter, sans-serif' }}>
+              {listing.bedrooms} chambre{listing.bedrooms > 1 ? 's' : ''}
+            </span>
+          </div>
+        )}
+
+        <div
+          className="flex items-center gap-1.5 mt-auto pt-3"
+          style={{ borderTop: '1px solid var(--imx-border)' }}
+        >
+          <MapPin size={11} style={{ color: 'var(--imx-text-muted)', flexShrink: 0 }} />
+          <span className="text-xs truncate" style={{ color: 'var(--imx-text-muted)', fontFamily: 'Inter, sans-serif' }}>
+            {listing.neighborhood ? `${listing.neighborhood}, ` : ''}{listing.city}
           </span>
-          <span className="text-[10px]" style={{ color: 'var(--imx-text-muted)' }}>/mois</span>
         </div>
       </div>
     </Link>
@@ -189,9 +243,11 @@ export default function WebListings() {
   const filterAvailOnly = searchParams.get('avail') === '1';
   const filterProgOnly  = searchParams.get('prog') === '1';
 
-  const filterTypes = filterTypesRaw
-    ? (filterTypesRaw.split(',').filter(Boolean) as PropertyType[])
-    : [];
+  const filterTypes = useMemo(() => (
+    filterTypesRaw
+      ? (filterTypesRaw.split(',').filter(Boolean) as PropertyType[])
+      : []
+  ), [filterTypesRaw]);
 
   const filters: ListingFilters = useMemo(() => ({
     search: filterSearch || undefined,
@@ -202,7 +258,7 @@ export default function WebListings() {
     minBedrooms: filterBedrooms,
     availableOnly: filterAvailOnly || undefined,
     progressiveOnly: filterProgOnly || undefined,
-  }), [filterSearch, filterCity, filterTypesRaw, filterMinRent, filterMaxRent, filterBedrooms, filterAvailOnly, filterProgOnly]);
+  }), [filterSearch, filterCity, filterTypes, filterMinRent, filterMaxRent, filterBedrooms, filterAvailOnly, filterProgOnly]);
 
   const { listings, loading, loadingMore, hasMore, loadMore } = useListings(filters);
 
@@ -241,13 +297,23 @@ export default function WebListings() {
   const clearAll = () => setSearchParams(new URLSearchParams());
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)] overflow-hidden w-full">
 
-      {/* ── Filter panel (desktop sidebar) ── */}
+      {/* Backdrop for mobile drawer */}
+      {showFilters && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+          onClick={() => setShowFilters(false)}
+        />
+      )}
+
+      {/* ── Filter panel (fixed sidebar on desktop / drawer on mobile) ── */}
       <aside
         className={`
-          ${showFilters ? 'flex' : 'hidden lg:flex'} 
-          flex-col w-72 flex-shrink-0 overflow-y-auto
+          ${showFilters
+            ? 'fixed inset-y-0 left-0 z-50 w-80 shadow-2xl flex flex-col'
+            : 'hidden lg:flex flex-col w-72 flex-shrink-0'} 
+          h-full overflow-y-auto web-scrollbar
         `}
         style={{
           borderRight: '1px solid var(--imx-border)',
@@ -256,7 +322,7 @@ export default function WebListings() {
       >
         <div className="p-5">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="font-bold text-[15px]" style={{ color: 'var(--imx-text-primary)', fontFamily: 'Space Grotesk' }}>
+            <h2 className="font-bold text-[15px]" style={{ color: 'var(--imx-text-primary)', fontFamily: 'Sora, sans-serif' }}>
               Filtres
             </h2>
             <div className="flex items-center gap-2">
@@ -434,7 +500,7 @@ export default function WebListings() {
       </aside>
 
       {/* ── Results area ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
 
         {/* Toolbar */}
         <div
@@ -559,7 +625,7 @@ export default function WebListings() {
         )}
 
         {/* Grid / List */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex-1 overflow-y-auto web-scrollbar p-5">
           {loading ? (
             <div className={viewMode === 'grid'
               ? 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4'

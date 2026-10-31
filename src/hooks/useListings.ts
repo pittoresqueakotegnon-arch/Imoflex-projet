@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, Listing, ListingSummary, PropertyType, AvailabilityStatus } from '../lib/supabase';
 import { getCachedListings, setCachedListings, getCachedListingDetail, setCachedListingDetail } from '../lib/offlineStorage';
+import { useAuth } from './useAuth';
 
 export interface ListingFilters {
   search?: string;
@@ -134,6 +135,8 @@ export function useListings(filters: ListingFilters = {}) {
 }
 
 export function useListing(id: string) {
+  const { user } = useAuth();
+  const detailCacheKey = user?.id ? `${user.id}:${id}` : null;
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -145,7 +148,7 @@ export function useListing(id: string) {
       setLoading(true);
       
       // Essai cache d'abord
-      const cached = await getCachedListingDetail(id);
+      const cached = detailCacheKey ? await getCachedListingDetail(detailCacheKey) : null;
       if (cached) {
         setListing(cached);
         setLoading(false);
@@ -165,14 +168,18 @@ export function useListing(id: string) {
             if (!cached) setError(err.message);
           } else if (data) {
             setListing(data as Listing);
-            await setCachedListingDetail(id, data as Listing);
+            // Les détails peuvent être sensibles après dépublication. Ils sont
+            // donc lus et conservés uniquement dans le cache du compte courant.
+            if (detailCacheKey) {
+              await setCachedListingDetail(detailCacheKey, data as Listing);
+            }
           }
           setLoading(false);
         });
     };
     
     fetchListing();
-  }, [id]);
+  }, [detailCacheKey, id, user?.id]);
 
   return { listing, loading, error };
 }

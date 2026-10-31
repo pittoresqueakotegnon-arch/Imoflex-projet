@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase, Payment } from '../../lib/supabase';
 import { formatMontant, formatDate } from '../../lib/utils';
 import EmptyState from '../../components/EmptyState';
@@ -57,15 +57,7 @@ const AdminTransactions: React.FC = () => {
   const [resolutionNote, setResolutionNote] = useState('');
   const [resolving, setResolving] = useState(false);
 
-  useEffect(() => {
-    if (activeTab === 'payments') {
-      fetchTransactions();
-    } else {
-      fetchWithdrawals();
-    }
-  }, [activeTab, paymentFilter, withdrawalFilter]);
-
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     setLoadingPayments(true);
     try {
       let query = supabase
@@ -102,9 +94,9 @@ const AdminTransactions: React.FC = () => {
     } finally {
       setLoadingPayments(false);
     }
-  };
+  }, [paymentFilter, showToast]);
 
-  const fetchWithdrawals = async () => {
+  const fetchWithdrawals = useCallback(async () => {
     setLoadingWithdrawals(true);
     try {
       let query = supabase
@@ -144,7 +136,15 @@ const AdminTransactions: React.FC = () => {
     } finally {
       setLoadingWithdrawals(false);
     }
-  };
+  }, [withdrawalFilter, showToast]);
+
+  useEffect(() => {
+    if (activeTab === 'payments') {
+      fetchTransactions();
+    } else {
+      fetchWithdrawals();
+    }
+  }, [activeTab, fetchTransactions, fetchWithdrawals]);
 
   const handleApplyResolution = async (e: React.FormEvent) => {
     e.preventDefault();
