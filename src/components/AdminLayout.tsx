@@ -1,4 +1,4 @@
-﻿import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -30,7 +30,7 @@ export default function AdminLayout() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/login');
+      navigate('/web/login');
     } catch (error) {
       console.error('Erreur de déconnexion:', error);
     }

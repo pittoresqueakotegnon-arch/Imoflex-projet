@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ToastProvider } from './components/Toast';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -172,15 +172,620 @@ function MobileFrame({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AdaptiveRecuRoute() {
-  const { paymentId } = useParams<{ paymentId: string }>();
-  if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-    return <Navigate to={`/web/recu/${paymentId}`} replace />;
+/**
+ * ─────────────────────────────────────────────────────────────
+ * 📱 MobileAppRouter — Routeur dédié à l'application mobile Android (Capacitor)
+ * Navigation autonome dans le MobileFrame, Splash en racine `/`,
+ * aucun composant Web desktop/PublicLayout n'est chargé.
+ * ─────────────────────────────────────────────────────────────
+ */
+function MobileAppRouter() {
+  return (
+    <Routes>
+      {/* ── POINT D'ENTRÉE ANDROID NATIF : SPLASH ── */}
+      <Route path="/" element={<MobileFrame><Splash /></MobileFrame>} />
+      <Route path="/splash" element={<MobileFrame><Splash /></MobileFrame>} />
+
+      {/* ── PUBLIC MOBILE ── */}
+      <Route path="/marketplace" element={<MobileFrame><Marketplace /></MobileFrame>} />
+      <Route path="/filtres" element={<MobileFrame><Filtres /></MobileFrame>} />
+      <Route path="/annonce/:id" element={<MobileFrame><Annonce /></MobileFrame>} />
+      <Route path="/favoris" element={<MobileFrame><Favoris /></MobileFrame>} />
+      <Route path="/mes-demandes" element={<MobileFrame><MesDemandes /></MobileFrame>} />
+      <Route path="/cgu" element={<MobileFrame><CGU /></MobileFrame>} />
+      <Route path="/politique-confidentialite" element={<MobileFrame><PolitiqueConfidentialite /></MobileFrame>} />
+      <Route path="/aide" element={<MobileFrame><Aide /></MobileFrame>} />
+      <Route path="/verifier-document" element={<VerifierDocument />} />
+      <Route
+        path="/contact/:listing_id"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence', 'admin']} redirectTo="/login">
+              <Contact />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+
+      {/* ── ONBOARDING MOBILE ── */}
+      <Route path="/onboarding" element={<MobileFrame><Onboarding /></MobileFrame>} />
+
+      {/* ── AUTH MOBILE ── */}
+      <Route path="/login" element={<MobileFrame><Login /></MobileFrame>} />
+      <Route path="/register" element={<MobileFrame><Register /></MobileFrame>} />
+      <Route path="/forgot-password" element={<MobileFrame><ForgotPassword /></MobileFrame>} />
+      <Route path="/reset-password" element={<MobileFrame><ResetPassword /></MobileFrame>} />
+
+      {/* ── LOCATAIRE MOBILE ── */}
+      <Route
+        path="/dashboard"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
+              <LocataireDashboard />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/logement/:leaseId"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
+              <LogementDetail />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/rejoindre"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
+              <Rejoindre />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/payer/:leaseId"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
+              <Payer />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/historique"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
+              <Historique />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/recu/:paymentId"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence']} redirectTo="/login">
+              <Recu />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+
+      {/* ── PROPRIÉTAIRE MOBILE ── */}
+      <Route
+        path="/pro/dashboard"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+              <ProprietaireDashboard />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/pro/annonces"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+              <ProAnnonces />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/pro/publier"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+              <Publier />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/pro/publier/:listingEditId"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+              <Publier />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/pro/demandes"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+              <Demandes />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/pro/activer/:listing_id"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+              <Activer />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/pro/locataires"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+              <MesLocataires />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/pro/wallet"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+              <Wallet />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/pro/retrait"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+              <Retrait />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/pro/bail/:id"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+              <FicheBail />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/pro/verification"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
+              <VerificationProprietaire />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+
+      {/* ── AGENCE IMMOBILIÈRE MOBILE ── */}
+      <Route
+        path="/agence/dashboard"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['agence', 'proprietaire']} redirectTo="/login">
+              <AgenceDashboard />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/agence/annonces"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['agence', 'proprietaire']} redirectTo="/login">
+              <AgenceAnnonces />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/agence/publier"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['agence', 'proprietaire']} redirectTo="/login">
+              <AgencePublier />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/agence/publier/:listingEditId"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['agence', 'proprietaire']} redirectTo="/login">
+              <AgencePublier />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/agence/demandes"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['agence', 'proprietaire']} redirectTo="/login">
+              <AgenceDemandes />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/agence/profil-agence"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['agence', 'proprietaire']} redirectTo="/login">
+              <AgenceProfilAgence />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+
+      {/* ── PROFIL & PARAMÈTRES MOBILE ── */}
+      <Route
+        path="/profil"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence', 'admin']} redirectTo="/login">
+              <Profil />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/profil/mobile-money"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence', 'admin']} redirectTo="/login">
+              <ProfilMobileMoney />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/profil/mot-de-passe"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence', 'admin']} redirectTo="/login">
+              <ProfilMotDePasse />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/profil/code-retrait"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['proprietaire', 'admin']} redirectTo="/login">
+              <ProfilCodeRetrait />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <MobileFrame>
+            <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence', 'admin']} redirectTo="/login">
+              <Notifications />
+            </RoleGuard>
+          </MobileFrame>
+        }
+      />
+
+      {/* ── REPLI MOBILE (Toujours sur marketplace mobile, jamais 404 Web) ── */}
+      <Route path="*" element={<Navigate to="/marketplace" replace />} />
+    </Routes>
+  );
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * 🌐 WebAppRouter — Routeur dédié à la plateforme Web (Navigateur / Vercel)
+ * Navigation autonome WebLayout / PublicLayout, racine `/` charge WebHome,
+ * interfaces adaptées aux ordinateurs et grands écrans.
+ * ─────────────────────────────────────────────────────────────
+ */
+function WebAppRouter() {
+  return (
+    <Routes>
+      {/* ── ACCUEIL WEB ET ANNONCES PUBLIQUES ── */}
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<WebHome />} />
+        <Route path="/annonces" element={<WebListings />} />
+      </Route>
+
+      {/* ── ESPACE ADMIN (Desktop layout) ── */}
+      <Route
+        path="/admin"
+        element={
+          <RoleGuard allowedRoles={['admin']} redirectTo="/web/login">
+            <AdminLayout />
+          </RoleGuard>
+        }
+      >
+        <Route index element={<AdminDashboard />} />
+        <Route path="annonces" element={<AdminAnnonces />} />
+        <Route path="suppressions" element={<AdminDemandesSuppression />} />
+        <Route path="utilisateurs" element={<AdminUtilisateurs />} />
+        <Route path="transactions" element={<AdminTransactions />} />
+        <Route path="support" element={<AdminSupport />} />
+        <Route path="loyers-retard" element={<AdminLoyersRetard />} />
+        <Route path="config" element={<AdminConfig />} />
+        <Route path="logs" element={<AdminLogs />} />
+        <Route path="verifications" element={<AdminOwnerVerifications />} />
+      </Route>
+
+      {/* ── VERSION WEB OFFICIELLE (Desktop / Tablette / Navigateur) ── */}
+      <Route path="/web" element={<WebLayout />}>
+        <Route index element={<WebHome />} />
+        <Route path="annonces" element={<WebListings />} />
+        <Route path="annonce/:id" element={<WebListing />} />
+        <Route path="login" element={<WebLogin />} />
+        <Route path="register" element={<WebRegister />} />
+        <Route path="forgot-password" element={<WebForgotPassword />} />
+        <Route path="reset-password" element={<WebResetPassword />} />
+        <Route path="aide" element={<WebAide />} />
+        <Route path="verifier-document" element={<VerifierDocument />} />
+        <Route path="cgu" element={<WebCGU />} />
+        <Route path="politique-confidentialite" element={<WebPolitique />} />
+        <Route path="contact" element={<WebContact />} />
+        <Route path="contact/:listing_id" element={<WebContact />} />
+        <Route path="favoris" element={<WebFavoris />} />
+        <Route path="notifications" element={<WebNotifications />} />
+        <Route path="profil" element={<WebProfil />} />
+
+        {/* Espace Locataire */}
+        <Route
+          path="dashboard"
+          element={
+            <WebRoleGuard allowedRoles={['locataire']}>
+              <WebLocataireDashboard />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="paiements"
+          element={
+            <WebRoleGuard allowedRoles={['locataire']}>
+              <WebLocatairePaiements />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="documents"
+          element={
+            <WebRoleGuard allowedRoles={['locataire']}>
+              <WebLocataireDocuments />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="mes-demandes"
+          element={
+            <WebRoleGuard allowedRoles={['locataire']}>
+              <WebLocataireDemandes />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="recu/:paymentId"
+          element={
+            <WebRoleGuard allowedRoles={['locataire', 'proprietaire', 'agence']}>
+              <WebRecu />
+            </WebRoleGuard>
+          }
+        />
+
+        {/* Espace Propriétaire */}
+        <Route
+          path="pro/dashboard"
+          element={
+            <WebRoleGuard allowedRoles={['proprietaire']}>
+              <WebProprietaireDashboard />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="pro/annonces"
+          element={
+            <WebRoleGuard allowedRoles={['proprietaire']}>
+              <WebProprietaireAnnonces />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="pro/mandats"
+          element={
+            <WebRoleGuard allowedRoles={['proprietaire']}>
+              <WebProprietaireMandats />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="pro/publier"
+          element={
+            <WebRoleGuard allowedRoles={['proprietaire']}>
+              <WebProprietairePublier />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="pro/publier/:listingEditId"
+          element={
+            <WebRoleGuard allowedRoles={['proprietaire']}>
+              <WebProprietairePublier />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="pro/demandes"
+          element={
+            <WebRoleGuard allowedRoles={['proprietaire']}>
+              <WebProprietaireDemandes />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="pro/locataires"
+          element={
+            <WebRoleGuard allowedRoles={['proprietaire']}>
+              <WebProprietaireLocataires />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="pro/wallet"
+          element={
+            <WebRoleGuard allowedRoles={['proprietaire']}>
+              <WebProprietaireWallet />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="pro/verification"
+          element={
+            <WebRoleGuard allowedRoles={['proprietaire']}>
+              <WebProprietaireVerification />
+            </WebRoleGuard>
+          }
+        />
+
+        {/* Espace Agence */}
+        <Route
+          path="agence/dashboard"
+          element={
+            <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
+              <WebAgenceDashboard />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="agence/annonces"
+          element={
+            <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
+              <WebAgenceAnnonces />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="agence/publier"
+          element={
+            <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
+              <WebAgencePublier />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="agence/publier/:listingEditId"
+          element={
+            <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
+              <WebAgencePublier />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="agence/demandes"
+          element={
+            <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
+              <WebAgenceDemandes />
+            </WebRoleGuard>
+          }
+        />
+        <Route
+          path="agence/profil"
+          element={
+            <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
+              <WebAgenceProfil />
+            </WebRoleGuard>
+          }
+        />
+
+        {/* 404 Web */}
+        <Route path="*" element={<WebNotFound />} />
+      </Route>
+
+      {/* ── REDIRECTIONS DE CONVENANCE SUR LE WEB (Pour URL directes dans le navigateur) ── */}
+      <Route path="/login" element={<Navigate to="/web/login" replace />} />
+      <Route path="/register" element={<Navigate to="/web/register" replace />} />
+      <Route path="/forgot-password" element={<Navigate to="/web/forgot-password" replace />} />
+      <Route path="/reset-password" element={<Navigate to="/web/reset-password" replace />} />
+      <Route path="/aide" element={<Navigate to="/web/aide" replace />} />
+      <Route path="/cgu" element={<Navigate to="/web/cgu" replace />} />
+      <Route path="/politique-confidentialite" element={<Navigate to="/web/politique-confidentialite" replace />} />
+      <Route path="/contact" element={<Navigate to="/web/contact" replace />} />
+      <Route path="/favoris" element={<Navigate to="/web/favoris" replace />} />
+      <Route path="/verifier-document" element={<VerifierDocument />} />
+      <Route path="/dashboard" element={<Navigate to="/web/dashboard" replace />} />
+      <Route path="/pro/dashboard" element={<Navigate to="/web/pro/dashboard" replace />} />
+      <Route path="/pro/publier" element={<Navigate to="/web/pro/publier" replace />} />
+      <Route path="/agence/dashboard" element={<Navigate to="/web/agence/dashboard" replace />} />
+
+      {/* 404 Web général */}
+      <Route path="*" element={<WebNotFound />} />
+    </Routes>
+  );
+}
+
+/**
+ * Détecte si l'environnement d'exécution doit charger MobileAppRouter ou WebAppRouter.
+ * - Sur Android natif (Capacitor) : TOUJOURS MobileAppRouter.
+ * - Sur le Web : WebAppRouter par défaut.
+ * - En mode simulation/test : MobileAppRouter si route mobile explicite.
+ */
+function isMobilePlatform(): boolean {
+  if (Capacitor.isNativePlatform()) return true;
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname;
+  if (
+    path.startsWith('/marketplace') ||
+    path.startsWith('/splash') ||
+    path.startsWith('/onboarding') ||
+    path.startsWith('/filtres') ||
+    path.startsWith('/rejoindre') ||
+    path.startsWith('/logement/') ||
+    path.startsWith('/payer/') ||
+    window.location.search.includes('platform=mobile') ||
+    window.sessionStorage.getItem('imx_platform') === 'mobile'
+  ) {
+    return true;
   }
-  return <Recu />;
+  return false;
 }
 
 function AppRoutes() {
+  const isMobile = isMobilePlatform();
   useAndroidBackButton();
 
   useEffect(() => {
@@ -188,556 +793,12 @@ function AppRoutes() {
       // Configuration native de la barre de statut
       StatusBar.setStyle({ style: Style.Light }).catch(() => {});
       StatusBar.setBackgroundColor({ color: '#FFFFFF' }).catch(() => {});
-      // Masquer le splash screen natif dÃ¨s que l'app React est montÃ©e
+      // Masquer le splash screen natif dès que l'app React est montée
       SplashScreen.hide().catch(() => {});
     }
   }, []);
 
-  return (
-    <Routes>
-
-              {/* â”€â”€ ESPACE ADMIN (Desktop layout) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-              <Route
-                path="/admin"
-                element={
-                  <RoleGuard allowedRoles={['admin']} redirectTo="/">
-                    <AdminLayout />
-                  </RoleGuard>
-                }
-              >
-                <Route index element={<AdminDashboard />} />
-                <Route path="annonces" element={<AdminAnnonces />} />
-                <Route path="suppressions" element={<AdminDemandesSuppression />} />
-                <Route path="utilisateurs" element={<AdminUtilisateurs />} />
-                <Route path="transactions" element={<AdminTransactions />} />
-                <Route path="support" element={<AdminSupport />} />
-                <Route path="loyers-retard" element={<AdminLoyersRetard />} />
-                <Route path="config" element={<AdminConfig />} />
-                <Route path="logs" element={<AdminLogs />} />
-                <Route path="verifications" element={<AdminOwnerVerifications />} />
-              </Route>
-
-              {/* â”€â”€ VERSION WEB OFFICIELLE (Desktop / Tablette / Navigateur) â”€â”€â”€ */}
-              <Route path="/web" element={<WebLayout />}>
-                <Route index element={<WebHome />} />
-                <Route path="annonces" element={<WebListings />} />
-                <Route path="annonce/:id" element={<WebListing />} />
-                <Route path="login" element={<WebLogin />} />
-                <Route path="register" element={<WebRegister />} />
-                <Route path="forgot-password" element={<WebForgotPassword />} />
-                <Route path="reset-password" element={<WebResetPassword />} />
-                <Route path="aide" element={<WebAide />} />
-                <Route path="verifier-document" element={<VerifierDocument />} />
-                <Route path="cgu" element={<WebCGU />} />
-                <Route path="politique-confidentialite" element={<WebPolitique />} />
-                <Route path="contact" element={<WebContact />} />
-                <Route path="contact/:listing_id" element={<WebContact />} />
-                <Route path="favoris" element={<WebFavoris />} />
-                <Route path="notifications" element={<WebNotifications />} />
-                <Route path="profil" element={<WebProfil />} />
-
-                {/* Espace Locataire */}
-                <Route
-                  path="dashboard"
-                  element={
-                    <WebRoleGuard allowedRoles={['locataire']}>
-                      <WebLocataireDashboard />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="paiements"
-                  element={
-                    <WebRoleGuard allowedRoles={['locataire']}>
-                      <WebLocatairePaiements />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="documents"
-                  element={
-                    <WebRoleGuard allowedRoles={['locataire']}>
-                      <WebLocataireDocuments />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="mes-demandes"
-                  element={
-                    <WebRoleGuard allowedRoles={['locataire']}>
-                      <WebLocataireDemandes />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="recu/:paymentId"
-                  element={
-                    <WebRoleGuard allowedRoles={['locataire', 'proprietaire', 'agence']}>
-                      <WebRecu />
-                    </WebRoleGuard>
-                  }
-                />
-
-                {/* Espace PropriÃ©taire */}
-                <Route
-                  path="pro/dashboard"
-                  element={
-                    <WebRoleGuard allowedRoles={['proprietaire']}>
-                      <WebProprietaireDashboard />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="pro/annonces"
-                  element={
-                    <WebRoleGuard allowedRoles={['proprietaire']}>
-                      <WebProprietaireAnnonces />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="pro/mandats"
-                  element={
-                    <WebRoleGuard allowedRoles={['proprietaire']}>
-                      <WebProprietaireMandats />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="pro/publier"
-                  element={
-                    <WebRoleGuard allowedRoles={['proprietaire']}>
-                      <WebProprietairePublier />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="pro/publier/:listingEditId"
-                  element={
-                    <WebRoleGuard allowedRoles={['proprietaire']}>
-                      <WebProprietairePublier />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="pro/demandes"
-                  element={
-                    <WebRoleGuard allowedRoles={['proprietaire']}>
-                      <WebProprietaireDemandes />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="pro/locataires"
-                  element={
-                    <WebRoleGuard allowedRoles={['proprietaire']}>
-                      <WebProprietaireLocataires />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="pro/wallet"
-                  element={
-                    <WebRoleGuard allowedRoles={['proprietaire']}>
-                      <WebProprietaireWallet />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="pro/verification"
-                  element={
-                    <WebRoleGuard allowedRoles={['proprietaire']}>
-                      <WebProprietaireVerification />
-                    </WebRoleGuard>
-                  }
-                />
-
-                {/* Espace Agence */}
-                <Route
-                  path="agence/dashboard"
-                  element={
-                    <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
-                      <WebAgenceDashboard />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="agence/annonces"
-                  element={
-                    <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
-                      <WebAgenceAnnonces />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="agence/publier"
-                  element={
-                    <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
-                      <WebAgencePublier />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="agence/publier/:listingEditId"
-                  element={
-                    <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
-                      <WebAgencePublier />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="agence/demandes"
-                  element={
-                    <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
-                      <WebAgenceDemandes />
-                    </WebRoleGuard>
-                  }
-                />
-                <Route
-                  path="agence/profil"
-                  element={
-                    <WebRoleGuard allowedRoles={['agence', 'proprietaire']}>
-                      <WebAgenceProfil />
-                    </WebRoleGuard>
-                  }
-                />
-
-                {/* 404 Web */}
-                <Route path="*" element={<WebNotFound />} />
-              </Route>
-
-              {/* â”€â”€ NOUVELLE VERSION OFFICIELLE RESPONSIVE (DESKTOP & MOBILE) â”€â”€â”€ */}
-              <Route element={<PublicLayout />}>
-                <Route path="/" element={<WebHome />} />
-                <Route path="/annonces" element={<WebListings />} />
-              </Route>
-
-              {/* â”€â”€ SPLASH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-              <Route path="/splash" element={<MobileFrame><Splash /></MobileFrame>} />
-
-              {/* â”€â”€ PUBLIC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-              <Route path="/marketplace" element={<MobileFrame><Marketplace /></MobileFrame>} />
-              <Route path="/filtres" element={<MobileFrame><Filtres /></MobileFrame>} />
-              <Route path="/annonce/:id" element={<MobileFrame><Annonce /></MobileFrame>} />
-              <Route path="/favoris" element={<MobileFrame><Favoris /></MobileFrame>} />
-              <Route path="/mes-demandes" element={<MobileFrame><MesDemandes /></MobileFrame>} />
-              <Route path="/cgu" element={<MobileFrame><CGU /></MobileFrame>} />
-              <Route path="/politique-confidentialite" element={<MobileFrame><PolitiqueConfidentialite /></MobileFrame>} />
-              <Route path="/aide" element={<MobileFrame><Aide /></MobileFrame>} />
-              <Route path="/verifier-document" element={<VerifierDocument />} />
-              <Route
-                path="/contact/:listing_id"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence', 'admin']} redirectTo="/login">
-                      <Contact />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-
-              {/* â”€â”€ ONBOARDING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-              <Route path="/onboarding" element={<MobileFrame><Onboarding /></MobileFrame>} />
-
-              {/* â”€â”€ AUTH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-              <Route path="/login" element={<MobileFrame><Login /></MobileFrame>} />
-              <Route path="/register" element={<MobileFrame><Register /></MobileFrame>} />
-              <Route path="/forgot-password" element={<MobileFrame><ForgotPassword /></MobileFrame>} />
-              <Route path="/reset-password" element={<MobileFrame><ResetPassword /></MobileFrame>} />
-
-              {/* â”€â”€ LOCATAIRE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-              <Route
-                path="/dashboard"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
-                      <LocataireDashboard />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/logement/:leaseId"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
-                      <LogementDetail />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/rejoindre"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
-                      <Rejoindre />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/payer/:leaseId"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
-                      <Payer />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/historique"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
-                      <Historique />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/recu/:paymentId"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire']} redirectTo="/login">
-                      <AdaptiveRecuRoute />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-
-              {/* â”€â”€ PROPRIÃ‰TAIRE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-              <Route
-                path="/pro/dashboard"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                      <ProprietaireDashboard />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/pro/annonces"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                      <ProAnnonces />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/pro/publier"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                      <Publier />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/pro/publier/:listingEditId"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                      <Publier />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/pro/demandes"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                      <Demandes />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/pro/activer/:listing_id"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                      <Activer />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/pro/locataires"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                      <MesLocataires />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/pro/wallet"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                      <Wallet />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/pro/retrait"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                      <Retrait />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/pro/verification"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['proprietaire']} redirectTo="/login">
-                      <VerificationProprietaire />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/pro/bail/:id"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['proprietaire', 'agence']} redirectTo="/login">
-                      <FicheBail />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-
-              {/* â”€â”€ AGENCE IMMOBILIÃˆRE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-              <Route
-                path="/agence/dashboard"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['agence']} redirectTo="/login">
-                      <AgenceDashboard />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/agence/annonces"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['agence']} redirectTo="/login">
-                      <AgenceAnnonces />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/agence/publier"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['agence']} redirectTo="/login">
-                      <AgencePublier />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/agence/publier/:listingEditId"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['agence']} redirectTo="/login">
-                      <AgencePublier />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/agence/demandes"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['agence']} redirectTo="/login">
-                      <AgenceDemandes />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/agence/profil-agence"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['agence']} redirectTo="/login">
-                      <AgenceProfilAgence />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-
-              {/* â”€â”€ COMMUN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-              <Route
-                path="/profil"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence', 'admin']} redirectTo="/login">
-                      <Profil />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/profil/mobile-money"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence', 'admin']} redirectTo="/login">
-                      <ProfilMobileMoney />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/profil/mot-de-passe"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence', 'admin']} redirectTo="/login">
-                      <ProfilMotDePasse />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/profil/code-retrait"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['proprietaire', 'admin']} redirectTo="/login">
-                      <ProfilCodeRetrait />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-              <Route
-                path="/notifications"
-                element={
-                  <MobileFrame>
-                    <RoleGuard allowedRoles={['locataire', 'proprietaire', 'agence', 'admin']} redirectTo="/login">
-                      <Notifications />
-                    </RoleGuard>
-                  </MobileFrame>
-                }
-              />
-
-              {/* â”€â”€ 404 FALLBACK â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-              <Route path="*" element={<WebNotFound />} />
-
-            </Routes>
-  );
+  return isMobile ? <MobileAppRouter /> : <WebAppRouter />;
 }
 
 export default function App() {

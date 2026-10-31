@@ -12,7 +12,7 @@ interface RoleGuardProps {
 export const RoleGuard: React.FC<RoleGuardProps> = ({
   children,
   allowedRoles,
-  redirectTo = '/'
+  redirectTo = '/login'
 }) => {
   const { user, profile, role, loading } = useAuth();
 

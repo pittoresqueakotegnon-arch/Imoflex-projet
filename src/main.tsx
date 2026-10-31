@@ -12,16 +12,19 @@ import './index.css';
 
 import { registerSW } from 'virtual:pwa-register';
 import { purgeLegacySharedCaches } from './lib/offlinePrivacy';
+import { Capacitor } from '@capacitor/core';
 
-// Démarre le service worker en mode autoUpdate
-void registerSW({
-  onNeedRefresh() {
-    console.log("Nouvelle version disponible !");
-  },
-  onOfflineReady() {
-    console.log("L'application est prête à être utilisée hors ligne.");
-  },
-});
+// Démarre le service worker en mode autoUpdate UNIQUEMENT sur le Web (désactivé sur Android natif Capacitor)
+if (!Capacitor.isNativePlatform()) {
+  void registerSW({
+    onNeedRefresh() {
+      console.log("Nouvelle version disponible !");
+    },
+    onOfflineReady() {
+      console.log("L'application est prête à être utilisée hors ligne.");
+    },
+  });
+}
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
 if (sentryDsn) {

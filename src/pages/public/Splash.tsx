@@ -13,6 +13,8 @@ export default function Splash() {
     const timer = setTimeout(() => {
       if (role === 'admin') {
         navigate('/admin', { replace: true });
+      } else if (role === 'agence') {
+        navigate('/agence/dashboard', { replace: true });
       } else if (role === 'proprietaire') {
         navigate('/pro/dashboard', { replace: true });
       } else if (role === 'locataire') {

@@ -1,5 +1,6 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
+import { Capacitor } from '@capacitor/core';
 interface Props {
   children: React.ReactNode;
 }
@@ -42,8 +43,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   handleReload = () => {
     this.setState({ hasError: false, errorMessage: '', errorStack: '' });
-    const isWeb = window.location.pathname.startsWith('/web');
-    window.location.href = isWeb ? '/web' : '/';
+    if (Capacitor.isNativePlatform()) {
+      window.location.href = '/marketplace';
+      return;
+    }
+    const isWeb = window.location.pathname.startsWith('/web') || window.location.pathname === '/' || window.location.pathname.startsWith('/annonces');
+    window.location.href = isWeb ? '/' : '/marketplace';
   };
 
   handleRetry = () => {
