@@ -143,13 +143,13 @@ export default function WebProprietaireMandats() {
         <form onSubmit={handleCreate} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block text-sm font-semibold text-slate-700">Agence
-              <select className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 font-normal" value={agencyId} onChange={(event) => setAgencyId(event.target.value)} required>
+              <select className="mandate-select mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 font-normal" value={agencyId} onChange={(event) => setAgencyId(event.target.value)} required>
                 <option value="">Sélectionner une agence</option>
                 {agencies.map((agency) => <option key={agency.id} value={agency.id}>{agency.nom_agence}{agency.ville ? ` — ${agency.ville}` : ''}</option>)}
               </select>
             </label>
             <label className="block text-sm font-semibold text-slate-700">Bien ou annonce
-              <select className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 font-normal" value={resourceKey} onChange={(event) => setResourceKey(event.target.value)} required>
+              <select className="mandate-select mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 font-normal" value={resourceKey} onChange={(event) => setResourceKey(event.target.value)} required>
                 <option value="">Sélectionner un bien ou une annonce</option>
                 {properties.length > 0 && <optgroup label="Biens en gestion">{properties.map((item) => <option key={`property:${item.id}`} value={`property:${item.id}`}>{item.name} — {item.address}</option>)}</optgroup>}
                 {listings.length > 0 && <optgroup label="Annonces">{listings.map((item) => <option key={`listing:${item.id}`} value={`listing:${item.id}`}>{item.title} — {item.city}</option>)}</optgroup>}

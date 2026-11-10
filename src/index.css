@@ -1390,6 +1390,19 @@
   outline: none;
   transition: all 0.15s ease;
 }
+.mandate-select {
+  color-scheme: light;
+  background-color: #f7f5fc;
+}
+.mandate-select option {
+  background-color: #ffffff;
+  color: #17132b;
+}
+.mandate-select optgroup {
+  background-color: #f1ebff;
+  color: #5b21b6;
+  font-weight: 700;
+}
 .web-input:focus, .web-select:focus, .web-textarea:focus {
   border-color: var(--imx-primary);
   box-shadow: 0 0 0 3px rgba(123, 63, 228, 0.12);
