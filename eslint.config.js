@@ -16,7 +16,7 @@ const jsxA11yWarnRules = Object.fromEntries(
 );
 
 export default tseslint.config(
-  { ignores: ['dist', 'e2e', 'playwright-report', 'supabase/functions'] },
+  { ignores: ['dist', 'e2e', 'playwright-report', 'supabase/functions', 'android'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],

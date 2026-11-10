@@ -22,6 +22,15 @@ interface LeaseWithPeriod {
   } | null;
 }
 
+interface PendingLease {
+  id: string;
+  status: 'en_attente_signature' | 'en_attente_entree';
+  propertyName: string;
+  propertyAddress: string;
+  signatureDeadlineAt?: string | null;
+  entryConfirmationDeadlineAt?: string | null;
+}
+
 type LeaseStatus = 'retard' | 'a_venir' | 'solde' | 'sans_periode';
 
 function getLeaseStatus(lease: LeaseWithPeriod): LeaseStatus {
@@ -48,6 +57,7 @@ export default function Dashboard() {
   const { profile, loading: authLoading } = useAuth();
 
   const [leases, setLeases] = useState<LeaseWithPeriod[]>([]);
+  const [pendingLeases, setPendingLeases] = useState<PendingLease[]>([]);
   const [recentPayments, setRecentPayments] = useState<(Payment & { propertyName?: string })[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,6 +75,29 @@ export default function Dashboard() {
           .order('created_at', { ascending: true });
 
         if (leasesError) throw leasesError;
+
+        // Fetch leases requiring signature or entry confirmation
+        const { data: pendingData, error: pendingError } = await supabase
+          .from('leases')
+          .select('id, status, signature_deadline_at, entry_confirmation_deadline_at, properties:property_id(name, address)')
+          .eq('tenant_id', profile.id)
+          .in('status', ['en_attente_signature', 'en_attente_entree'])
+          .order('created_at', { ascending: false });
+
+        if (!pendingError && pendingData) {
+          setPendingLeases(
+            pendingData.map((l: any) => ({
+              id: l.id,
+              status: l.status,
+              propertyName: l.properties?.name || 'Logement',
+              propertyAddress: l.properties?.address || '',
+              signatureDeadlineAt: l.signature_deadline_at,
+              entryConfirmationDeadlineAt: l.entry_confirmation_deadline_at,
+            }))
+          );
+        } else {
+          setPendingLeases([]);
+        }
 
         if (leasesData && leasesData.length > 0) {
           const leaseIds = leasesData.map((l) => l.id);
@@ -186,6 +219,41 @@ export default function Dashboard() {
       </div>
 
       <div className="px-5 flex-1">
+        {pendingLeases.length > 0 && (
+          <div className="flex flex-col gap-3 mb-5">
+            {pendingLeases.map((pl) => (
+              <div
+                key={pl.id}
+                onClick={() => navigate(`/logement/${pl.id}`)}
+                className="p-4 rounded-2xl cursor-pointer active:scale-[0.99] transition-transform border"
+                style={{
+                  background: pl.status === 'en_attente_signature' ? 'rgba(59, 130, 246, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+                  borderColor: pl.status === 'en_attente_signature' ? 'rgba(59, 130, 246, 0.35)' : 'rgba(16, 185, 129, 0.35)',
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span
+                    className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full"
+                    style={{
+                      background: pl.status === 'en_attente_signature' ? '#DBEAFE' : '#D1FAE5',
+                      color: pl.status === 'en_attente_signature' ? '#1E40AF' : '#065F46',
+                    }}
+                  >
+                    {pl.status === 'en_attente_signature' ? 'Action requise : Contrat prêt' : 'Entrée à confirmer'}
+                  </span>
+                  <ChevronRight size={16} className="text-[var(--imx-text-secondary)]" />
+                </div>
+                <h4 className="font-nunito font-bold text-sm text-[var(--imx-text-primary)]">{pl.propertyName}</h4>
+                <p className="text-xs text-[var(--imx-text-secondary)] mt-1" style={{ fontFamily: 'Space Grotesk' }}>
+                  {pl.status === 'en_attente_signature'
+                    ? 'Le propriétaire a validé votre demande. Touchez pour signer votre bail.'
+                    : 'Le contrat est signé. Touchez pour confirmer votre entrée dans le logement.'}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
         {sortedLeases.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ background: 'var(--imx-surface-2)', border: '1px solid var(--imx-border)' }}>

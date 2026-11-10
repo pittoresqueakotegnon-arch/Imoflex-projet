@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CreditCard, AlertCircle, CheckCircle2, Clock, Building2,
-  FileText, Home, Search, RefreshCw, KeyRound, X
+  FileText, Home, Search, RefreshCw, KeyRound, X, ChevronRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../../../hooks/useAuth';
 import { supabase, Payment } from '../../../lib/supabase';
 import { formatMontant, daysUntilDeadline, formatDate } from '../../../lib/utils';
 import { useToast } from '../../../components/Toast';
+import { submitRentalRequest } from '../../../lib/rentalWorkflowService';
 
 /* ─────────────────────────────────────────────────────────────
    WebLocataireDashboard — Dashboard web locataire
@@ -25,6 +26,15 @@ interface LeaseWithPeriod {
     amount_paid: number;
     deadline_date: string;
   } | null;
+}
+
+interface PendingLease {
+  id: string;
+  status: 'en_attente_signature' | 'en_attente_entree';
+  propertyName: string;
+  propertyAddress: string;
+  signatureDeadlineAt?: string | null;
+  entryConfirmationDeadlineAt?: string | null;
 }
 
 interface JoinedProperty {
@@ -58,6 +68,7 @@ export default function WebLocataireDashboard() {
   const { showToast } = useToast();
 
   const [leases, setLeases] = useState<LeaseWithPeriod[]>([]);
+  const [pendingLeases, setPendingLeases] = useState<PendingLease[]>([]);
   const [recentPayments, setRecentPayments] = useState<(Payment & { propertyName?: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -69,6 +80,15 @@ export default function WebLocataireDashboard() {
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joinLoading, setJoinLoading] = useState(false);
   const [previewProperty, setPreviewProperty] = useState<JoinedProperty | null>(null);
+  const [requestStartDate, setRequestStartDate] = useState(() => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10));
+  const [requestDuration, setRequestDuration] = useState('1');
+  const [requestCustomEndDate, setRequestCustomEndDate] = useState('');
+  const [requestPhone, setRequestPhone] = useState(profile?.phone || '');
+  const [requestMessage, setRequestMessage] = useState('Je souhaite louer ce logement.');
+
+  useEffect(() => {
+    if (profile?.phone) setRequestPhone(profile.phone);
+  }, [profile?.phone]);
 
   const fetchData = useCallback(async () => {
     if (!profile?.id) { setLoading(false); return; }
@@ -81,6 +101,29 @@ export default function WebLocataireDashboard() {
         .order('created_at', { ascending: true });
 
       if (leasesError) throw leasesError;
+
+      // Fetch leases requiring signature or entry confirmation
+      const { data: pendingData, error: pendingError } = await supabase
+        .from('leases')
+        .select('id, status, signature_deadline_at, entry_confirmation_deadline_at, properties:property_id(name, address)')
+        .eq('tenant_id', profile.id)
+        .in('status', ['en_attente_signature', 'en_attente_entree'])
+        .order('created_at', { ascending: false });
+
+      if (!pendingError && pendingData) {
+        setPendingLeases(
+          pendingData.map((l: any) => ({
+            id: l.id,
+            status: l.status,
+            propertyName: l.properties?.name || 'Logement',
+            propertyAddress: l.properties?.address || '',
+            signatureDeadlineAt: l.signature_deadline_at,
+            entryConfirmationDeadlineAt: l.entry_confirmation_deadline_at,
+          }))
+        );
+      } else {
+        setPendingLeases([]);
+      }
 
       if (leasesData && leasesData.length > 0) {
         const leaseIds = leasesData.map(l => l.id);
@@ -193,12 +236,14 @@ export default function WebLocataireDashboard() {
     setJoinError(null);
 
     try {
-      const cleanCode = accessCode.trim().toUpperCase();
-      const { error } = await supabase.rpc('join_property_with_access_code', {
-        p_access_code: cleanCode,
+      await submitRentalRequest({
+        accessCode,
+        contactPhone: requestPhone,
+        startDate: requestStartDate,
+        durationMonths: requestDuration === 'custom' ? null : Number(requestDuration),
+        customEndDate: requestDuration === 'custom' ? requestCustomEndDate : null,
+        message: requestMessage,
       });
-
-      if (error) throw error;
 
       confetti({
         particleCount: 70,
@@ -207,7 +252,7 @@ export default function WebLocataireDashboard() {
       });
 
       setJoinStep('complete');
-      showToast('Logement rejoint avec succès !', 'success');
+      showToast('Demande de location envoyée', 'success');
       fetchData();
     } catch (err: any) {
       let msg = 'Erreur lors de la liaison au logement.';
@@ -362,6 +407,52 @@ export default function WebLocataireDashboard() {
           <p className="web-label">Restant à payer ce mois</p>
         </div>
       </div>
+
+      {/* Pending leases requiring action */}
+      {pendingLeases.length > 0 && (
+        <div className="space-y-3 mb-6">
+          {pendingLeases.map((pl) => (
+            <Link
+              key={pl.id}
+              to={`/web/logement/${pl.id}`}
+              className="flex items-center gap-4 p-4 rounded-2xl border transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md"
+              style={{
+                background: pl.status === 'en_attente_signature' ? 'rgba(59, 130, 246, 0.07)' : 'rgba(16, 185, 129, 0.07)',
+                borderColor: pl.status === 'en_attente_signature' ? 'rgba(59, 130, 246, 0.35)' : 'rgba(16, 185, 129, 0.35)',
+              }}
+            >
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: pl.status === 'en_attente_signature' ? '#DBEAFE' : '#D1FAE5',
+                  color: pl.status === 'en_attente_signature' ? '#1E40AF' : '#065F46',
+                }}
+              >
+                {pl.status === 'en_attente_signature'
+                  ? <FileText size={18} />
+                  : <CheckCircle2 size={18} />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <span
+                  className="text-[10px] font-extrabold uppercase tracking-wide"
+                  style={{ color: pl.status === 'en_attente_signature' ? '#1E40AF' : '#065F46' }}
+                >
+                  {pl.status === 'en_attente_signature' ? 'Action requise — Contrat prêt à signer' : 'Action requise — Entrée à confirmer'}
+                </span>
+                <p className="font-semibold text-sm truncate mt-0.5" style={{ color: 'var(--imx-text-primary)', fontFamily: 'Inter, sans-serif' }}>
+                  {pl.propertyName}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--imx-text-muted)' }}>
+                  {pl.status === 'en_attente_signature'
+                    ? 'Le propriétaire a accepté votre demande. Cliquez pour signer votre bail.'
+                    : 'Le contrat est signé. Cliquez pour confirmer votre entrée dans le logement.'}
+                </p>
+              </div>
+              <ChevronRight size={18} className="flex-shrink-0" style={{ color: 'var(--imx-text-muted)' }} />
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* Leases */}
       {sortedLeases.length === 0 ? (
@@ -649,7 +740,7 @@ export default function WebLocataireDashboard() {
                   Rejoindre un logement
                 </h3>
                 <p className="text-xs text-gray-500 text-center mb-5 leading-relaxed">
-                  Entrez le code d’accès fourni par votre propriétaire ou votre agence pour activer votre bail.
+                  Entrez le code pour vérifier le logement et envoyer une demande au propriétaire ou à l’agence.
                 </p>
 
                 {joinError && (
@@ -665,7 +756,8 @@ export default function WebLocataireDashboard() {
                       type="text"
                       value={accessCode}
                       onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
-                      placeholder="EX: ABC123"
+                      placeholder="EX: IMO-472812"
+                      maxLength={10}
                       autoFocus
                       required
                       className="w-full px-4 py-3 rounded-xl border text-center text-lg font-mono tracking-widest uppercase font-bold outline-none"
@@ -695,7 +787,7 @@ export default function WebLocataireDashboard() {
                   Confirmer le logement
                 </h3>
                 <p className="text-xs text-gray-500 mb-4">
-                  Vérifiez que ce logement correspond bien à votre contrat de location.
+                  Vérifiez le logement et indiquez la période souhaitée. Le bail ne sera pas créé avant la décision du propriétaire ou de l’agence.
                 </p>
 
                 {joinError && (
@@ -730,7 +822,30 @@ export default function WebLocataireDashboard() {
                 </div>
 
                 <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-100 text-[11px] text-purple-900 mb-5 leading-relaxed">
-                  En confirmant, ce logement sera rattaché à votre compte. Vous pourrez payer votre loyer et obtenir vos quittances en ligne.
+                  Votre demande sera examinée. Après acceptation, un contrat sera préparé et devra être signé par les deux parties avant l’état des lieux d’entrée.
+                </div>
+
+                <div className="space-y-3 mb-5">
+                  <label className="block text-xs font-semibold text-gray-600">Date d’entrée souhaitée
+                    <input type="date" min={requestStartDate} value={requestStartDate} onChange={(e) => setRequestStartDate(e.target.value)} className="w-full mt-1 px-3 py-2.5 rounded-lg border" style={{ borderColor: 'var(--imx-border)' }} />
+                  </label>
+                  <label className="block text-xs font-semibold text-gray-600">Durée
+                    <select value={requestDuration} onChange={(e) => setRequestDuration(e.target.value)} className="w-full mt-1 px-3 py-2.5 rounded-lg border bg-white" style={{ borderColor: 'var(--imx-border)' }}>
+                      {[1, 2, 3, 4, 5, 6, 12, 24].map((months) => <option key={months} value={months}>{months} mois</option>)}
+                      <option value="custom">Personnalisée</option>
+                    </select>
+                  </label>
+                  {requestDuration === 'custom' && (
+                    <label className="block text-xs font-semibold text-gray-600">Date de fin souhaitée
+                      <input type="date" min={requestStartDate} value={requestCustomEndDate} onChange={(e) => setRequestCustomEndDate(e.target.value)} className="w-full mt-1 px-3 py-2.5 rounded-lg border" style={{ borderColor: 'var(--imx-border)' }} />
+                    </label>
+                  )}
+                  <label className="block text-xs font-semibold text-gray-600">Téléphone
+                    <input type="tel" minLength={6} maxLength={20} required value={requestPhone} onChange={(e) => setRequestPhone(e.target.value)} className="w-full mt-1 px-3 py-2.5 rounded-lg border" style={{ borderColor: 'var(--imx-border)' }} />
+                  </label>
+                  <label className="block text-xs font-semibold text-gray-600">Message au gestionnaire
+                    <textarea maxLength={2000} required value={requestMessage} onChange={(e) => setRequestMessage(e.target.value)} className="w-full mt-1 px-3 py-2.5 rounded-lg border min-h-20" style={{ borderColor: 'var(--imx-border)' }} />
+                  </label>
                 </div>
 
                 <div className="flex gap-2">
@@ -744,14 +859,14 @@ export default function WebLocataireDashboard() {
                   <button
                     type="button"
                     onClick={handleConfirmJoin}
-                    disabled={joinLoading}
+                    disabled={joinLoading || !requestPhone.trim() || !requestMessage.trim() || (requestDuration === 'custom' && !requestCustomEndDate)}
                     className="w-2/3 py-3 rounded-xl text-sm font-bold text-white shadow-md transition-opacity hover:opacity-90 disabled:opacity-50"
                     style={{ background: 'var(--imx-accent)' }}
                   >
                     {joinLoading ? (
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
                     ) : (
-                      'Confirmer et rejoindre'
+                      'Envoyer ma demande'
                     )}
                   </button>
                 </div>
@@ -764,10 +879,10 @@ export default function WebLocataireDashboard() {
                   <CheckCircle2 size={32} />
                 </div>
                 <h3 className="text-lg font-black text-[#17132B] mb-2" style={{ fontFamily: 'Sora' }}>
-                  Félicitations !
+                  Demande envoyée
                 </h3>
                 <p className="text-xs text-gray-600 mb-6 leading-relaxed max-w-xs mx-auto">
-                  Votre contrat de location a été activé avec succès. Vous pouvez dès maintenant gérer vos loyers et quittances.
+                  Votre demande va être examinée. Le bail ne sera actif qu’après acceptation, signature des deux parties et état des lieux d’entrée.
                 </p>
                 <button
                   onClick={() => setJoinModalOpen(false)}

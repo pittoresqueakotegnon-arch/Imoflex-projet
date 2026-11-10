@@ -462,7 +462,7 @@ export default function WebProprietaireDashboard() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
               { to: '/web/pro/annonces', icon: <Building2 size={20} />, label: 'Mes annonces', count: data.totalListings, desc: 'Gérer les publications' },
-              { to: '/web/pro/demandes', icon: <ClipboardList size={20} />, label: 'Demandes de visite', count: null, desc: 'Prospects et contacts' },
+              { to: '/web/pro/demandes', icon: <ClipboardList size={20} />, label: 'Demandes reçues', count: null, desc: 'Location & contacts' },
               { to: '/web/pro/locataires', icon: <Users size={20} />, label: 'Mes locataires', count: data.propertiesStats.occupied, desc: 'Baux & paiements' },
               { to: '/web/pro/wallet', icon: <Wallet size={20} />, label: 'Portefeuille', count: null, desc: 'Demander un retrait' },
             ].map(item => (
